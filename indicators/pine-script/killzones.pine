@@ -1,0 +1,124 @@
+// © jaysuhnt
+// Killzones & Sessions indicator for ICT/SMC scalping.
+// Highlights Asia, London, NY AM, NY Silver Bullet, NY PM windows
+// with optional session high/low lines. Times default to EST.
+
+//@version=5
+indicator("Jaysuhnt — Killzones", overlay = true, max_lines_count = 500, max_boxes_count = 500)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+grpGen = "General"
+tz       = input.string("America/New_York", "Timezone", options = ["America/New_York", "Europe/London", "Etc/UTC"], group = grpGen, tooltip = "All session times below are interpreted in this timezone.")
+showBg   = input.bool(true,  "Highlight session background",  group = grpGen)
+showHL   = input.bool(true,  "Draw session High / Low lines", group = grpGen)
+extendHL = input.bool(true,  "Extend session H/L until next session", group = grpGen)
+showLbl  = input.bool(true,  "Show session labels",           group = grpGen)
+maxTF    = input.timeframe("15", "Hide above this timeframe", group = grpGen, tooltip = "Indicator only draws on this timeframe and below. Set to 15 for scalping.")
+
+// Asia
+grpA = "Asia (Range builder)"
+useA = input.bool(true,  "Show Asia",                  group = grpA)
+sA   = input.session("2000-0000", "Asia session",      group = grpA)
+cA   = input.color(color.new(color.gray, 85), "Color", group = grpA)
+
+// London
+grpL = "London Open Killzone"
+useL = input.bool(true,  "Show London",                group = grpL)
+sL   = input.session("0200-0500", "London session",    group = grpL)
+cL   = input.color(color.new(color.blue, 80), "Color", group = grpL)
+
+// NY AM
+grpN = "New York AM Killzone"
+useN = input.bool(true,  "Show NY AM",                 group = grpN)
+sN   = input.session("0700-1000", "NY AM session",     group = grpN)
+cN   = input.color(color.new(color.green, 80), "Color", group = grpN)
+
+// Silver Bullet
+grpS = "NY Silver Bullet"
+useS = input.bool(true,  "Show Silver Bullet",         group = grpS)
+sS   = input.session("1000-1100", "Silver Bullet",     group = grpS)
+cS   = input.color(color.new(color.orange, 70), "Color", group = grpS)
+
+// NY PM
+grpP = "New York PM"
+useP = input.bool(true,  "Show NY PM",                 group = grpP)
+sP   = input.session("1330-1600", "NY PM session",     group = grpP)
+cP   = input.color(color.new(color.purple, 80), "Color", group = grpP)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+inSession(sess) =>
+    not na(time(timeframe.period, sess, tz))
+
+// Returns true on the first bar of a session, true throughout, false otherwise
+sessionState(sess) =>
+    inNow  = inSession(sess)
+    inPrev = inSession(sess)[1]
+    started = inNow and not inPrev
+    ended   = not inNow and inPrev
+    [inNow, started, ended]
+
+// Hide on higher timeframes
+tfMinutes(tf) => timeframe.in_seconds(tf) / 60
+allowed = tfMinutes(timeframe.period) <= tfMinutes(maxTF)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SESSION TRACKER
+// ─────────────────────────────────────────────────────────────────────────────
+type SessionData
+    string name
+    color  col
+    bool   enabled
+    string sess
+    float  hi
+    float  lo
+    int    startBar
+    line   hiLine
+    line   loLine
+    box    bg
+    label  lbl
+
+var array<SessionData> sessions = array.new<SessionData>()
+
+if barstate.isfirst
+    array.push(sessions, SessionData.new("Asia",   cA, useA, sA, na, na, na, na, na, na, na))
+    array.push(sessions, SessionData.new("London", cL, useL, sL, na, na, na, na, na, na, na))
+    array.push(sessions, SessionData.new("NY AM",  cN, useN, sN, na, na, na, na, na, na, na))
+    array.push(sessions, SessionData.new("SB",     cS, useS, sS, na, na, na, na, na, na, na))
+    array.push(sessions, SessionData.new("NY PM",  cP, useP, sP, na, na, na, na, na, na, na))
+
+if allowed
+    for i = 0 to array.size(sessions) - 1
+        s = array.get(sessions, i)
+        if s.enabled
+            [inNow, started, ended] = sessionState(s.sess)
+
+            // Track high/low while in session
+            if started
+                s.hi := high
+                s.lo := low
+                s.startBar := bar_index
+                if showBg
+                    s.bg := box.new(left = bar_index, top = high, right = bar_index + 1, bottom = low, bgcolor = s.col, border_color = color.new(s.col, 100))
+                if showLbl
+                    s.lbl := label.new(x = bar_index, y = high, text = s.name, style = label.style_label_down, color = color.new(s.col, 50), textcolor = color.white, size = size.small)
+            else if inNow
+                s.hi := math.max(s.hi, high)
+                s.lo := math.min(s.lo, low)
+                if showBg and not na(s.bg)
+                    box.set_right(s.bg, bar_index + 1)
+                    box.set_top(s.bg,   s.hi)
+                    box.set_bottom(s.bg, s.lo)
+                if showLbl and not na(s.lbl)
+                    label.set_xy(s.lbl, math.round((s.startBar + bar_index) / 2), s.hi)
+
+            // Draw H/L lines when session ends
+            if ended and showHL and not na(s.hi)
+                rightX = extendHL ? bar_index + 500 : bar_index
+                s.hiLine := line.new(x1 = s.startBar, y1 = s.hi, x2 = rightX, y2 = s.hi, color = s.col, width = 1, style = line.style_dashed, extend = extend.none)
+                s.loLine := line.new(x1 = s.startBar, y1 = s.lo, x2 = rightX, y2 = s.lo, color = s.col, width = 1, style = line.style_dashed, extend = extend.none)
+
+            array.set(sessions, i, s)
