@@ -7,17 +7,21 @@ report under reports/.
 
 Usage:
     export POLYGON_API_KEY=pk_xxx
-    python run_validation.py            # both instruments
-    python run_validation.py xau        # XAU only
-    python run_validation.py qqq        # QQQ (NQ proxy) only
+    python run_validation.py                       # both instruments, .pine params
+    python run_validation.py xau                   # XAU only
+    python run_validation.py qqq                   # QQQ (NQ proxy) only
+    python run_validation.py --min-score 4         # override min_score for diagnostics
 
-No arguments beyond the instrument tag are accepted on purpose. This
-script is for VALIDATION, not optimisation. Parameters live in the
-.pine file and `pss/params.py`; if they need to change, change those.
+The --min-score override exists for one specific reason: to query a
+fired-signal subset directly (e.g. "what if we only took 4/4 fires?")
+WITHOUT calling that optimisation. Diagnostic isolation only. The
+report filename is suffixed with the override so it never clobbers the
+canonical .pine-params report.
 """
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import os
 import sys
 from datetime import date
@@ -58,24 +62,40 @@ INSTRUMENTS = {
 }
 
 
-def run_one(tag: str, api_key: str) -> Path:
+def run_one(tag: str, api_key: str, min_score_override=None) -> Path:
     spec = INSTRUMENTS[tag]
+    p = spec["params"]
+    suffix = ""
+    notes = spec["notes"]
+    if min_score_override is not None and min_score_override != p.min_score:
+        p = dataclasses.replace(p, min_score=min_score_override)
+        suffix = f"_score{min_score_override}"
+        notes = (
+            f"{notes}\n\n"
+            f"DIAGNOSTIC OVERRIDE: min_score forced to {min_score_override} "
+            f"(.pine value is {spec['params'].min_score}). All other params "
+            f"unchanged."
+        )
+
     print(f"[{tag}] fetching 5m bars ...")
     bars = spec["fetch"](api_key=api_key, years=2)
     print(f"[{tag}]   {len(bars):,} bars from {bars.index[0]} to {bars.index[-1]}")
 
-    print(f"[{tag}] computing signals ...")
-    sig = compute_signals(bars, spec["params"])
+    print(f"[{tag}] computing signals (min_score={p.min_score}) ...")
+    sig = compute_signals(bars, p)
     print(
         f"[{tag}]   long fires: {int(sig['signal_long'].sum()):,}   "
         f"short fires: {int(sig['signal_short'].sum()):,}"
     )
 
     print(f"[{tag}] running backtest ...")
-    trades = run_backtest(sig, spec["params"])
+    trades = run_backtest(sig, p)
     print(f"[{tag}]   trades: {len(trades):,}")
 
-    out = HERE / "reports" / f"pss_validation_{tag}_{date.today().isoformat()}.md"
+    out = (
+        HERE / "reports"
+        / f"pss_validation_{tag}{suffix}_{date.today().isoformat()}.md"
+    )
     report.write_report(
         out_path=out,
         instrument=spec["label"],
@@ -83,8 +103,8 @@ def run_one(tag: str, api_key: str) -> Path:
         bars_df=bars,
         sig_df=sig,
         trades=trades,
-        params=spec["params"],
-        notes=spec["notes"],
+        params=p,
+        notes=notes,
     )
     print(f"[{tag}] report -> {out}")
     return out
@@ -97,6 +117,13 @@ def main() -> int:
         nargs="*",
         help="instrument tags to run; choose from "
              f"{sorted(INSTRUMENTS.keys())} (default: all)",
+    )
+    parser.add_argument(
+        "--min-score",
+        type=int,
+        default=None,
+        choices=[2, 3, 4],
+        help="diagnostic override for min_score (default: use .pine value)",
     )
     args = parser.parse_args()
     invalid = [t for t in args.instruments if t not in INSTRUMENTS]
@@ -112,7 +139,7 @@ def main() -> int:
     targets = args.instruments or list(INSTRUMENTS.keys())
     for tag in targets:
         try:
-            run_one(tag, api_key)
+            run_one(tag, api_key, min_score_override=args.min_score)
         except Exception as exc:
             print(f"[{tag}] FAILED: {exc}", file=sys.stderr)
             import traceback

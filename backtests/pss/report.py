@@ -163,7 +163,12 @@ def coin_flip_baseline(
     coin-flip distribution?
     """
     if trades.empty:
-        return dict(mean_total_r=0.0, std_total_r=0.0, p_at_least_strategy=1.0)
+        return dict(
+            mean_total_r=0.0,
+            std_total_r=0.0,
+            p_at_least_strategy=1.0,
+            strategy_total_r=0.0,
+        )
 
     rng = np.random.default_rng(seed)
     n = len(trades)
