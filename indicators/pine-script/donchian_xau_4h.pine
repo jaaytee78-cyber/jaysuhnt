@@ -1,0 +1,184 @@
+// ══════════════════════════════════════════════════════════════════════════
+// Donchian 4h XAU — Trend-Following Breakout
+// Pine Script v6
+//
+// VALIDATION SUMMARY (real Polygon 5m data resampled to 4h, 2y window)
+// ────────────────────────────────────────────────────────────────────────
+//   IS (18 months): 149 trades, 28% WR, +0.10R/trade, PF 1.14, P=0.247
+//   OOS (6 months):  43 trades, 42% WR, +0.62R/trade, PF 2.06, P=0.029
+//
+//   Coin-flip P=0.029 OOS is the only sub-0.05 P-value across ALL XAU
+//   validation runs in this repo. OOS exceeded IS (opposite of overfit).
+//   Sibling test (9/21 EMA cross 4h) showed similar OOS (+0.58R, PF 2.02)
+//   confirming the edge is the 4h trend itself, not specific to Donchian.
+//
+//   Critical asymmetry: longs strongly positive in IS (+0.51R/trade across
+//   105 trades). Shorts deeply negative IS (-0.87R/trade across 44 trades)
+//   because 2024-2026 was a structural XAU bull market and breakout shorts
+//   faded the trend. Default is LONGS ONLY. Re-enable shorts manually only
+//   if a sustained downtrend is confirmed.
+//
+//   Reports: backtests/reports/donchian_validation_xau_*_2026-05-21.md
+//
+// HOW TO USE:
+//   1. Apply to XAUUSD on 4h timeframe (4-hour candles).
+//   2. Default rules: long when close breaks above prior 20-bar high.
+//      Stop = 2x ATR(14) below entry. Target = 6x ATR(14) above entry (3:1).
+//   3. Position is held until stop or target hits. No time stop.
+//   4. Cooldown of 5 bars between same-side fires (~20 hours on 4h).
+//   5. Optional: enable shorts via the input toggle.
+//
+//   This indicator paints SIGNALS only. It does NOT auto-execute trades.
+// ══════════════════════════════════════════════════════════════════════════
+
+//@version=6
+indicator("Donchian 4h XAU — Trend Breakout",
+          shorttitle="DON4H", overlay=true,
+          max_labels_count=500, max_lines_count=200)
+
+// ── INPUTS ────────────────────────────────────────────────────────────────
+i_lookback     = input.int(20,    minval=5,    maxval=100, title="Donchian Lookback (bars)",
+                 group="Strategy",
+                 tooltip="Validated default: 20")
+i_atrPeriod    = input.int(14,    minval=5,    maxval=50,  title="ATR Period",
+                 group="Strategy")
+i_stopAtr      = input.float(2.0, minval=0.5,  maxval=5.0, step=0.25,
+                 title="Stop = N × ATR", group="Strategy",
+                 tooltip="Validated default: 2.0")
+i_rrRatio      = input.float(3.0, minval=1.0,  maxval=10.0, step=0.5,
+                 title="Target Risk:Reward", group="Strategy",
+                 tooltip="Validated default: 3.0 (target = entry + 6×ATR for long)")
+i_cooldown     = input.int(5,     minval=0,    maxval=50,  title="Cooldown (bars between same-side fires)",
+                 group="Strategy",
+                 tooltip="Validated default: 5 (≈20 hours on 4h)")
+
+i_enableLongs  = input.bool(true,  title="Enable LONG signals",  group="Direction")
+i_enableShorts = input.bool(false, title="Enable SHORT signals", group="Direction",
+                 tooltip="Validation showed shorts -0.87R/trade in IS during 2024-2026 bull market. Enable manually only if a sustained downtrend is confirmed.")
+
+i_warnNonXAU   = input.bool(true, title="Warn if applied to non-XAU symbol", group="Display")
+i_warnNon4h    = input.bool(true, title="Warn if applied to non-4h timeframe", group="Display")
+
+// ── INSTRUMENT / TIMEFRAME GUARD ──────────────────────────────────────────
+bool isXAU = str.contains(str.lower(syminfo.ticker), "xau") or
+             str.contains(str.lower(syminfo.ticker), "gold") or
+             str.contains(str.lower(syminfo.tickerid), "xau")
+bool is4h  = timeframe.period == "240"
+
+// ── DONCHIAN CHANNEL ──────────────────────────────────────────────────────
+// upperPrev = highest high over the prior `lookback` bars (excluding current).
+// lowerPrev = lowest low over the prior `lookback` bars.
+float upperPrev = ta.highest(high, i_lookback)[1]
+float lowerPrev = ta.lowest(low,   i_lookback)[1]
+float midPrev   = (upperPrev + lowerPrev) / 2.0
+
+// ── ATR for stops/targets ─────────────────────────────────────────────────
+float atrVal = ta.atr(i_atrPeriod)
+
+// ── BREAKOUT DETECTION ────────────────────────────────────────────────────
+bool longBreak  = close > upperPrev
+bool shortBreak = close < lowerPrev
+
+// ── COOLDOWN ──────────────────────────────────────────────────────────────
+var int barsLastLong  = 9999
+var int barsLastShort = 9999
+barsLastLong  := barsLastLong  + 1
+barsLastShort := barsLastShort + 1
+
+bool longReady  = barsLastLong  > i_cooldown
+bool shortReady = barsLastShort > i_cooldown
+
+bool longSignal  = i_enableLongs  and longBreak  and longReady  and not na(atrVal)
+bool shortSignal = i_enableShorts and shortBreak and shortReady and not na(atrVal)
+
+if longSignal
+    barsLastLong := 0
+if shortSignal
+    barsLastShort := 0
+
+// ── STOPS & TARGETS (frozen at fire bar) ──────────────────────────────────
+var float lastEntry = na
+var float lastStop  = na
+var float lastTgt   = na
+var string lastSide = "NONE"
+
+if longSignal
+    lastEntry := close
+    lastStop  := close - i_stopAtr * atrVal
+    lastTgt   := close + i_stopAtr * atrVal * i_rrRatio
+    lastSide  := "LONG"
+
+if shortSignal
+    lastEntry := close
+    lastStop  := close + i_stopAtr * atrVal
+    lastTgt   := close - i_stopAtr * atrVal * i_rrRatio
+    lastSide  := "SHORT"
+
+// ── PLOTS: Donchian channel ───────────────────────────────────────────────
+plot(upperPrev, color=color.new(color.red,   60), linewidth=1, title="Donchian High (prior 20)")
+plot(lowerPrev, color=color.new(color.green, 60), linewidth=1, title="Donchian Low (prior 20)")
+plot(midPrev,   color=color.new(color.gray,  80), linewidth=1, title="Donchian Mid", style=plot.style_circles)
+
+// ── PLOTS: signal markers ─────────────────────────────────────────────────
+plotshape(longSignal,  title="LONG",  style=shape.triangleup,   location=location.belowbar,
+          color=color.new(color.green, 0), size=size.small, text="L")
+plotshape(shortSignal, title="SHORT", style=shape.triangledown, location=location.abovebar,
+          color=color.new(color.red,   0), size=size.small, text="S")
+
+// ── PLOTS: stop & target lines for the most recent signal ────────────────
+var line lineStop = na
+var line lineTgt  = na
+var line lineEnt  = na
+
+if longSignal or shortSignal
+    if not na(lineStop)
+        line.delete(lineStop)
+    if not na(lineTgt)
+        line.delete(lineTgt)
+    if not na(lineEnt)
+        line.delete(lineEnt)
+    lineEnt  := line.new(bar_index, lastEntry, bar_index + 30, lastEntry,
+                         color=color.new(color.white, 30), style=line.style_dotted, width=1)
+    lineStop := line.new(bar_index, lastStop,  bar_index + 30, lastStop,
+                         color=color.new(color.red,   10), style=line.style_dashed, width=1)
+    lineTgt  := line.new(bar_index, lastTgt,   bar_index + 30, lastTgt,
+                         color=color.new(color.green, 10), style=line.style_dashed, width=1)
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+string warnLine = ""
+if i_warnNonXAU and not isXAU
+    warnLine := "⚠ NON-XAU SYMBOL"
+if i_warnNon4h and not is4h
+    warnLine := warnLine == "" ? "⚠ NON-4H TIMEFRAME" : warnLine + "\n⚠ NON-4H TIMEFRAME"
+
+string sideLine = lastSide == "NONE" ? "no signal yet" : lastSide
+string entryStr = na(lastEntry) ? "—" : str.tostring(math.round(lastEntry, 2))
+string stopStr  = na(lastStop)  ? "—" : str.tostring(math.round(lastStop,  2))
+string tgtStr   = na(lastTgt)   ? "—" : str.tostring(math.round(lastTgt,   2))
+string atrStr   = na(atrVal)    ? "—" : str.tostring(math.round(atrVal, 4))
+
+string upperStr = na(upperPrev) ? "—" : str.tostring(math.round(upperPrev, 2))
+string lowerStr = na(lowerPrev) ? "—" : str.tostring(math.round(lowerPrev, 2))
+
+string dirLine = (i_enableLongs and i_enableShorts) ? "BOTH" : i_enableLongs ? "LONGS ONLY" : i_enableShorts ? "SHORTS ONLY" : "DISABLED"
+
+string dash = "DON4H — XAU 4h Trend Breakout" + "\n─────────────────────" + "\nDIRECTION   " + dirLine + "\nDONCHIAN HI " + upperStr + "\nDONCHIAN LO " + lowerStr + "\nATR(" + str.tostring(i_atrPeriod) + ")     " + atrStr + "\n─────────────────────" + "\nLAST SIDE   " + sideLine + "\nLAST ENTRY  " + entryStr + "\nLAST STOP   " + stopStr + "\nLAST TGT    " + tgtStr + "\n─────────────────────" + "\nSTOP MULT   " + str.tostring(i_stopAtr) + "×" + "\nRR          " + str.tostring(i_rrRatio) + "\nCOOLDOWN    " + str.tostring(i_cooldown) + " bars" + (warnLine == "" ? "" : "\n─────────────────────\n" + warnLine)
+
+var table dash_tbl = table.new(position.top_right, 1, 1,
+                               bgcolor=color.new(color.black, 15),
+                               border_color=color.new(color.gray, 60),
+                               border_width=1,
+                               frame_color=color.new(color.gray, 40),
+                               frame_width=1)
+table.cell(dash_tbl, 0, 0, dash,
+           text_color=color.new(color.white, 10),
+           text_size=size.small,
+           text_halign=text.align_left)
+
+// ── ALERTS ────────────────────────────────────────────────────────────────
+alertcondition(longSignal,                title="DON4H Long",
+               message="DON4H LONG — {{ticker}} {{interval}} @ {{close}}")
+alertcondition(shortSignal,               title="DON4H Short",
+               message="DON4H SHORT — {{ticker}} {{interval}} @ {{close}}")
+alertcondition(longSignal or shortSignal, title="DON4H Any Signal",
+               message="DON4H SIGNAL — {{ticker}} {{interval}} @ {{close}}")

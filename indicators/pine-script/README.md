@@ -1,6 +1,6 @@
 # Pine Script Indicators
 
-Custom TradingView indicators. All written in **Pine Script v5**.
+Custom TradingView indicators. Pine Script v5 / v6 (per file).
 
 ## How to install one
 
@@ -16,9 +16,17 @@ To save it permanently across charts, click **Add to chart**, then on the chart 
 
 ## Indicators in this folder
 
-| File | Purpose |
-|---|---|
-| `killzones.pine` | Highlights London / NY killzones with optional session high/low lines |
+| File | Pine | Purpose | Validated? |
+|---|---|---|---|
+| `killzones.pine` | v5 | London / NY killzones with optional session H/L lines | (visual aid only — no signals to validate) |
+| `donchian_xau_4h.pine` | v6 | XAU 4h trend-following breakout (20-bar Donchian + 2 ATR stop + 3:1 RR) | **Yes — see backtests/reports/donchian_validation_xau_*** |
+
+### donchian_xau_4h.pine — quick reference
+
+- **Apply to:** XAU/USD on **4-hour** timeframe.
+- **Default direction:** longs only. Shorts disabled because IS shorts (-0.87R/trade in 2024-2026 bull market) were a structural loser. Re-enable shorts manually only if a sustained downtrend is confirmed.
+- **Validation:** OOS 43 trades, 42% WR, +0.62R/trade, PF 2.06, coin-flip P=0.029 (the only sub-0.05 result in this repo's validation set). See `backtests/reports/donchian_validation_xau_compare_2026-05-21.md` for the full report.
+- **Position management:** stop and target are frozen at fire-bar close. No time stop. Position runs until either level hits.
 
 ## Indicators planned
 
