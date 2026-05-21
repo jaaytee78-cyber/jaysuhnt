@@ -213,3 +213,46 @@ def bull_bear_divergence(
     out["bull_div"] = bull.fillna(False)
     out["bear_div"] = bear.fillna(False)
     return out
+
+
+
+# --------------------------------------------------------------------- #
+#  Prior-day high / low levels (causal, session-shifted)                #
+# --------------------------------------------------------------------- #
+
+def prev_day_levels(df: pd.DataFrame) -> pd.DataFrame:
+    """For each bar, return the previous session's high and low.
+
+    Causal by construction: at any bar in session N, the levels
+    returned are max(high) and min(low) over session N-1, i.e. the
+    fully completed prior session. Session N's own H/L is never used
+    for any bar in session N. Bars in the FIRST session of the dataset
+    have NaN levels (no prior session exists).
+
+    This mirrors the .pine implementation:
+        [prevDayHigh, prevDayLow] = request.security(
+            syminfo.tickerid, "D", [high, low],
+            lookahead=barmerge.lookahead_off
+        )
+    which on a 5m chart returns the most recently CONFIRMED daily H/L
+    (= yesterday's full session H/L) for every bar of today.
+
+    Returns DataFrame with columns: prev_day_high, prev_day_low.
+    """
+    sid = session_id(df.index)
+
+    # Per-session H/L over the WHOLE session.
+    # Safe to use whole-session aggregates here because we then shift
+    # by one session before broadcasting back to bars -- so bars in
+    # session N only ever see session (N-1)'s aggregate.
+    per_session = pd.DataFrame({
+        "day_high": df.groupby(sid)["high"].max(),
+        "day_low": df.groupby(sid)["low"].min(),
+    })
+    per_session["prev_high"] = per_session["day_high"].shift(1)
+    per_session["prev_low"] = per_session["day_low"].shift(1)
+
+    out = pd.DataFrame(index=df.index)
+    out["prev_day_high"] = sid.map(per_session["prev_high"]).values
+    out["prev_day_low"] = sid.map(per_session["prev_low"]).values
+    return out

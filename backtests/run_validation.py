@@ -62,20 +62,24 @@ INSTRUMENTS = {
 }
 
 
-def run_one(tag: str, api_key: str, min_score_override=None) -> Path:
+def run_one(tag: str, api_key: str, min_score_override=None,
+            label: str = "") -> Path:
     spec = INSTRUMENTS[tag]
     p = spec["params"]
-    suffix = ""
+    suffix_parts = []
     notes = spec["notes"]
     if min_score_override is not None and min_score_override != p.min_score:
         p = dataclasses.replace(p, min_score=min_score_override)
-        suffix = f"_score{min_score_override}"
+        suffix_parts.append(f"score{min_score_override}")
         notes = (
             f"{notes}\n\n"
             f"DIAGNOSTIC OVERRIDE: min_score forced to {min_score_override} "
             f"(.pine value is {spec['params'].min_score}). All other params "
             f"unchanged."
         )
+    if label:
+        suffix_parts.append(label)
+    suffix = "_" + "_".join(suffix_parts) if suffix_parts else ""
 
     print(f"[{tag}] fetching 5m bars ...")
     bars = spec["fetch"](api_key=api_key, years=2)
@@ -125,6 +129,12 @@ def main() -> int:
         choices=[2, 3, 4],
         help="diagnostic override for min_score (default: use .pine value)",
     )
+    parser.add_argument(
+        "--label",
+        type=str,
+        default="",
+        help="suffix appended to report filename (e.g. v2_prevdayLevels)",
+    )
     args = parser.parse_args()
     invalid = [t for t in args.instruments if t not in INSTRUMENTS]
     if invalid:
@@ -139,7 +149,9 @@ def main() -> int:
     targets = args.instruments or list(INSTRUMENTS.keys())
     for tag in targets:
         try:
-            run_one(tag, api_key, min_score_override=args.min_score)
+            run_one(tag, api_key,
+                    min_score_override=args.min_score,
+                    label=args.label)
         except Exception as exc:
             print(f"[{tag}] FAILED: {exc}", file=sys.stderr)
             import traceback

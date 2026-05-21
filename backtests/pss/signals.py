@@ -18,6 +18,7 @@ from .indicators import (
     band_state,
     bull_bear_divergence,
     pine_atr,
+    prev_day_levels,
     session_cvd_smoothed,
     session_vwap_bands,
 )
@@ -106,20 +107,26 @@ def compute_signals(
     bull_div = div["bull_div"]
     bear_div = div["bear_div"]
 
+    # ── Prior-day H/L (used by the redesigned L condition) ───────────
+    pdl = prev_day_levels(df)
+    prev_day_high = pdl["prev_day_high"]
+    prev_day_low = pdl["prev_day_low"]
+
     # ── VDLC condition booleans (long) ────────────────────────────────
+    # L redesign (option 1): proximity to a level NOT used by V.
+    # Long entries near prior-day low (real support).
     cond_v_long = df["close"] <= lower1
     cond_d_long = bull_div | (cvd_rising & (bd > 0))
-    near_level_long = ((df["close"] - lower1).abs() < near_tol) | \
-                      ((df["close"] - vwap).abs() < near_tol)
-    cond_l_long = near_level_long
+    near_level_long = (df["close"] - prev_day_low).abs() < near_tol
+    cond_l_long = near_level_long.fillna(False)
     cond_c_long = is_compressed
 
     # ── VDLC condition booleans (short) ───────────────────────────────
+    # Short entries near prior-day high (real resistance).
     cond_v_short = df["close"] >= upper1
     cond_d_short = bear_div | (cvd_falling & (bd < 0))
-    near_level_short = ((df["close"] - upper1).abs() < near_tol) | \
-                       ((df["close"] - vwap).abs() < near_tol)
-    cond_l_short = near_level_short
+    near_level_short = (df["close"] - prev_day_high).abs() < near_tol
+    cond_l_short = near_level_short.fillna(False)
     cond_c_short = is_compressed | is_expanded
 
     # ── Scores ────────────────────────────────────────────────────────
@@ -188,6 +195,8 @@ def compute_signals(
     out["vwap"] = vwap
     out["upper1"] = upper1
     out["lower1"] = lower1
+    out["prev_day_high"] = prev_day_high
+    out["prev_day_low"] = prev_day_low
     out["atr"] = atr
     out["score_long"] = score_long
     out["score_short"] = score_short
