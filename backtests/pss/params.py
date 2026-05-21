@@ -44,10 +44,12 @@ XAU_PARAMS = PSSParams(
     cooldown=12,
     level_tol=0.25,
     compress_pct=0.85,
-    # min_score=4 produces 0 signals on XAU because of the L-condition
-    # redundancy: V long (close <= lower1) implies L long (close near
-    # lower1) automatically. PSS is effectively off on XAU at this
-    # setting until L is redesigned. See pss_validation_xau_score4_*.
+    # XAU at min_score=4 still produces 0 signals after the L redesign
+    # (prev-day H/L). Spot XAU does not respect prior-day levels the
+    # way stocks do (24-hour markets, no clear daily anchor); the L
+    # redesign improved QQQ but did not save XAU. PSS effectively off
+    # on XAU until the strategy itself is reconsidered for this
+    # instrument class.
     min_score=4,
     hour_filter=True,
     hour_start_utc=7,
@@ -73,10 +75,12 @@ QQQ_PARAMS = PSSParams(
     cooldown=8,
     level_tol=0.25,
     compress_pct=0.85,
-    # min_score=4 was the only setting that produced PF > 1 in
-    # validation (149 trades, +0.142R, P(coin>=strat)=0.135).
-    # Suggestive, not conclusive; verify on live demo before scaling.
-    min_score=4,
+    # After the L redesign (prev-day H/L), score=3 became canonical for
+    # QQQ: 316 trades, +0.096R/trade, PF 1.14 vs the previous score=3's
+    # PF 0.89 with old L. Score=4 still produces a higher per-trade edge
+    # (29 trades, +0.430R, PF 1.72) but the smaller sample is less
+    # trustworthy for forward verification.
+    min_score=3,
     hour_filter=True,
     hour_start_utc=13,
     hour_end_utc=21,
