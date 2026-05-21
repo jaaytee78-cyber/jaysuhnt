@@ -95,10 +95,14 @@ def main() -> int:
     parser.add_argument(
         "instruments",
         nargs="*",
-        choices=list(INSTRUMENTS.keys()),
-        help="instrument tags to run (default: all)",
+        help="instrument tags to run; choose from "
+             f"{sorted(INSTRUMENTS.keys())} (default: all)",
     )
     args = parser.parse_args()
+    invalid = [t for t in args.instruments if t not in INSTRUMENTS]
+    if invalid:
+        print(f"ERROR: unknown instrument(s): {invalid}", file=sys.stderr)
+        return 2
 
     api_key = os.environ.get("POLYGON_API_KEY", "")
     if not api_key:

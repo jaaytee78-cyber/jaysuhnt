@@ -31,21 +31,35 @@ DATA_DIR.mkdir(exist_ok=True)
 # --------------------------------------------------------------------- #
 
 def _polygon_get(url: str, api_key: str) -> dict:
-    """GET with the API key. Free tier is 5 calls/min so we sleep
-    1s between calls to stay safely under the limit even with a few
-    pages of pagination.
+    """GET with the API key.
+
+    Polygon free tier is 5 calls/min. We sleep 13s between calls
+    proactively, and on 429 we back off exponentially up to 3 retries.
     """
     if "apiKey=" not in url:
         sep = "&" if "?" in url else "?"
         url = f"{url}{sep}apiKey={api_key}"
-    r = requests.get(url, timeout=30)
-    if r.status_code == 429:
-        # Backoff and retry once
-        time.sleep(15)
+
+    backoffs = [30, 60, 90]  # seconds between retries on 429
+    for attempt in range(len(backoffs) + 1):
         r = requests.get(url, timeout=30)
-    r.raise_for_status()
-    time.sleep(1.0)
-    return r.json()
+        if r.status_code == 200:
+            time.sleep(13.0)  # rate-limit pacing
+            return r.json()
+        if r.status_code == 429 and attempt < len(backoffs):
+            wait = backoffs[attempt]
+            print(f"  rate-limited; sleeping {wait}s before retry "
+                  f"({attempt + 1}/{len(backoffs)})")
+            time.sleep(wait)
+            continue
+        # Any other non-200: surface the response body for diagnostics
+        try:
+            body = r.text[:500]
+        except Exception:
+            body = ""
+        r.raise_for_status()
+        raise RuntimeError(f"polygon GET failed: {r.status_code} body={body}")
+    raise RuntimeError("polygon GET: exhausted retries")
 
 
 def _aggs_to_df(results: list) -> pd.DataFrame:
@@ -96,6 +110,7 @@ def _fetch_aggs(
         body = _polygon_get(url, api_key)
         results = body.get("results", []) or []
         all_results.extend(results)
+        print(f"    page {page}: +{len(results)} bars (total {len(all_results)})")
         next_url = body.get("next_url")
         url = next_url if next_url else None
         # Safety: stop runaway pagination
