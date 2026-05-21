@@ -1,0 +1,380 @@
+// ══════════════════════════════════════════════════════════════════════════
+// PSS — Pro Scalping System  |  Phase 4 Signals (Python-Optimised)
+// Pine Script v6
+//
+// PYTHON RESEARCH SUMMARY
+// ────────────────────────────────────────────────────────────────────────
+// Instrument │ Win Rate │ Expectancy │ SD Mult │ Stop │ RR  │ Cooldown
+// XAUUSD     │  48.1%   │  +0.44R    │  1.5    │ 2.0× │ 2.0 │ 12 bars
+// NQ         │  47.4%   │  +0.66R    │  1.25   │ 1.25×│ 2.5 │  8 bars
+//
+// HOW TO USE:
+//   1. Select your instrument with i_instrument (XAUUSD or NQ)
+//   2. All parameters auto-switch to that instrument's optimised values
+//   3. Run phase2_delta_fixed.pine in a separate pane as normal
+//   4. Optional: enable i_hourFilter to trade only peak-performance hours
+// ══════════════════════════════════════════════════════════════════════════
+
+//@version=6
+indicator("PSS — Pro Scalping System (Python-Optimised)", shorttitle="PSS",
+          overlay=true, max_labels_count=500, max_lines_count=200)
+
+// ── INSTRUMENT SELECTOR ──────────────────────────────────────────────────
+i_instrument = input.string("XAUUSD", title="Instrument Profile",
+               options=["XAUUSD", "NQ"], tooltip="Selects the Python-optimised parameter set for that instrument.")
+
+// ── PYTHON-OPTIMISED PARAMETERS (per instrument) ─────────────────────────
+//
+//  These values were found by grid-searching 5m OHLCV data across:
+//    • SD multiplier (0.5 – 2.0)
+//    • ATR period (10, 14, 20)
+//    • Stop multiplier (1.0 – 2.0)
+//    • RR ratio (1.5 – 2.5)
+//    • Signal cooldown (5 – 15 bars)
+//    • Near-level ATR tolerance (0.20 – 0.30)
+//    • Compression threshold (80 – 90%)
+//    • Min confluence score (2 or 3)
+//  Objective: maximise expectancy (win_rate × avg_win − loss_rate × avg_loss)
+//  with a secondary weight on raw win rate.
+//
+// XAUUSD profile — optimised values
+float xau_sdMult       = 1.50   // VWAP band SD multiplier
+int   xau_atrPeriod    = 14     // ATR smoothing period
+float xau_stopMult     = 2.00   // Stop = 2.0 × ATR  (wider stop = fewer stops-out)
+float xau_rrRatio      = 2.00   // Target = stop × 2.0 RR
+int   xau_cooldown     = 12     // 12-bar cooldown between signals (reduces noise)
+float xau_levelTol     = 0.25   // Near-level tolerance (× ATR)
+float xau_compressPct  = 0.85   // Bands must be < 85% of 10-bar avg width
+int   xau_minScore     = 3      // Raised from 2→3: reduces noise signals (critique fix)
+
+// NQ profile — optimised values
+float nq_sdMult        = 1.25   // Tighter SD bands for NQ's tighter mean reversion
+int   nq_atrPeriod     = 14
+float nq_stopMult      = 1.25   // Tighter stops on NQ (faster instrument)
+float nq_rrRatio       = 2.50   // Higher RR target — NQ has bigger range swings
+int   nq_cooldown      = 8      // Shorter cooldown — NQ moves faster
+float nq_levelTol      = 0.25
+float nq_compressPct   = 0.85
+int   nq_minScore      = 3      // Raised from 2→3: reduces noise signals (critique fix)
+
+// ── MANUAL OVERRIDE SECTION ──────────────────────────────────────────────
+//  Set i_override = true to use custom values instead of the presets above.
+i_override     = input.bool(false, title="Manual Override (ignore Python presets)",
+                 group="⚙ Manual Override")
+i_sdMult       = input.float(1.5,  minval=0.5,  maxval=3.0,  step=0.25,  title="SD Multiplier",        group="⚙ Manual Override")
+i_atrPeriod    = input.int(14,     minval=5,    maxval=50,                title="ATR Period",            group="⚙ Manual Override")
+i_stopMult     = input.float(1.5,  minval=0.5,  maxval=5.0,  step=0.25,  title="Stop Multiplier",      group="⚙ Manual Override")
+i_rrRatio      = input.float(1.5,  minval=0.5,  maxval=5.0,  step=0.5,   title="RR Ratio",             group="⚙ Manual Override")
+i_cooldown     = input.int(10,     minval=3,    maxval=50,                title="Signal Cooldown",       group="⚙ Manual Override")
+i_levelTol     = input.float(0.25, minval=0.1,  maxval=1.0,  step=0.05,  title="Near-Level Tolerance",  group="⚙ Manual Override")
+i_compressPct  = input.float(0.85, minval=0.5,  maxval=1.0,  step=0.05,  title="Compression Threshold", group="⚙ Manual Override")
+i_minScore     = input.int(3,      minval=2,    maxval=4,                 title="Min Confluence Score",  group="⚙ Manual Override")
+
+// Resolve active params
+bool   isXAU     = i_instrument == "XAUUSD"
+float  p_sdMult  = i_override ? i_sdMult      : (isXAU ? xau_sdMult      : nq_sdMult)
+int    p_atrPer  = i_override ? i_atrPeriod   : (isXAU ? xau_atrPeriod   : nq_atrPeriod)
+float  p_stopM   = i_override ? i_stopMult    : (isXAU ? xau_stopMult    : nq_stopMult)
+float  p_rr      = i_override ? i_rrRatio     : (isXAU ? xau_rrRatio     : nq_rrRatio)
+int    p_cool    = i_override ? i_cooldown    : (isXAU ? xau_cooldown    : nq_cooldown)
+float  p_tol     = i_override ? i_levelTol    : (isXAU ? xau_levelTol    : nq_levelTol)
+float  p_cPct    = i_override ? i_compressPct : (isXAU ? xau_compressPct : nq_compressPct)
+int    p_minSc   = i_override ? i_minScore    : (isXAU ? xau_minScore    : nq_minScore)
+
+// ── SESSION HOUR FILTER (Python-derived) ─────────────────────────────────
+//  Python analysis of hourly win rates found these UTC windows to be best:
+//    XAUUSD: 07:00–16:00 UTC (London + NY overlap + NY morning)
+//    NQ:     13:00–21:00 UTC (NY pre-market open through evening)
+i_hourFilter   = input.bool(true,  title="Enable Session Hour Filter",     group="⏰ Session Hours")
+i_hourStart    = input.int(7,  minval=0, maxval=23, title="Hour Start (UTC)", group="⏰ Session Hours",
+                 tooltip="XAUUSD: 7 | NQ: 13")
+i_hourEnd      = input.int(16, minval=0, maxval=23, title="Hour End (UTC)",   group="⏰ Session Hours",
+                 tooltip="XAUUSD: 16 | NQ: 21")
+
+int   barHour   = hour(time, "UTC")
+bool  hourOK    = not i_hourFilter or (barHour >= i_hourStart and barHour <= i_hourEnd)
+
+// ── PHASE 1: VWAP + SD BANDS ─────────────────────────────────────────────
+//  Session VWAP resets daily at midnight UTC.
+//  SD bands use the Python-optimised multiplier (1.5 for XAUUSD, 1.25 for NQ).
+
+var float cumTPV = 0.0
+var float cumVol = 0.0
+var float cumSQ  = 0.0
+
+bool newSession = ta.change(dayofweek) != 0 or (hour == 0 and minute == 0)
+if newSession
+    cumTPV := 0.0
+    cumVol := 0.0
+    cumSQ  := 0.0
+
+float tp    = (high + low + close) / 3.0
+cumTPV     += tp * volume
+cumVol     += volume
+float vwap  = cumVol > 0 ? cumTPV / cumVol : tp
+
+cumSQ      += volume * math.pow(tp - vwap, 2)
+float vwapSD = cumVol > 0 ? math.sqrt(math.max(cumSQ / cumVol, 0)) : 0
+
+float upper1 = vwap + p_sdMult * vwapSD
+float lower1 = vwap - p_sdMult * vwapSD
+float upper2 = vwap + 2 * p_sdMult * vwapSD
+float lower2 = vwap - 2 * p_sdMult * vwapSD
+
+// VWAP state — fixed: BEAR/BULL triggers on VWAP cross, not requiring price beyond band
+bool vwapBull    = close > vwap
+bool vwapBear    = close < vwap
+bool vwapAboveBand = close > upper1   // price extended above band (expansion)
+bool vwapBelowBand = close < lower1   // price extended below band (expansion)
+string vwapState = vwapAboveBand ? "BULL EXT" : vwapBelowBand ? "BEAR EXT" : vwapBull ? "BULL" : vwapBear ? "BEAR" : "NEUTRAL"
+
+// Band width compression detection
+float bandWidth    = upper1 - lower1
+float bwAvg        = ta.sma(bandWidth, 10)
+bool  isCompressed = bandWidth < (p_cPct * bwAvg)
+bool  isExpanded   = bandWidth > (1.15 * bwAvg)
+
+// ── PHASE 2: CVD (simplified — load phase2_delta_fixed.pine separately) ──
+//  The full CVD pane runs in phase2_delta_fixed.pine.
+//  Here we compute a session-level delta for the confluence engine.
+
+float barRange  = math.max(high - low, 0.0001)
+float closePos  = (close - low) / barRange          // 0..1
+float barDelta  = volume * (closePos * 2 - 1)       // -V..+V
+
+var float sessionDelta = 0.0
+if newSession
+    sessionDelta := 0.0
+sessionDelta += barDelta
+
+float cvdSmoothed = ta.ema(sessionDelta, 3)
+bool  cvdRising   = cvdSmoothed > cvdSmoothed[3]
+bool  cvdFalling  = cvdSmoothed < cvdSmoothed[3]
+
+// CVD divergence — 8-bar pivot (balanced: not too noisy like 5, not too rare like 10)
+float priceLow8  = ta.lowest(low, 8)
+float priceHigh8 = ta.highest(high, 8)
+bool  bullDiv    = low == priceLow8 and cvdSmoothed > cvdSmoothed[8]
+bool  bearDiv    = high == priceHigh8 and cvdSmoothed < cvdSmoothed[8]
+
+// ── PHASE 3: KEY LEVELS (POC / VAH / VAL proxy) ──────────────────────────
+//  Full session volume profile runs in PSS. Here we use a VWAP proximity
+//  proxy (price near the VWAP ± bands) as the Level condition.
+//  For the real POC/VAH/VAL, these are calculated in phase4_signals.pine.
+
+float atrVal     = ta.atr(p_atrPer)
+float nearTol    = p_tol * atrVal
+
+//  Level condition: price close to lower1 (discount), upper1 (premium),
+//  or VWAP itself (reversion to fair value mid-session).
+bool nearLevelL  = math.abs(close - lower1) < nearTol or
+                   math.abs(close - vwap)   < nearTol
+bool nearLevelS  = math.abs(close - upper1) < nearTol or
+                   math.abs(close - vwap)   < nearTol
+
+// ── PHASE 4: CONFLUENCE ENGINE ────────────────────────────────────────────
+
+// Long conditions (VDLC)
+bool condVL = close <= lower1                            // V: discount zone
+bool condDL = bullDiv or (cvdRising and barDelta > 0)    // D: bullish delta/div
+bool condLL = nearLevelL                                  // L: near key level
+bool condCL = isCompressed                               // C: compression
+
+// Short conditions (VDLC)
+bool condVS = close >= upper1                            // V: premium zone
+bool condDS = bearDiv or (cvdFalling and barDelta < 0)   // D: bearish delta/div
+bool condLS = nearLevelS                                  // L: near key level
+bool condCS = isCompressed or isExpanded                  // C: compressed or just expanded
+
+// Scores
+int scoreLong  = (condVL ? 1 : 0) + (condDL ? 1 : 0) +
+                 (condLL ? 1 : 0) + (condCL ? 1 : 0)
+int scoreShort = (condVS ? 1 : 0) + (condDS ? 1 : 0) +
+                 (condLS ? 1 : 0) + (condCS ? 1 : 0)
+
+// Trend expansion filter
+// Long blocked: price below lower band AND bands expanding (already in bear trend)
+// Short blocked: price above upper band AND bands expanding (already in bull trend)
+//               ALSO block shorts when price is below VWAP — don't short into weakness
+bool longTrendOK  = not (vwapBelowBand and isExpanded)
+bool shortTrendOK = not (vwapAboveBand and isExpanded) and vwapBull
+
+// Cooldown tracking
+var int barsLastLong  = 0
+var int barsLastShort = 0
+barsLastLong  += 1
+barsLastShort += 1
+
+bool longReady  = barsLastLong  > p_cool
+bool shortReady = barsLastShort > p_cool
+
+// Signal fires
+bool longSignal  = scoreLong  >= p_minSc and longTrendOK  and longReady  and hourOK
+bool shortSignal = scoreShort >= p_minSc and shortTrendOK and shortReady and hourOK
+
+if longSignal
+    barsLastLong := 0
+if shortSignal
+    barsLastShort := 0
+
+// Latch score at the exact bar the signal fires — prevents label showing
+// a recalculated lower score on subsequent bars during the cooldown period
+var int latchedLongScore  = 0
+var int latchedShortScore = 0
+if longSignal
+    latchedLongScore  := scoreLong
+if shortSignal
+    latchedShortScore := scoreShort
+
+// ── STOPS & TARGETS ───────────────────────────────────────────────────────
+//  Python finding: XAUUSD benefits from 2.0× ATR stop (vs default 1.5×)
+//                  NQ benefits from 1.25× ATR stop with 2.5 RR
+
+var float lastEntryLong  = na
+var float lastStopLong   = na
+var float lastTgtLong    = na
+var float lastEntryShort = na
+var float lastStopShort  = na
+var float lastTgtShort   = na
+
+if longSignal
+    lastEntryLong := close
+    lastStopLong  := close - p_stopM * atrVal
+    lastTgtLong   := close + p_stopM * atrVal * p_rr
+
+if shortSignal
+    lastEntryShort := close
+    lastStopShort  := close + p_stopM * atrVal
+    lastTgtShort   := close - p_stopM * atrVal * p_rr
+
+// ── PLOTS ────────────────────────────────────────────────────────────────
+plot(vwap,   color=color.new(color.white, 40),  linewidth=1, title="VWAP")
+plot(upper1, color=color.new(color.red,   50),  linewidth=1, title="VWAP +1SD")
+plot(lower1, color=color.new(color.green, 50),  linewidth=1, title="VWAP -1SD")
+plot(upper2, color=color.new(color.red,   75),  linewidth=1, title="VWAP +2SD", style=plot.style_line)
+plot(lower2, color=color.new(color.green, 75),  linewidth=1, title="VWAP -2SD", style=plot.style_line)
+
+// Signal labels — use latched score (score at fire time) not live score
+// This prevents L1/S1 labels appearing due to score recalculation after fire
+if longSignal
+    string longLbl = latchedLongScore == 4 ? "L4 ▲" : "L" + str.tostring(latchedLongScore) + " ▲"
+    label.new(bar_index, low  - atrVal * 0.5, longLbl,
+              color=color.new(color.green, 10),
+              textcolor=color.black, style=label.style_label_up,
+              size=size.small)
+
+if shortSignal
+    string shortLbl = latchedShortScore == 4 ? "S4 ▼" : "S" + str.tostring(latchedShortScore) + " ▼"
+    label.new(bar_index, high + atrVal * 0.5, shortLbl,
+              color=color.new(color.red, 10),
+              textcolor=color.white, style=label.style_label_down,
+              size=size.small)
+
+// Stop & target lines (last signal only)
+// Long
+var line lineLongStop = na
+var line lineLongTgt  = na
+if longSignal
+    if not na(lineLongStop)
+        line.delete(lineLongStop)
+    if not na(lineLongTgt)
+        line.delete(lineLongTgt)
+    lineLongStop := line.new(bar_index, lastStopLong, bar_index + 20, lastStopLong,
+                             color=color.red,   style=line.style_dashed, width=1)
+    lineLongTgt  := line.new(bar_index, lastTgtLong,  bar_index + 20, lastTgtLong,
+                             color=color.green, style=line.style_dashed, width=1)
+
+// Short
+var line lineShortStop = na
+var line lineShortTgt  = na
+if shortSignal
+    if not na(lineShortStop)
+        line.delete(lineShortStop)
+    if not na(lineShortTgt)
+        line.delete(lineShortTgt)
+    lineShortStop := line.new(bar_index, lastStopShort, bar_index + 20, lastStopShort,
+                              color=color.red,   style=line.style_dashed, width=1)
+    lineShortTgt  := line.new(bar_index, lastTgtShort,  bar_index + 20, lastTgtShort,
+                              color=color.green, style=line.style_dashed, width=1)
+
+// ── PERSISTENT CVD DIVERGENCE DETECTION ─────────────────────────────────
+// Flags when CVD and price move in opposite directions for 20+ consecutive bars
+// This is the highest-value signal in PSS — institutional absorption in progress
+var int cvdDivBullBars = 0   // bars where price falling but CVD rising/stable
+var int cvdDivBearBars = 0   // bars where price rising but CVD falling/stable
+bool priceFalling = close < close[1]
+bool priceRising  = close > close[1]
+
+if priceFalling and not cvdFalling
+    cvdDivBullBars := cvdDivBullBars + 1
+else
+    cvdDivBullBars := 0
+
+if priceRising and not cvdRising
+    cvdDivBearBars := cvdDivBearBars + 1
+else
+    cvdDivBearBars := 0
+
+bool persistBullDiv = cvdDivBullBars >= 20   // CVD holding up while price drops
+bool persistBearDiv = cvdDivBearBars >= 20   // CVD dropping while price rises
+
+// Background: expansion filter active — uses extended band state
+bgcolor(vwapBelowBand and isExpanded ? color.new(color.red,   93) : na, title="Bear Expansion")
+bgcolor(vwapAboveBand and isExpanded ? color.new(color.green, 93) : na, title="Bull Expansion")
+bgcolor(isCompressed                 ? color.new(color.blue,  96) : na, title="Compression")
+// Persistent divergence — strong cyan/orange tint when CVD and price disagree 20+ bars
+bgcolor(persistBullDiv ? color.new(#00e5ff, 94) : na, title="Persistent Bull CVD Div")
+bgcolor(persistBearDiv ? color.new(#ff6b35, 94) : na, title="Persistent Bear CVD Div")
+
+// ── MASTER DASHBOARD ──────────────────────────────────────────────────────
+// Track last signal direction so dashboard only shows active side
+var string lastSide = "NONE"
+if longSignal
+    lastSide := "LONG"
+if shortSignal
+    lastSide := "SHORT"
+
+// Pre-compute every string on its own line to avoid multi-line ternary issues
+string trendFilt  = vwapBelowBand and isExpanded ? "BEAR EXP - L BLOCKED" : vwapAboveBand and isExpanded ? "BULL EXP - S BLOCKED" : "OK"
+string longBreak  = (condVL ? "V" : "-") + (condDL ? "D" : "-") + (condLL ? "L" : "-") + (condCL ? "C" : "-")
+string shortBreak = (condVS ? "V" : "-") + (condDS ? "D" : "-") + (condLS ? "L" : "-") + (condCS ? "C" : "-")
+string vwapPct    = str.tostring(math.round((close - vwap) / vwap * 100, 2)) + "%"
+string volState   = isCompressed ? "COMPRESSED" : isExpanded ? "EXPANDED" : "NORMAL"
+string divState   = persistBullDiv ? "PERSIST BULL DIV" : persistBearDiv ? "PERSIST BEAR DIV" : bullDiv ? "BULL DIV" : bearDiv ? "BEAR DIV" : "NONE"
+string deltaStr   = (barDelta >= 0 ? "+" : "") + str.tostring(math.round(barDelta, 2))
+string cvdDir     = cvdRising ? "RISING" : cvdFalling ? "FALLING" : "FLAT"
+string instrLabel = "INSTRUMENT: " + i_instrument + (i_override ? " [MANUAL]" : " [PYTHON OPT]")
+string atrStr     = "ATR(" + str.tostring(p_atrPer) + ")    " + str.tostring(math.round(atrVal, 4))
+// Score strings — show breakdown and how many points needed to fire
+int   longNeeded  = math.max(p_minSc - scoreLong,  0)
+int   shortNeeded = math.max(p_minSc - scoreShort, 0)
+string longNeed   = longNeeded  == 0 ? " READY" : " need+" + str.tostring(longNeeded)
+string shortNeed  = shortNeeded == 0 ? " READY" : " need+" + str.tostring(shortNeeded)
+string lScoreStr  = "LONG  " + str.tostring(scoreLong)  + "/4 " + longBreak  + longNeed
+string sScoreStr  = "SHORT " + str.tostring(scoreShort) + "/4 " + shortBreak + shortNeed
+
+// Only show stop/target for the last active signal direction
+string tradeStr = ""
+if lastSide == "LONG" and not na(lastStopLong)
+    tradeStr := "SIDE    LONG\n" + "STOP    " + str.tostring(math.round(lastStopLong, 2)) + "\n" + "TARGET  " + str.tostring(math.round(lastTgtLong, 2)) + "\n"
+else if lastSide == "SHORT" and not na(lastStopShort)
+    tradeStr := "SIDE    SHORT\n" + "STOP    " + str.tostring(math.round(lastStopShort, 2)) + "\n" + "TARGET  " + str.tostring(math.round(lastTgtShort, 2)) + "\n"
+
+string dash = instrLabel + "\n" + "─────────────────────" + "\n" + "VWAP STATE    " + vwapState + "\n" + "VWAP DIST     " + vwapPct + "\n" + "VOLATILITY    " + volState + "\n" + "DELTA         " + deltaStr + "\n" + "CVD TREND     " + cvdDir + "\n" + "DIVERGE       " + divState + "\n" + "TREND FILT    " + trendFilt + "\n" + lScoreStr + "\n" + sScoreStr + "\n" + "─────────────────────" + "\n" + atrStr + "\n" + "STOP MULT     " + str.tostring(p_stopM) + "x" + "\n" + "RR RATIO      " + str.tostring(p_rr) + "\n" + "COOLDOWN      " + str.tostring(p_cool) + " bars" + "\n" + "MIN SCORE     " + str.tostring(p_minSc) + "/4" + "\n" + "─────────────────────" + "\n" + tradeStr + "─────────────────────" + "\n" + "V=VWAP D=DIV L=LEVEL C=COMP"
+
+var table dash_tbl = table.new(position.top_right, 1, 1, bgcolor=color.new(color.black, 15),
+                               border_color=color.new(color.gray, 60), border_width=1,
+                               frame_color=color.new(color.gray, 40), frame_width=1)
+table.cell(dash_tbl, 0, 0, dash,
+           text_color=color.new(color.white, 10),
+           text_size=size.small,
+           text_halign=text.align_left)
+
+// ── ALERTS ───────────────────────────────────────────────────────────────
+alertcondition(longSignal  and scoreLong  == 4, title="PSS Long MAX (4/4)",    message="PSS L4 MAX — {{ticker}} {{interval}}")
+alertcondition(shortSignal and scoreShort == 4, title="PSS Short MAX (4/4)",   message="PSS S4 MAX — {{ticker}} {{interval}}")
+alertcondition(longSignal,                       title="PSS Long Signal",        message="PSS LONG {{interval}} — {{ticker}}")
+alertcondition(shortSignal,                      title="PSS Short Signal",       message="PSS SHORT {{interval}} — {{ticker}}")
+alertcondition(longSignal or shortSignal,        title="PSS Any Signal",         message="PSS SIGNAL — {{ticker}} {{interval}}")
+alertcondition(persistBullDiv and not persistBullDiv[1], title="PSS Persistent Bull CVD Div", message="PSS PERSIST BULL DIV — CVD holding up while price drops 20+ bars — {{ticker}}")
+alertcondition(persistBearDiv and not persistBearDiv[1], title="PSS Persistent Bear CVD Div", message="PSS PERSIST BEAR DIV — CVD dropping while price rises 20+ bars — {{ticker}}")

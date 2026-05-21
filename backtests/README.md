@@ -30,3 +30,72 @@ Anything > 0.2R per trade is workable. > 0.5R is great.
 - [ ] London sweep + FVG retest (XAU/USD, NAS100)
 - [ ] Silver Bullet model (NY 10-11am EST)
 - [ ] Asia range breakout & retest
+- [x] PSS — Pro Scalping System (validation harness below)
+
+---
+
+## PSS validation harness
+
+A bit-exact Python port of `indicators/pine-script/phase4_signals.pine`, plus a realistic backtest engine, plus a markdown report writer. Lives in `pss/`.
+
+**This harness does not optimise anything.** It exists to answer a single question: do the parameters as currently written in the `.pine` file show a measurable edge on real data?
+
+### Layout
+
+```
+backtests/
+  pss/
+    __init__.py
+    params.py        # current XAU + QQQ profiles, copied from phase4_signals.pine
+    indicators.py    # Pine-style primitives: Wilder ATR, EMA/SMA/lowest, session VWAP, CVD, divergence
+    signals.py       # bit-exact port of phase4_signals.pine VDLC scoring + cooldown + hour filter
+    backtest.py      # realistic fills (spread + slippage), no-drop timeouts, per-trade R
+    data.py          # Polygon adapter (C:XAUUSD forex, QQQ stocks) with parquet cache
+    report.py        # markdown report writer
+  data/              # parquet cache (gitignored)
+  reports/           # generated markdown reports
+  run_validation.py  # entry point
+  requirements.txt
+```
+
+### Why QQQ instead of NQ
+
+Polygon's free tier covers stocks and forex but **not futures**. QQQ is the closest free proxy for NQ behaviour during RTH. The overnight Globex session is NOT validated here.
+
+### Why XAU CVD results are taken with a grain of salt
+
+Spot XAU has no centralised exchange volume. Polygon's volume for `C:XAUUSD` is contributed-bank tick count, which is correlated with but not identical to real institutional flow. PSS leans on CVD; if XAU shows no edge, that may simply mean tick-count CVD on spot gold is too noisy, not that PSS has no edge anywhere.
+
+### Running
+
+```bash
+cd backtests
+pip install -r requirements.txt
+export POLYGON_API_KEY=pk_xxx_your_key
+
+python run_validation.py            # both instruments
+python run_validation.py xau        # XAU only
+python run_validation.py qqq        # QQQ only
+```
+
+First run hits Polygon and caches data to `backtests/data/*.parquet`; subsequent runs reuse the cache. Delete the parquet files to refresh.
+
+### What the report tells you
+
+Each report (in `reports/`) covers:
+
+- The exact parameters used (so the report is reproducible)
+- Data window and bar count
+- Signal frequency (candidates pre-cooldown vs fires post-cooldown)
+- Headline stats: trades, win rate, expectancy in R, max drawdown, profit factor, longest streaks
+- R-multiple distribution
+- Exit-reason breakdown (stop / target / mark-to-market)
+- Performance by hour-of-day, by signal score (3 vs 4), by side, by month
+- Coin-flip baseline (would random-direction trades with the same R:R do as well?)
+- Caveats specific to the data and the proxy
+
+### What this harness deliberately does NOT do
+
+- It does not run a parameter grid search. Adding one is easy — *don't* until validation has confirmed the strategy has any edge to begin with.
+- It does not simulate broker-specific quirks (commissions per lot, requotes, partial fills).
+- It does not attempt to validate signals that fired during the most recent N bars where the trade hasn't fully resolved yet.

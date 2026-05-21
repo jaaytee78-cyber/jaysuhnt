@@ -1,0 +1,23 @@
+# Cached price data — fetched fresh each run
+data/*.parquet
+data/*.csv
+
+# Generated reports — committed selectively
+reports/*.html
+
+# Smoke-test artifacts (the script lives in repo, its outputs do not)
+_smoke_report_*.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+.env
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
