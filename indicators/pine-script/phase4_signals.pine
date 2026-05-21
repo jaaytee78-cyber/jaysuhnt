@@ -1,18 +1,40 @@
 // ══════════════════════════════════════════════════════════════════════════
-// PSS — Pro Scalping System  |  Phase 4 Signals (Python-Optimised)
+// PSS — Pro Scalping System  |  Phase 4 Signals
 // Pine Script v6
 //
-// PYTHON RESEARCH SUMMARY
+// VALIDATION SUMMARY (real Polygon 5m data, 2024-05-21..2026-05-20, 2y)
 // ────────────────────────────────────────────────────────────────────────
-// Instrument │ Win Rate │ Expectancy │ SD Mult │ Stop │ RR  │ Cooldown
-// XAUUSD     │  48.1%   │  +0.44R    │  1.5    │ 2.0× │ 2.0 │ 12 bars
-// NQ         │  47.4%   │  +0.66R    │  1.25   │ 1.25×│ 2.5 │  8 bars
+//   Earlier "+0.44R / 48.1% WR" numbers came from synthetic data with
+//   look-ahead leaks in the optimisation pipeline. They did NOT survive
+//   the move to real data with realistic spreads/slippage. See
+//   backtests/reports/pss_validation_*_2026-05-21.md.
+//
+// At min_score = 3 (canonical):
+//   XAUUSD : 508 trades, 35.0% WR, -0.07R/trade, PF 0.90
+//            P(coin flip ≥ strategy) = 0.876  → no edge
+//   QQQ*   : 1165 trades, 28.3% WR, -0.08R/trade, PF 0.89
+//            P(coin flip ≥ strategy) = 0.962  → no edge
+//
+// At min_score = 4 (this file):
+//   XAUUSD : 0 trades. The L long condition (close near lower1 OR vwap)
+//            is structurally redundant when V long requires close <= lower1,
+//            so XAU never reaches score 4. Effectively disables PSS on XAU
+//            until the L condition is redesigned.
+//   QQQ*   : 149 trades, 33.6% WR, +0.142R/trade, PF 1.21
+//            P(coin flip ≥ strategy) = 0.135  → suggestive, not conclusive.
+//            80% of edge in shorts during hour 13 UTC (NY cash open).
+//
+//   * QQQ is a proxy for NQ futures; Polygon free tier does not include
+//     futures. RTH-only validation. Overnight NQ behaviour is NOT verified.
 //
 // HOW TO USE:
-//   1. Select your instrument with i_instrument (XAUUSD or NQ)
-//   2. All parameters auto-switch to that instrument's optimised values
-//   3. Run phase2_delta_fixed.pine in a separate pane as normal
-//   4. Optional: enable i_hourFilter to trade only peak-performance hours
+//   1. Select your instrument with i_instrument (XAUUSD or NQ).
+//   2. NQ : trades fire at 4/4 confluence only (rare; ~6/month historical).
+//   3. XAU: 0 signals at current min_score=4. Keep PSS off this instrument
+//           until the L condition is redesigned.
+//   4. Run phase2_delta_fixed.pine in a separate pane as normal.
+//   5. Optional: i_hourFilter narrows further to the historically best
+//      UTC hours.
 // ══════════════════════════════════════════════════════════════════════════
 
 //@version=6
@@ -23,39 +45,43 @@ indicator("PSS — Pro Scalping System (Python-Optimised)", shorttitle="PSS",
 i_instrument = input.string("XAUUSD", title="Instrument Profile",
                options=["XAUUSD", "NQ"], tooltip="Selects the Python-optimised parameter set for that instrument.")
 
-// ── PYTHON-OPTIMISED PARAMETERS (per instrument) ─────────────────────────
+// ── PARAMETERS (per instrument) ──────────────────────────────────────────
 //
-//  These values were found by grid-searching 5m OHLCV data across:
-//    • SD multiplier (0.5 – 2.0)
-//    • ATR period (10, 14, 20)
-//    • Stop multiplier (1.0 – 2.0)
-//    • RR ratio (1.5 – 2.5)
-//    • Signal cooldown (5 – 15 bars)
-//    • Near-level ATR tolerance (0.20 – 0.30)
-//    • Compression threshold (80 – 90%)
-//    • Min confluence score (2 or 3)
-//  Objective: maximise expectancy (win_rate × avg_win − loss_rate × avg_loss)
-//  with a secondary weight on raw win rate.
+//  Non-min_score values are inherited from the previous Python pipeline.
+//  They were grid-searched on synthetic data with look-ahead bugs in
+//  the search code, so their "optimality" is suspect. They are kept for
+//  now because re-running optimisation pre-validation just curve-fits;
+//  the priority is establishing whether ANY edge exists first.
 //
-// XAUUSD profile — optimised values
+//  min_score is set to 4 on both profiles based on real-data validation
+//  (backtests/reports/pss_validation_*_score4_2026-05-21.md):
+//    - score=3 lost on both instruments and was indistinguishable from
+//      a coin flip with the same R:R structure.
+//    - score=4 was the only setting in either report with PF > 1, on
+//      QQQ. It produces 0 signals on XAU because of the L-condition
+//      redundancy described in the header.
+//
+// XAUUSD profile
 float xau_sdMult       = 1.50   // VWAP band SD multiplier
 int   xau_atrPeriod    = 14     // ATR smoothing period
-float xau_stopMult     = 2.00   // Stop = 2.0 × ATR  (wider stop = fewer stops-out)
+float xau_stopMult     = 2.00   // Stop = 2.0 × ATR
 float xau_rrRatio      = 2.00   // Target = stop × 2.0 RR
-int   xau_cooldown     = 12     // 12-bar cooldown between signals (reduces noise)
+int   xau_cooldown     = 12     // 12-bar cooldown between signals
 float xau_levelTol     = 0.25   // Near-level tolerance (× ATR)
 float xau_compressPct  = 0.85   // Bands must be < 85% of 10-bar avg width
-int   xau_minScore     = 3      // Raised from 2→3: reduces noise signals (critique fix)
+int   xau_minScore     = 4      // 0 signals at this threshold; PSS effectively
+                                // off on XAU until L condition is redesigned
 
-// NQ profile — optimised values
+// NQ profile
 float nq_sdMult        = 1.25   // Tighter SD bands for NQ's tighter mean reversion
 int   nq_atrPeriod     = 14
-float nq_stopMult      = 1.25   // Tighter stops on NQ (faster instrument)
+float nq_stopMult      = 1.25   // Tighter stops on NQ
 float nq_rrRatio       = 2.50   // Higher RR target — NQ has bigger range swings
-int   nq_cooldown      = 8      // Shorter cooldown — NQ moves faster
+int   nq_cooldown      = 8      // Shorter cooldown
 float nq_levelTol      = 0.25
 float nq_compressPct   = 0.85
-int   nq_minScore      = 3      // Raised from 2→3: reduces noise signals (critique fix)
+int   nq_minScore      = 4      // Only score-4 fires showed PF > 1 in QQQ
+                                // proxy validation. ~6 trades/month historical.
 
 // ── MANUAL OVERRIDE SECTION ──────────────────────────────────────────────
 //  Set i_override = true to use custom values instead of the presets above.

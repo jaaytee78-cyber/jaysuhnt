@@ -35,7 +35,7 @@ class PSSParams:
         return asdict(self)
 
 
-# Source of truth for these values: phase4_signals.pine, lines 36-58.
+# Source of truth for these values: phase4_signals.pine.
 XAU_PARAMS = PSSParams(
     sd_mult=1.50,
     atr_period=14,
@@ -44,7 +44,11 @@ XAU_PARAMS = PSSParams(
     cooldown=12,
     level_tol=0.25,
     compress_pct=0.85,
-    min_score=3,
+    # min_score=4 produces 0 signals on XAU because of the L-condition
+    # redundancy: V long (close <= lower1) implies L long (close near
+    # lower1) automatically. PSS is effectively off on XAU at this
+    # setting until L is redesigned. See pss_validation_xau_score4_*.
+    min_score=4,
     hour_filter=True,
     hour_start_utc=7,
     hour_end_utc=16,
@@ -69,7 +73,10 @@ QQQ_PARAMS = PSSParams(
     cooldown=8,
     level_tol=0.25,
     compress_pct=0.85,
-    min_score=3,
+    # min_score=4 was the only setting that produced PF > 1 in
+    # validation (149 trades, +0.142R, P(coin>=strat)=0.135).
+    # Suggestive, not conclusive; verify on live demo before scaling.
+    min_score=4,
     hour_filter=True,
     hour_start_utc=13,
     hour_end_utc=21,
