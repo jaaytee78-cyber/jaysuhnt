@@ -172,15 +172,12 @@ def coin_flip_baseline(
 def asia_diagnostics(sig: pd.DataFrame) -> dict:
     """Per trading-day analysis of the Asian range and sweep activity.
 
-    Computes:
-      - n_days  : number of trading days seen
-      - n_days_with_levels : days with finite AH/AL outside Asia
-      - range_atr_summary : distribution of (AH-AL)/ATR ratios
-      - n_swept_low / n_swept_high : days where the level was breached
-      - n_reclaimed_low / n_reclaimed_high : days where breach reversed
-      - n_long_fires / n_short_fires
+    Returns empty dict if asia_high/asia_low not present (e.g. for
+    strategies that don't use Asian session levels).
     """
     if sig.empty:
+        return {}
+    if "asia_high" not in sig.columns or "asia_low" not in sig.columns:
         return {}
     if sig.index.tz is None:
         idx_utc = sig.index.tz_localize("UTC")
@@ -243,23 +240,15 @@ def _table(headers: list, rows: list) -> str:
     return "\n".join(out)
 
 
-def _params_table(p: AswParams) -> str:
-    rows = [
-        ("asia_start_utc", p.asia_start_utc),
-        ("asia_end_utc", p.asia_end_utc),
-        ("trade_cutoff_utc", p.trade_cutoff_utc),
-        ("hard_close_utc", p.hard_close_utc),
-        ("sweep_buffer", p.sweep_buffer),
-        ("reclaim_window_bars", p.reclaim_window_bars),
-        ("atr_period", p.atr_period),
-        ("stop_buffer_atr", p.stop_buffer_atr),
-        ("target_mode", p.target_mode),
-        ("rr_ratio (if fixed_rr)", p.rr_ratio),
-        ("min_asian_range_atr", p.min_asian_range_atr),
-        ("half_spread (cost model)", p.half_spread),
-        ("stop_slippage (cost model)", p.stop_slippage),
-    ]
-    return _table(["param", "value"], rows)
+def _params_table(p) -> str:
+    """Generic params table. Works with any dataclass that exposes
+    .as_dict() or any object with __dict__. Each row is (field, value).
+    """
+    if hasattr(p, "as_dict"):
+        items = list(p.as_dict().items())
+    else:
+        items = list(vars(p).items())
+    return _table(["param", "value"], items)
 
 
 def _core_table(s: CoreStats) -> str:
@@ -414,7 +403,10 @@ def write_report(
 
     md.append("## Asian session diagnostics")
     md.append("")
-    md.append(_diagnostics_block(diag))
+    if diag:
+        md.append(_diagnostics_block(diag))
+    else:
+        md.append("_(strategy does not use Asian session levels)_")
     md.append("")
 
     md.append("## Headline performance")
