@@ -135,3 +135,74 @@ Strategy doesn't exist in isolation — it could still be a *confluence* in a la
 - If a filter helps, *then* upgrade Polygon and validate on 5 years. That's where rigorous walk-forward starts to matter.
 
 I'd start with **HTF bias** because it's the most ICT-classical and has the strongest a-priori case. One filter at a time, no kitchen-sink.
+
+
+
+---
+
+# Update — HTF Bias Filter (Path 2 result)
+
+**Surprise finding:** the strategy is **counter-trend / mean-reverting**, not trend-following. My original "aligned with bias = better" hypothesis was wrong.
+
+## The headline result
+
+The single combination with a 95% CI strictly above zero after costs:
+
+| Variant | Bias | Subset | N | Win % | Net Exp R | 95% CI | Sig? |
+|---|---|---|---|---|---|---|---|
+| `v2_buffer_5c` | `prev_close_dir` | **against** | 220 | 25.9% | **+0.449R** | **(+0.049, +0.905)** | **yes** |
+
+**Reading this row:** when the previous day's RTH close was higher than the day before (bullish bias), and we take an **upper-OR sweep short** (i.e. counter-trend) with a 5¢-buffer stop and opposite-OR target — net expectancy is +0.45R per setup with a 95% CI that does not include zero, even after $0.02/share round-trip costs.
+
+## The directional pattern is consistent across the whole grid
+
+Across all 8 variants × 3 bias methods, the **against** subset has higher expectancy than the **aligned** subset in nearly every cell. Examples:
+
+| Variant | Bias | aligned E | against E | Δ |
+|---|---|---|---|---|
+| v1_baseline | prev_close_dir | -0.263R | +0.406R | **+0.67R** |
+| v1_baseline | ema_20 | -0.133R | +0.285R | +0.42R |
+| v2_buffer_5c | prev_close_dir | -0.221R | **+0.449R** | +0.67R |
+| v2_buffer_5c | ema_20 | -0.178R | +0.426R | +0.60R |
+| v4_buffer_2R | prev_close_dir | -0.188R | +0.097R | +0.29R |
+| v6_confirm_or | prev_close_dir | -0.303R | +0.138R | +0.44R |
+
+That's a **systematic** effect, not a single lucky cell — and it makes economic sense.
+
+## Why counter-trend?
+
+An OR sweep is a **liquidity grab event**. Two interpretations:
+
+- *With-trend interpretation* (was my hypothesis): "The trend continues. Sweep is just a noise event before the trend resumes." — Implies aligned setups should win.
+- *Counter-trend interpretation* (what the data says): "The sweep represents *exhaustion* of late-arriving trend followers. In a bull day, an upper-OR sweep is bullish euphoria getting punished by sellers. In a bear day, a lower-OR sweep is bearish capitulation getting bought." — Implies against setups should win.
+
+The data strongly favours the second interpretation on QQQ 2024-2026.
+
+## Caveats — don't pop champagne yet
+
+1. **Multiple-testing penalty.** We ran 48 tests (8 variants × 3 biases × 2 subsets). At nominal p=0.05, we expected ~2 false positives by chance. We got 1 significant result — barely above what pure noise would produce. **Treat this as a candidate, not a discovery.**
+
+2. **Single regime.** Two years (2024-2026) is one macro regime — predominantly bullish. The contrarian pattern may not hold in a 2008/2020-style crash regime where trend continuation dominates.
+
+3. **The narrowest 95% CI lower bound is +0.05R.** That's a real but small edge. At ~110 against-setups per year per side, that's an expected annual return of ~50R/year. Tradeable, but not large.
+
+4. **The alignment definition matters.** Switching what we call "aligned" entirely flips the verdict. We need to lock in our hypothesis BEFORE testing on new data.
+
+## Strategic recommendation: now upgrade Polygon
+
+We finally have something specific to validate:
+
+> **Hypothesis (locked in):** *On QQQ 1m, an upper-OR sweep on a day where the previous RTH close was above the day-before's RTH close, traded short with stop = sweep wick + 5¢ and target = opposite OR side, has positive net expectancy.*  
+> *(And symmetric for lower sweeps on bearish-bias days.)*
+
+This is a clean, falsifiable statement. The right next step:
+
+1. **Upgrade Polygon to Stocks Starter (~$29/mo) for one billing cycle.**
+2. **Pull 5+ years of QQQ 1m bars** (2020-01 → today).
+3. **Re-run the variant grid + bias filter on out-of-sample data only** (e.g. 2020-2023, holding 2024-2026 as in-sample).
+4. **Pass criterion:** counter-trend (`against`) subset of v2_buffer_5c × prev_close_dir has 95% CI lower bound > 0R on the out-of-sample years.
+
+If it passes → we have a real, validated edge → move to Phase 2 (full backtest with equity curve, drawdown, position sizing).
+If it fails → the 2024-2026 result was period-specific or a multiple-testing artefact → we go back to Path 3.
+
+**Total cost of validation: ~$29.** Compared to the value of knowing whether the strategy is real, that's a no-brainer.
