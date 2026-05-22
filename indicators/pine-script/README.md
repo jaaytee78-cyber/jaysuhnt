@@ -1,6 +1,7 @@
 # Pine Script Indicators
 
-Custom TradingView indicators. All written in **Pine Script v5**.
+Custom TradingView indicators. Most are written in **Pine Script v5**; the
+all-in-one Valentini Pro Scalper is on **Pine Script v6**.
 
 ## How to install one
 
@@ -16,14 +17,15 @@ To save it permanently across charts, click **Add to chart**, then on the chart 
 
 ## Indicators in this folder
 
-| File | Purpose |
-|---|---|
-| `killzones.pine` | Highlights London / NY killzones with optional session high/low lines |
+| File | Version | Purpose |
+|---|---|---|
+| `killzones.pine` | v5 | Highlights London / NY killzones with optional session high/low lines |
+| `valentini-pro-v3.pine` | v6 | All-in-one scalper: EMA ribbon, session VWAP, volume profile POC, BOS/MSS, order blocks, FVGs, Triple-A pattern, HTF trend filter, 7-factor confluence score, structure-aware ATR stops, trade state machine, expanded dashboard |
 
 ## Indicators planned
 
+- [x] `market-structure.pine` — auto-detects BOS / CHoCH *(integrated into `valentini-pro-v3.pine`)*
+- [x] `order-blocks.pine` — highlights bullish/bearish order blocks *(integrated into `valentini-pro-v3.pine`)*
+- [x] `fvg.pine` — fair value gap / imbalance detector *(integrated into `valentini-pro-v3.pine`)*
+- [x] `session-bias.pine` — partial; kill zones and HTF EMA bias inside `valentini-pro-v3.pine`. Standalone Asia-range / weekly-bias helper still TODO.
 - [ ] `liquidity.pine` — marks equal highs/lows and crossed liquidity
-- [ ] `market-structure.pine` — auto-detects BOS / CHoCH
-- [ ] `order-blocks.pine` — highlights bullish/bearish order blocks
-- [ ] `fvg.pine` — fair value gap / imbalance detector
-- [ ] `session-bias.pine` — Asia range + daily/weekly bias helper

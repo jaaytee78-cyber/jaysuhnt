@@ -1,0 +1,860 @@
+//@version=6
+indicator("Fabio Valentini Pro Scalper v3", overlay=true,
+     max_labels_count=500, max_lines_count=500, max_boxes_count=300)
+
+// ═══════════════════════════════════════════════════════════════
+//  FABIO VALENTINI PRO SCALPER v3
+//  Built upon v2 with the following major additions:
+//
+//  NEW — Market Structure (MSS/BOS)
+//    Detects Break of Structure (BOS) and Market Structure Shift
+//    (MSS/CHoCH). Trend model only trades in direction of structure.
+//
+//  NEW — Order Block Detection
+//    Identifies the last bearish candle before a bullish BOS (bull OB)
+//    and last bullish candle before a bearish BOS (bear OB).
+//    Entry confluence: price returns to OB = high-probability zone.
+//
+//  NEW — Fair Value Gap (FVG/Imbalance) Detection
+//    3-candle imbalance zones drawn as boxes. Price filling an FVG
+//    near a key level adds confluence to Triple-A entries.
+//
+//  NEW — Dynamic Session VWAP Recalculation
+//    VWAP now resets cleanly each session. Intraday deviation bands
+//    (±1σ, ±2σ) used as dynamic S/R overlaid on profile levels.
+//
+//  NEW — Confluence Score System (0–7)
+//    Each bar is scored across 7 factors. Only trades scoring ≥ the
+//    user-defined minimum threshold are signalled. Eliminates low-
+//    quality setups that passed individual filters independently.
+//
+//  NEW — Adaptive ATR Stop (structure-aware)
+//    SL is placed below/above the nearest swing low/high within
+//    1.5× ATR — tighter than a flat ATR multiple, avoids obvious
+//    stop-hunt levels.
+//
+//  NEW — Trade State Machine
+//    Tracks whether we are flat / in a long / in a short.
+//    Prevents re-entry signals while a trade is "open" (until TP or
+//    SL level is touched). Reduces signal noise dramatically.
+//
+//  NEW — HTF Trend Filter (request.security)
+//    Optional higher-timeframe EMA50 trend filter. Only longs when
+//    HTF is bullish, only shorts when HTF is bearish.
+//
+//  NEW — Expanded Dashboard
+//    Shows confluence score, structure direction, OB status, FVG
+//    status, HTF bias, session P&L counter (simulated), and trade
+//    state — all colour-coded.
+//
+//  RETAINED from v2 (with fixes):
+//    Triple-A (A1/A2/A3), useTripleA gate, EMA ribbon, PDH/PDL,
+//    volume delta, absorption, POC approximation, kill zones,
+//    all v6 syntax fixes.
+// ═══════════════════════════════════════════════════════════════
+
+// ───────────────────────────────────────────────────────────────
+//  INPUTS
+// ───────────────────────────────────────────────────────────────
+
+grpEMA = "EMA Ribbon"
+emaFastLen = input.int(8,  "Fast EMA",         group=grpEMA)
+emaMidLen  = input.int(21, "Mid EMA",          group=grpEMA)
+emaSlowLen = input.int(50, "Slow EMA (Trend)", group=grpEMA)
+
+grpVWAP = "VWAP"
+vwapStd1   = input.float(1.0, "VWAP Band 1 σ",  group=grpVWAP, step=0.25)
+vwapStd2   = input.float(2.0, "VWAP Band 2 σ",  group=grpVWAP, step=0.25)
+showBands  = input.bool(true, "Show VWAP Bands", group=grpVWAP)
+
+grpOF = "Order Flow"
+vpLookback   = input.int(50,    "VP Lookback (bars)",                  group=grpOF, minval=10, maxval=200)
+vpLevels     = input.int(24,    "VP Levels",                           group=grpOF, minval=8,  maxval=48)
+absorbThresh = input.float(0.35,"Absorption Body/Range Threshold",     group=grpOF, step=0.05, minval=0.1, maxval=0.6)
+deltaStr_in  = input.float(0.6, "Delta Imbalance Threshold",           group=grpOF, step=0.05, minval=0.5, maxval=0.9)
+
+grpMS = "Market Structure"
+mssLookback  = input.int(10,   "Swing Lookback for BOS/MSS",          group=grpMS, minval=3,  maxval=30)
+showBOS      = input.bool(true, "Show BOS Labels",                    group=grpMS)
+showOB       = input.bool(true, "Show Order Blocks",                  group=grpMS)
+showFVG      = input.bool(true, "Show Fair Value Gaps",               group=grpMS)
+obLookback   = input.int(5,    "Order Block Lookback",                group=grpMS, minval=2,  maxval=20)
+
+grpHTF = "HTF Trend Filter"
+useHTF       = input.bool(true,  "Enable HTF Trend Filter",           group=grpHTF,
+     tooltip="Filters entries against the higher-timeframe EMA50 trend.")
+htfTF        = input.timeframe("60", "HTF Timeframe",                 group=grpHTF)
+
+grpTripleA = "Triple-A Setup"
+useTripleA   = input.bool(true,  "Require Triple-A Confirmation",     group=grpTripleA,
+     tooltip="ON = only Triple-A signals. OFF = all four setups active.")
+aaTolerance  = input.float(0.15, "Accumulation Zone Tolerance %",     group=grpTripleA, step=0.05)
+
+grpConfl = "Confluence Filter"
+minScore     = input.int(4, "Minimum Confluence Score (0–7)",         group=grpConfl, minval=0, maxval=7,
+     tooltip="Higher = fewer but higher-quality signals. 4 is the recommended starting point.")
+
+grpSess = "Session"
+kzSession    = input.session("0930-1100", "NY Kill Zone",             group=grpSess)
+kzAfternoon  = input.session("1330-1500", "Afternoon Kill Zone",      group=grpSess)
+
+grpFilt = "Filters"
+useVolFilter = input.bool(true,  "Volume Filter",                     group=grpFilt)
+useTrendEMA  = input.bool(true,  "EMA 50 Trend Filter",               group=grpFilt)
+volMult      = input.float(1.2,  "Volume Multiplier",                 group=grpFilt, step=0.05)
+
+grpRisk = "Risk Management"
+tpPoints     = input.float(10.0, "TP1 Points",                        group=grpRisk, step=0.5)
+tp2Points    = input.float(20.0, "TP2 Points",                        group=grpRisk, step=0.5)
+slPoints     = input.float(5.0,  "SL Points",                         group=grpRisk, step=0.5)
+useAtrRisk   = input.bool(true,  "Use ATR-Based Risk (recommended)",  group=grpRisk)
+atrMult      = input.float(1.0,  "ATR Multiplier (SL)",               group=grpRisk, step=0.1)
+atrLen       = input.int(14,     "ATR Length",                        group=grpRisk)
+useSwingSL   = input.bool(true,  "Structure-Aware SL (swing high/low)",group=grpRisk,
+     tooltip="Places SL at the nearest swing high/low within 1.5×ATR of the entry.")
+
+grpDisp = "Display"
+showLabels   = input.bool(true,  "Signal Labels",                     group=grpDisp)
+showPDLevels = input.bool(true,  "Prev Day High/Low",                 group=grpDisp)
+showPOC      = input.bool(true,  "Show POC Line",                     group=grpDisp)
+showAbsorb   = input.bool(true,  "Highlight Absorption",              group=grpDisp)
+showDeltaBars= input.bool(true,  "Show Delta Bars",                   group=grpDisp)
+showTable    = input.bool(true,  "Dashboard",                         group=grpDisp)
+showScore    = input.bool(true,  "Show Score on Labels",              group=grpDisp)
+
+grpCol = "Colors"
+bullCol    = input.color(color.new(#00E676, 0),  "Bull",       group=grpCol)
+bearCol    = input.color(color.new(#FF1744, 0),  "Bear",       group=grpCol)
+vwapCol    = input.color(color.new(#E040FB, 0),  "VWAP",       group=grpCol)
+pocCol     = input.color(color.new(#FFD600, 0),  "POC",        group=grpCol)
+absorbCol  = input.color(color.new(#FF9800, 70), "Absorption", group=grpCol)
+tripleACol = input.color(color.new(#00BCD4, 0),  "Triple-A",   group=grpCol)
+obBullCol  = input.color(color.new(#00E676, 80), "Bull OB",    group=grpCol)
+obBearCol  = input.color(color.new(#FF1744, 80), "Bear OB",    group=grpCol)
+fvgBullCol = input.color(color.new(#00BCD4, 85), "Bull FVG",   group=grpCol)
+fvgBearCol = input.color(color.new(#FF6D00, 85), "Bear FVG",   group=grpCol)
+
+// ───────────────────────────────────────────────────────────────
+//  SESSION & TIME
+// ───────────────────────────────────────────────────────────────
+
+isKZ        = not na(time("1", kzSession,   "America/New_York"))
+isAftKZ     = not na(time("1", kzAfternoon, "America/New_York"))
+isActive    = isKZ or isAftKZ
+isMkt       = not na(time("1", "0930-1600", "America/New_York"))
+isSessStart = not na(time("1", "0930-0931", "America/New_York"))
+newDay      = ta.change(time("D")) != 0
+
+// ───────────────────────────────────────────────────────────────
+//  EMA RIBBON
+// ───────────────────────────────────────────────────────────────
+
+emaFast = ta.ema(close, emaFastLen)
+emaMid  = ta.ema(close, emaMidLen)
+emaSlow = ta.ema(close, emaSlowLen)
+
+ribbonBull   = emaFast > emaMid and emaMid > emaSlow
+ribbonBear   = emaFast < emaMid and emaMid < emaSlow
+emaCrossUp   = ta.crossover(emaFast,  emaMid)
+emaCrossDown = ta.crossunder(emaFast, emaMid)
+
+// ───────────────────────────────────────────────────────────────
+//  HTF TREND FILTER
+// ───────────────────────────────────────────────────────────────
+
+htfEMA50    = request.security(syminfo.tickerid, htfTF, ta.ema(close, 50), lookahead=barmerge.lookahead_off)
+htfBullish  = close > htfEMA50
+htfBearish  = close < htfEMA50
+htfOk_long  = useHTF ? htfBullish : true
+htfOk_short = useHTF ? htfBearish : true
+
+// ───────────────────────────────────────────────────────────────
+//  VWAP + BANDS
+// ───────────────────────────────────────────────────────────────
+
+[vwapVal, vwapU1, vwapL1] = ta.vwap(hlc3, isSessStart, vwapStd1)
+[_,       vwapU2, vwapL2] = ta.vwap(hlc3, isSessStart, vwapStd2)
+
+aboveVWAP      = close > vwapVal
+belowVWAP      = close < vwapVal
+vwapRetestBull = low  <= vwapVal * 1.0005 and close > vwapVal
+vwapRetestBear = high >= vwapVal * 0.9995 and close < vwapVal
+overExtUp      = close >= vwapU2
+overExtDown    = close <= vwapL2
+
+// ───────────────────────────────────────────────────────────────
+//  VOLUME DELTA
+// ───────────────────────────────────────────────────────────────
+
+candleRange   = high - low
+bodySize      = math.abs(close - open)
+bodyRatio     = candleRange > 0 ? bodySize / candleRange : 0.0
+closePosition = candleRange > 0 ? (close - low) / candleRange : 0.5
+buyVol        = volume * closePosition
+sellVol       = volume * (1.0 - closePosition)
+deltaVal      = buyVol - sellVol
+deltaRatio    = volume > 0 ? deltaVal / volume : 0.0
+
+var float cumDelta = 0.0
+cumDelta := isSessStart ? deltaVal : cumDelta + deltaVal
+
+bullDelta = deltaRatio >  deltaStr_in
+bearDelta = deltaRatio < -deltaStr_in
+
+// ───────────────────────────────────────────────────────────────
+//  ABSORPTION
+// ───────────────────────────────────────────────────────────────
+
+volAvg     = ta.sma(volume, 20)
+highVolBar = volume > volAvg * 1.5
+smallBody  = bodyRatio < absorbThresh
+absorption = highVolBar and smallBody and isMkt
+
+// ───────────────────────────────────────────────────────────────
+//  VOLUME PROFILE — POC
+// ───────────────────────────────────────────────────────────────
+
+highestHigh = ta.highest(high, vpLookback)
+lowestLow   = ta.lowest(low,  vpLookback)
+priceRange  = highestHigh - lowestLow
+levelSize   = priceRange / vpLevels
+
+var float pocPrice    = na
+var float maxVolLevel = 0.0
+
+if barstate.islast
+    float[] levelVol = array.new_float(vpLevels, 0.0)
+    for i = 0 to vpLookback - 1
+        barMid   = (high[i] + low[i]) / 2.0
+        levelIdx = math.floor((barMid - lowestLow) / levelSize)
+        levelIdx := math.max(0, math.min(levelIdx, vpLevels - 1))
+        array.set(levelVol, levelIdx, array.get(levelVol, levelIdx) + volume[i])
+    maxVolLevel := array.max(levelVol)
+    maxIdx       = array.indexof(levelVol, maxVolLevel)
+    pocPrice    := lowestLow + (maxIdx + 0.5) * levelSize
+
+nearPOC = not na(pocPrice) and math.abs(close - pocPrice) / close < 0.002
+
+// ───────────────────────────────────────────────────────────────
+//  PREVIOUS DAY HIGH / LOW
+// ───────────────────────────────────────────────────────────────
+
+var float pdHigh  = na
+var float pdLow   = na
+var float dayHigh = na
+var float dayLow  = na
+
+if newDay
+    pdHigh  := dayHigh
+    pdLow   := dayLow
+    dayHigh := high
+    dayLow  := low
+else
+    dayHigh := math.max(nz(dayHigh, high), high)
+    dayLow  := math.min(nz(dayLow,  low),  low)
+
+nearPDH = not na(pdHigh) and math.abs(close - pdHigh) / close < aaTolerance / 100
+nearPDL = not na(pdLow)  and math.abs(close - pdLow)  / close < aaTolerance / 100
+
+var line pdHLine = na
+var line pdLLine = na
+
+if newDay and not na(pdHigh) and showPDLevels
+    line.delete(pdHLine)
+    line.delete(pdLLine)
+    pdHLine := line.new(bar_index, pdHigh, bar_index + 500, pdHigh,
+         color=color.new(#FFD600, 0), width=2, style=line.style_dotted, extend=extend.right)
+    pdLLine := line.new(bar_index, pdLow,  bar_index + 500, pdLow,
+         color=color.new(#FFD600, 0), width=2, style=line.style_dotted, extend=extend.right)
+
+// ───────────────────────────────────────────────────────────────
+//  ATR
+// ───────────────────────────────────────────────────────────────
+
+atrVal = ta.atr(atrLen)
+dynSL  = useAtrRisk ? atrVal * atrMult       : slPoints
+dynTP1 = useAtrRisk ? atrVal * atrMult * 2.0 : tpPoints
+dynTP2 = useAtrRisk ? atrVal * atrMult * 4.0 : tp2Points
+
+// ───────────────────────────────────────────────────────────────
+//  MARKET STRUCTURE — BOS / MSS (CHoCH)
+//  A BOS (Break of Structure) occurs when price closes above a
+//  recent swing high (bullish BOS) or below a recent swing low
+//  (bearish BOS). This confirms trend direction.
+//  An MSS (Market Structure Shift / CHoCH) is the first opposing
+//  BOS after a run — signals potential reversal.
+// ───────────────────────────────────────────────────────────────
+
+swingHigh = ta.pivothigh(high, mssLookback, mssLookback)
+swingLow  = ta.pivotlow(low,   mssLookback, mssLookback)
+
+var float lastSwingHigh = na
+var float lastSwingLow  = na
+
+if not na(swingHigh)
+    lastSwingHigh := swingHigh
+if not na(swingLow)
+    lastSwingLow  := swingLow
+
+bullBOS = not na(lastSwingHigh) and close > lastSwingHigh and close[1] <= lastSwingHigh
+bearBOS = not na(lastSwingLow)  and close < lastSwingLow  and close[1] >= lastSwingLow
+
+var int structureDir = 0  // 1 = bullish structure, -1 = bearish, 0 = undefined
+
+if bullBOS
+    structureDir := 1
+if bearBOS
+    structureDir := -1
+
+// MSS (CHoCH): first BOS against the prevailing structure
+// bullMSS = bearish structure shifting upward (first bullish BOS after downtrend)
+// bearMSS = bullish structure shifting downward (first bearish BOS after uptrend)
+bullMSS = bullBOS and structureDir[1] == -1  // was bearish, now broke up
+bearMSS = bearBOS and structureDir[1] == 1   // was bullish, now broke down
+
+// FIX: label uses correct MSS variable for each BOS direction
+if showBOS
+    if bullBOS
+        label.new(bar_index, low - atrVal * 0.3, bullMSS ? "MSS ▲" : "BOS ▲",
+             color=color.new(bullCol, 20), textcolor=color.white,
+             style=label.style_label_up, size=size.tiny)
+    if bearBOS
+        label.new(bar_index, high + atrVal * 0.3, bearMSS ? "MSS ▼" : "BOS ▼",
+             color=color.new(bearCol, 20), textcolor=color.white,
+             style=label.style_label_down, size=size.tiny)
+
+// ───────────────────────────────────────────────────────────────
+//  ORDER BLOCK DETECTION
+//  Bull OB = last bearish candle before a bullish BOS.
+//  Bear OB = last bullish candle before a bearish BOS.
+//  Draw as a box spanning that candle's high–low.
+//  Mark "mitigated" (price returned into it) = stop drawing.
+// ───────────────────────────────────────────────────────────────
+
+var float obBullTop    = na
+var float obBullBot    = na
+var float obBearTop    = na
+var float obBearBot    = na
+var int   obBullBar    = na
+var int   obBearBar    = na
+var bool  obBullMit    = false
+var bool  obBearMit    = false
+
+// FIX: persist box handles to delete before redrawing on each tick
+var box   obBullBox    = na
+var box   obBearBox    = na
+
+if bullBOS
+    for i = 1 to obLookback
+        if close[i] < open[i]
+            obBullTop  := high[i]
+            obBullBot  := low[i]
+            obBullBar  := bar_index - i
+            obBullMit  := false
+            break
+
+if bearBOS
+    for i = 1 to obLookback
+        if close[i] > open[i]
+            obBearTop  := high[i]
+            obBearBot  := low[i]
+            obBearBar  := bar_index - i
+            obBearMit  := false
+            break
+
+if not obBullMit and not na(obBullTop)
+    if low <= obBullTop and high >= obBullBot
+        obBullMit := true
+
+if not obBearMit and not na(obBearTop)
+    if low <= obBearTop and high >= obBearBot
+        obBearMit := true
+
+inBullOB = not obBullMit and not na(obBullTop) and close >= obBullBot and close <= obBullTop
+inBearOB = not obBearMit and not na(obBearTop) and close >= obBearBot and close <= obBearTop
+
+// FIX: delete existing box before redrawing to prevent tick-level duplication
+if barstate.islast and showOB
+    if not obBullMit and not na(obBullTop) and not na(obBullBar)
+        box.delete(obBullBox)
+        obBullBox := box.new(obBullBar, obBullTop, bar_index + 20, obBullBot,
+             border_color=color.new(bullCol, 40), border_width=1,
+             bgcolor=obBullCol, extend=extend.right)
+    if not obBearMit and not na(obBearTop) and not na(obBearBar)
+        box.delete(obBearBox)
+        obBearBox := box.new(obBearBar, obBearTop, bar_index + 20, obBearBot,
+             border_color=color.new(bearCol, 40), border_width=1,
+             bgcolor=obBearCol, extend=extend.right)
+
+// ───────────────────────────────────────────────────────────────
+//  FAIR VALUE GAP (FVG) DETECTION
+//  A bullish FVG forms when: low[0] > high[2]  (gap up)
+//  A bearish FVG forms when: high[0] < low[2]  (gap down)
+//  Draw the imbalance zone as a box until it's filled.
+// ───────────────────────────────────────────────────────────────
+
+bullFVG = low > high[2]
+bearFVG = high < low[2]
+
+var float fvgBullTop    = na
+var float fvgBullBot    = na
+var float fvgBearTop    = na
+var float fvgBearBot    = na
+var int   fvgBullBar    = na
+var int   fvgBearBar    = na
+var bool  fvgBullFilled = false
+var bool  fvgBearFilled = false
+
+// FIX: persist box handles to delete before redrawing on each tick
+var box   fvgBullBox    = na
+var box   fvgBearBox    = na
+
+if bullFVG
+    fvgBullTop    := low
+    fvgBullBot    := high[2]
+    fvgBullBar    := bar_index
+    fvgBullFilled := false
+
+if bearFVG
+    fvgBearTop    := low[2]
+    fvgBearBot    := high
+    fvgBearBar    := bar_index
+    fvgBearFilled := false
+
+if not fvgBullFilled and not na(fvgBullTop)
+    if low <= fvgBullTop and high >= fvgBullBot
+        fvgBullFilled := true
+
+if not fvgBearFilled and not na(fvgBearTop)
+    if low <= fvgBearTop and high >= fvgBearBot
+        fvgBearFilled := true
+
+inBullFVG = not fvgBullFilled and not na(fvgBullTop) and close >= fvgBullBot and close <= fvgBullTop
+inBearFVG = not fvgBearFilled and not na(fvgBearTop) and close >= fvgBearBot and close <= fvgBearTop
+
+// FIX: delete existing box before redrawing to prevent tick-level duplication
+if barstate.islast and showFVG
+    if not fvgBullFilled and not na(fvgBullTop) and not na(fvgBullBar)
+        box.delete(fvgBullBox)
+        fvgBullBox := box.new(fvgBullBar - 2, fvgBullTop, bar_index + 15, fvgBullBot,
+             border_color=color.new(#00BCD4, 60), border_width=1,
+             bgcolor=fvgBullCol)
+    if not fvgBearFilled and not na(fvgBearTop) and not na(fvgBearBar)
+        box.delete(fvgBearBox)
+        fvgBearBox := box.new(fvgBearBar - 2, fvgBearTop, bar_index + 15, fvgBearBot,
+             border_color=color.new(#FF6D00, 60), border_width=1,
+             bgcolor=fvgBearCol)
+
+// ───────────────────────────────────────────────────────────────
+//  TRIPLE-A SETUP (retained from v2)
+// ───────────────────────────────────────────────────────────────
+
+var int  a1BullBar = na
+var int  a1BearBar = na
+var bool a1Bull    = false
+var bool a1Bear    = false
+
+consolidating   = ta.atr(5) < ta.atr(20) * 0.7
+a1BullCondition = consolidating and (nearPOC or vwapRetestBull or nearPDH) and aboveVWAP
+a1BearCondition = consolidating and (nearPOC or vwapRetestBear or nearPDL) and belowVWAP
+
+if a1BullCondition
+    a1Bull    := true
+    a1BullBar := bar_index
+if a1BearCondition
+    a1Bear    := true
+    a1BearBar := bar_index
+if not (nearPOC or vwapRetestBull or nearPDH or vwapRetestBear or nearPDL)
+    a1Bull := false
+    a1Bear := false
+
+a2Bull = a1Bull and absorption and bar_index - nz(a1BullBar, bar_index) <= 5
+a2Bear = a1Bear and absorption and bar_index - nz(a1BearBar, bar_index) <= 5
+
+var bool a2BullSeen = false
+var bool a2BearSeen = false
+
+if a2Bull
+    a2BullSeen := true
+if a2Bear
+    a2BearSeen := true
+if a1Bull and bar_index - nz(a1BullBar, bar_index) > 10
+    a2BullSeen := false
+if a1Bear and bar_index - nz(a1BearBar, bar_index) > 10
+    a2BearSeen := false
+
+aggrBull = close > open and bodyRatio > 0.55 and bullDelta
+aggrBear = close < open and bodyRatio > 0.55 and bearDelta
+
+tripleALong  = a1Bull and a2BullSeen and aggrBull
+tripleAShort = a1Bear and a2BearSeen and aggrBear
+
+// ───────────────────────────────────────────────────────────────
+//  FILTERS
+// ───────────────────────────────────────────────────────────────
+
+volOk     = useVolFilter ? volume > volAvg * volMult : true
+trendUp   = useTrendEMA  ? close > emaSlow : true
+trendDown = useTrendEMA  ? close < emaSlow : true
+candleBull = close > open and bodyRatio > 0.4
+candleBear = close < open and bodyRatio > 0.4
+
+// ───────────────────────────────────────────────────────────────
+//  CONFLUENCE SCORE SYSTEM
+//  Each potential long/short entry is scored 0–7.
+//  Score ≥ minScore required to generate a signal.
+//
+//  Long scoring factors:
+//    1. EMA ribbon bullish            (+1)
+//    2. Above VWAP                    (+1)
+//    3. Bull delta confirmed          (+1)
+//    4. Near POC / OB / FVG          (+1)
+//    5. HTF bullish                   (+1)
+//    6. Bullish market structure      (+1)
+//    7. Triple-A pattern              (+1)
+// ───────────────────────────────────────────────────────────────
+
+scoreLong =
+     (ribbonBull          ? 1 : 0) +
+     (aboveVWAP           ? 1 : 0) +
+     (bullDelta           ? 1 : 0) +
+     (nearPOC or inBullOB or inBullFVG ? 1 : 0) +
+     (htfOk_long          ? 1 : 0) +
+     (structureDir == 1   ? 1 : 0) +
+     (tripleALong         ? 1 : 0)
+
+scoreShort =
+     (ribbonBear          ? 1 : 0) +
+     (belowVWAP           ? 1 : 0) +
+     (bearDelta           ? 1 : 0) +
+     (nearPOC or inBearOB or inBearFVG ? 1 : 0) +
+     (htfOk_short         ? 1 : 0) +
+     (structureDir == -1  ? 1 : 0) +
+     (tripleAShort        ? 1 : 0)
+
+scoreOk_long  = scoreLong  >= minScore
+scoreOk_short = scoreShort >= minScore
+
+// ───────────────────────────────────────────────────────────────
+//  STRUCTURE-AWARE STOP LOSS
+//  Find nearest swing low (for longs) within 1.5×ATR of close.
+//  Use that as SL if available; else fall back to dynSL.
+// ───────────────────────────────────────────────────────────────
+
+swingSLWindow = 10
+nearestSwingLow  = ta.lowest(low,  swingSLWindow)
+nearestSwingHigh = ta.highest(high, swingSLWindow)
+
+structSL_long  = useSwingSL and (close - nearestSwingLow)  <= atrVal * 1.5 ? nearestSwingLow  : na
+structSL_short = useSwingSL and (nearestSwingHigh - close) <= atrVal * 1.5 ? nearestSwingHigh : na
+
+effectiveSL_long  = not na(structSL_long)  ? (close - structSL_long)  : dynSL
+effectiveSL_short = not na(structSL_short) ? (structSL_short - close) : dynSL
+
+// ───────────────────────────────────────────────────────────────
+//  ENTRY CONDITIONS
+//  useTripleA gates setups 1–3 (same as v2).
+//  All entries additionally require scoreOk + structure dir.
+// ───────────────────────────────────────────────────────────────
+
+s1Long  = not useTripleA and emaCrossUp   and aboveVWAP and trendUp   and volOk and candleBull and isActive and scoreOk_long  and structureDir >= 0
+s1Short = not useTripleA and emaCrossDown and belowVWAP and trendDown and volOk and candleBear and isActive and scoreOk_short and structureDir <= 0
+
+s2Long  = not useTripleA and vwapRetestBull and ribbonBull and trendUp   and volOk and isActive and scoreOk_long  and structureDir >= 0
+s2Short = not useTripleA and vwapRetestBear and ribbonBear and trendDown and volOk and isActive and scoreOk_short and structureDir <= 0
+
+s3Long  = not useTripleA and not na(pdHigh) and close > pdHigh and aboveVWAP and ribbonBull and volOk and isActive and scoreOk_long  and structureDir >= 0
+s3Short = not useTripleA and not na(pdLow)  and close < pdLow  and belowVWAP and ribbonBear and volOk and isActive and scoreOk_short and structureDir <= 0
+
+s4Long  = tripleALong  and trendUp   and isActive and htfOk_long  and scoreOk_long
+s4Short = tripleAShort and trendDown and isActive and htfOk_short and scoreOk_short
+
+rawLong  = s1Long  or s2Long  or s3Long  or s4Long
+rawShort = s1Short or s2Short or s3Short or s4Short
+
+// ───────────────────────────────────────────────────────────────
+//  TRADE STATE MACHINE
+//  States: 0 = flat, 1 = in long, -1 = in short
+//  Re-entry suppressed until TP1 or SL is hit.
+// ───────────────────────────────────────────────────────────────
+
+var int   tradeState   = 0
+var float tradeEntry   = na
+var float tradeSL      = na
+var float tradeTP1     = na
+var float tradeTP2     = na
+var float tradeRisk    = na   // locked SL distance at entry for accurate P&L
+var int   tradeWins    = 0
+var int   tradeLosses  = 0
+var float sessionPnL   = 0.0
+
+if newDay
+    sessionPnL := 0.0
+
+if tradeState == 1
+    if low  <= tradeSL
+        tradeState  := 0
+        tradeLosses += 1
+        sessionPnL  -= tradeRisk
+    else if high >= tradeTP1
+        tradeState := 0
+        tradeWins  += 1
+        sessionPnL += dynTP1
+
+if tradeState == -1
+    if high >= tradeSL
+        tradeState  := 0
+        tradeLosses += 1
+        sessionPnL  -= tradeRisk
+    else if low <= tradeTP1
+        tradeState := 0
+        tradeWins  += 1
+        sessionPnL += dynTP1
+
+longEntry  = tradeState == 0 and rawLong  and not rawLong[1]
+shortEntry = tradeState == 0 and rawShort and not rawShort[1]
+
+if longEntry
+    tradeState := 1
+    tradeEntry := close
+    tradeSL    := not na(structSL_long)  ? structSL_long  : close - dynSL
+    tradeTP1   := close + dynTP1
+    tradeTP2   := close + dynTP2
+    tradeRisk  := not na(structSL_long)  ? (close - structSL_long)  : dynSL
+
+if shortEntry
+    tradeState := -1
+    tradeEntry := close
+    tradeSL    := not na(structSL_short) ? structSL_short : close + dynSL
+    tradeTP1   := close - dynTP1
+    tradeTP2   := close - dynTP2
+    tradeRisk  := not na(structSL_short) ? (structSL_short - close) : dynSL
+
+longSetupTag  = s4Long  ? "Triple-A ★" : s3Long  ? "PDH Break"   : s2Long  ? "VWAP Retest" : "EMA Cross"
+shortSetupTag = s4Short ? "Triple-A ★" : s3Short ? "PDL Break"   : s2Short ? "VWAP Retest" : "EMA Cross"
+
+// ───────────────────────────────────────────────────────────────
+//  SIGNAL LABELS
+// ───────────────────────────────────────────────────────────────
+
+if longEntry and showLabels
+    lCol     = s4Long ? tripleACol : bullCol
+    scoreStr = showScore ? "\nScore: " + str.tostring(scoreLong) + "/7" : ""
+    slLevel  = not na(structSL_long) ? structSL_long : close - dynSL
+    rrVal    = dynTP1 / math.max(close - slLevel, 0.0001)
+    label.new(bar_index, low - atrVal * 0.6,
+         "▲ LONG  " + longSetupTag + scoreStr +
+         "\nEntry: " + str.tostring(close,   "#.##") +
+         "\nTP1:   " + str.tostring(close + dynTP1, "#.##") +
+         "\nTP2:   " + str.tostring(close + dynTP2, "#.##") +
+         "\nSL:    " + str.tostring(slLevel, "#.##") +
+         "\nRR:  1:" + str.tostring(rrVal,   "#.#"),
+         color=lCol, textcolor=color.white,
+         style=label.style_label_up, size=size.normal)
+
+if shortEntry and showLabels
+    sCol     = s4Short ? tripleACol : bearCol
+    scoreStr = showScore ? "\nScore: " + str.tostring(scoreShort) + "/7" : ""
+    slLevel  = not na(structSL_short) ? structSL_short : close + dynSL
+    rrVal    = dynTP1 / math.max(slLevel - close, 0.0001)
+    label.new(bar_index, high + atrVal * 0.6,
+         "▼ SHORT  " + shortSetupTag + scoreStr +
+         "\nEntry: " + str.tostring(close,   "#.##") +
+         "\nTP1:   " + str.tostring(close - dynTP1, "#.##") +
+         "\nTP2:   " + str.tostring(close - dynTP2, "#.##") +
+         "\nSL:    " + str.tostring(slLevel, "#.##") +
+         "\nRR:  1:" + str.tostring(rrVal,   "#.#"),
+         color=sCol, textcolor=color.white,
+         style=label.style_label_down, size=size.normal)
+
+// ───────────────────────────────────────────────────────────────
+//  TP / SL LINES
+// ───────────────────────────────────────────────────────────────
+
+var line tp1L = na
+var line tp2L = na
+var line slL  = na
+
+mkLine(p, c, s) =>
+    line.new(bar_index, p, bar_index + 40, p,
+         color=color.new(c, 25), width=1, style=s)
+
+if longEntry
+    line.delete(tp1L)
+    line.delete(tp2L)
+    line.delete(slL)
+    slLevel = not na(structSL_long) ? structSL_long : close - dynSL
+    tp1L := mkLine(close + dynTP1, bullCol,              line.style_dashed)
+    tp2L := mkLine(close + dynTP2, color.new(#00BCD4,0), line.style_dashed)
+    slL  := mkLine(slLevel,        bearCol,              line.style_dotted)
+
+if shortEntry
+    line.delete(tp1L)
+    line.delete(tp2L)
+    line.delete(slL)
+    slLevel = not na(structSL_short) ? structSL_short : close + dynSL
+    tp1L := mkLine(close - dynTP1, bullCol,              line.style_dashed)
+    tp2L := mkLine(close - dynTP2, color.new(#00BCD4,0), line.style_dashed)
+    slL  := mkLine(slLevel,        bearCol,              line.style_dotted)
+
+// ───────────────────────────────────────────────────────────────
+//  POC LINE
+// ───────────────────────────────────────────────────────────────
+
+var line pocLine = na
+
+if barstate.islast and showPOC and not na(pocPrice)
+    line.delete(pocLine)
+    pocLine := line.new(bar_index - vpLookback, pocPrice, bar_index + 20, pocPrice,
+         color=pocCol, width=2, style=line.style_solid, extend=extend.right)
+
+// ───────────────────────────────────────────────────────────────
+//  BACKGROUNDS
+// ───────────────────────────────────────────────────────────────
+
+bgcolor(isKZ                      ? color.new(#00E676, 95) : na, title="NY Kill Zone")
+bgcolor(isAftKZ                   ? color.new(#2962FF, 95) : na, title="Afternoon Kill Zone")
+bgcolor(absorption and showAbsorb ? absorbCol              : na, title="Absorption Bar")
+
+// ───────────────────────────────────────────────────────────────
+//  PLOTS
+// ───────────────────────────────────────────────────────────────
+
+p_fast = plot(isMkt ? emaFast : na, "EMA 8",  color=color.new(#FF9800, 0), linewidth=1)
+p_mid  = plot(isMkt ? emaMid  : na, "EMA 21", color=color.new(#2196F3, 0), linewidth=1)
+plot(isMkt ? emaSlow : na,          "EMA 50", color=color.new(#9C27B0, 0), linewidth=2)
+
+fillCol = ribbonBull ? color.new(#00E676, 88) : ribbonBear ? color.new(#FF1744, 88) : color.new(color.gray, 95)
+fill(p_fast, p_mid, fillCol)
+
+plot(isMkt ? vwapVal : na, "VWAP", color=vwapCol, linewidth=2)
+
+p_u1 = plot(isMkt and showBands ? vwapU1 : na, "VWAP +1σ", color=color.new(#E040FB,55), linewidth=1, style=plot.style_linebr)
+p_l1 = plot(isMkt and showBands ? vwapL1 : na, "VWAP -1σ", color=color.new(#E040FB,55), linewidth=1, style=plot.style_linebr)
+p_u2 = plot(isMkt and showBands ? vwapU2 : na, "VWAP +2σ", color=color.new(#E040FB,78), linewidth=1, style=plot.style_linebr)
+p_l2 = plot(isMkt and showBands ? vwapL2 : na, "VWAP -2σ", color=color.new(#E040FB,78), linewidth=1, style=plot.style_linebr)
+
+fill(p_u1, p_l1, color=color.new(#E040FB, 95))
+
+plot(isMkt and showPDLevels and not na(pdHigh) ? pdHigh : na, "PDH", color=color.new(#FFD600,0), linewidth=1, style=plot.style_linebr)
+plot(isMkt and showPDLevels and not na(pdLow)  ? pdLow  : na, "PDL", color=color.new(#FFD600,0), linewidth=1, style=plot.style_linebr)
+
+plotshape(showDeltaBars and bullDelta and isMkt, "Bull Delta", shape.square, location.belowbar, color.new(#00E676,50), size=size.tiny)
+plotshape(showDeltaBars and bearDelta and isMkt, "Bear Delta", shape.square, location.abovebar, color.new(#FF1744,50), size=size.tiny)
+
+plotshape(tripleALong  and isMkt, "Triple-A Long",  shape.diamond, location.belowbar, color.new(#00BCD4,0), size=size.small)
+plotshape(tripleAShort and isMkt, "Triple-A Short", shape.diamond, location.abovebar, color.new(#00BCD4,0), size=size.small)
+
+plotshape(longEntry,  "Long",  shape.triangleup,   location.belowbar, s4Long  ? color.new(#00BCD4,0) : color.new(#00E676,0), size=size.normal)
+plotshape(shortEntry, "Short", shape.triangledown, location.abovebar, s4Short ? color.new(#00BCD4,0) : color.new(#FF1744,0), size=size.normal)
+
+plotshape(overExtUp   and isMkt, "Over Ext Up",   shape.xcross, location.abovebar, color.new(#FF1744,40), size=size.tiny)
+plotshape(overExtDown and isMkt, "Over Ext Down", shape.xcross, location.belowbar, color.new(#00E676,40), size=size.tiny)
+
+// ───────────────────────────────────────────────────────────────
+//  EXPANDED DASHBOARD
+// ───────────────────────────────────────────────────────────────
+
+_r(t, r, k, v, vc) =>
+    table.cell(t, 0, r, k, text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, r, v, text_color=vc,         text_size=size.small)
+
+var table dash = table.new(position.top_right, 2, 20,
+     border_color=color.new(color.gray, 50), border_width=1,
+     bgcolor=color.new(#0D1117, 5),
+     frame_color=color.new(#FFD600, 60), frame_width=1)
+
+if barstate.islast and showTable
+
+    modeStr  = useTripleA ? "Triple-A ONLY" : "All Setups"
+    modeCol  = useTripleA ? color.new(#00BCD4, 20) : color.new(#2962FF, 20)
+
+    sessStr  = isKZ ? "NY OPEN" : isAftKZ ? "AFTERNOON" : "OFF"
+    sessCol  = isKZ ? color.new(#00E676,0) : isAftKZ ? color.new(#2962FF,0) : color.gray
+
+    ribStr   = ribbonBull ? "BULLISH ▲" : ribbonBear ? "BEARISH ▼" : "MIXED →"
+    ribCol   = ribbonBull ? color.new(#00E676,0) : ribbonBear ? color.new(#FF1744,0) : color.gray
+
+    structStr = structureDir == 1 ? "BULLISH ▲" : structureDir == -1 ? "BEARISH ▼" : "UNDEFINED"
+    structCol = structureDir == 1 ? color.new(#00E676,0) : structureDir == -1 ? color.new(#FF1744,0) : color.gray
+
+    htfStr   = htfBullish ? "BULLISH ▲" : "BEARISH ▼"
+    htfCol   = htfBullish ? color.new(#00E676,0) : color.new(#FF1744,0)
+
+    vwapStr  = aboveVWAP ? "ABOVE ▲" : "BELOW ▼"
+    vwapC    = aboveVWAP ? color.new(#00E676,0) : color.new(#FF1744,0)
+
+    volStr   = volOk ? "CONFIRMED ✓" : "WEAK ✗"
+    volC     = volOk ? color.new(#00E676,0) : color.gray
+
+    deltaStr = bullDelta ? "BUYERS ▲" : bearDelta ? "SELLERS ▼" : "NEUTRAL →"
+    deltaC   = bullDelta ? color.new(#00E676,0) : bearDelta ? color.new(#FF1744,0) : color.gray
+
+    absStr   = absorption ? "DETECTED ⚡" : "None"
+    absC     = absorption ? color.new(#FF9800,0) : color.gray
+
+    aaStr    = tripleALong ? "BULL ★" : tripleAShort ? "BEAR ★" : "Not Set"
+    aaC      = tripleALong or tripleAShort ? color.new(#00BCD4,0) : color.gray
+
+    obStr    = inBullOB ? "In BULL OB" : inBearOB ? "In BEAR OB" : "None"
+    obC      = inBullOB ? color.new(#00E676,0) : inBearOB ? color.new(#FF1744,0) : color.gray
+
+    fvgStr   = inBullFVG ? "Bull FVG" : inBearFVG ? "Bear FVG" : "None"
+    fvgC     = inBullFVG ? color.new(#00BCD4,0) : inBearFVG ? color.new(#FF6D00,0) : color.gray
+
+    pocStr   = not na(pocPrice) ? str.tostring(pocPrice, "#.##") : "Calculating..."
+
+    stateStr = tradeState == 1 ? "IN LONG ▲" : tradeState == -1 ? "IN SHORT ▼" : "FLAT"
+    stateCol = tradeState == 1 ? color.new(#00E676,0) : tradeState == -1 ? color.new(#FF1744,0) : color.gray
+
+    wlStr    = str.tostring(tradeWins) + "W / " + str.tostring(tradeLosses) + "L"
+    winRate  = (tradeWins + tradeLosses) > 0 ? float(tradeWins) / float(tradeWins + tradeLosses) * 100 : 0.0
+    wlC      = winRate >= 55 ? color.new(#00E676,0) : winRate >= 40 ? color.new(#FFD600,0) : color.new(#FF1744,0)
+
+    pnlStr   = (sessionPnL >= 0 ? "+" : "") + str.tostring(sessionPnL, "#.#") + " pts"
+    pnlC     = sessionPnL >= 0 ? color.new(#00E676,0) : color.new(#FF1744,0)
+
+    scoreLStr = str.tostring(scoreLong)  + "/7"
+    scoreSStr = str.tostring(scoreShort) + "/7"
+    scoreLCol = scoreLong  >= minScore ? color.new(#00E676,0) : color.gray
+    scoreSCol = scoreShort >= minScore ? color.new(#FF1744,0) : color.gray
+
+    table.cell(dash, 0, 0, "VALENTINI PRO v3  |  " + modeStr,
+         text_color=color.white, bgcolor=modeCol, text_size=size.small)
+    table.cell(dash, 1, 0, "", bgcolor=modeCol)
+
+    _r(dash, 1,  "Session",      sessStr,   sessCol)
+    _r(dash, 2,  "Structure",    structStr, structCol)
+    _r(dash, 3,  "HTF (" + htfTF + ")", htfStr, htfCol)
+    _r(dash, 4,  "EMA Ribbon",   ribStr,    ribCol)
+    _r(dash, 5,  "vs VWAP",      vwapStr,   vwapC)
+    _r(dash, 6,  "Volume",       volStr,    volC)
+    _r(dash, 7,  "Delta",        deltaStr,  deltaC)
+    _r(dash, 8,  "Absorption",   absStr,    absC)
+    _r(dash, 9,  "Triple-A",     aaStr,     aaC)
+    _r(dash, 10, "Order Block",  obStr,     obC)
+    _r(dash, 11, "FVG",          fvgStr,    fvgC)
+    _r(dash, 12, "POC",          pocStr,    color.new(#FFD600,0))
+    _r(dash, 13, "Score Long",   scoreLStr, scoreLCol)
+    _r(dash, 14, "Score Short",  scoreSStr, scoreSCol)
+    _r(dash, 15, "Trade State",  stateStr,  stateCol)
+    _r(dash, 16, "Session W/L",  wlStr,     wlC)
+    _r(dash, 17, "Win Rate",     str.tostring(winRate, "#.#") + "%", wlC)
+    _r(dash, 18, "Session P&L",  pnlStr,    pnlC)
+    _r(dash, 19, "Mode",         modeStr,   useTripleA ? color.new(#00BCD4,0) : color.gray)
+
+// ───────────────────────────────────────────────────────────────
+//  ALERTS
+// ───────────────────────────────────────────────────────────────
+
+alertcondition(longEntry,              "Long Signal",         "Valentini Pro v3: LONG entry — check dashboard for score and setup type.")
+alertcondition(shortEntry,             "Short Signal",        "Valentini Pro v3: SHORT entry — check dashboard for score and setup type.")
+alertcondition(tripleALong  and isMkt, "Triple-A Long ★",    "Valentini Pro v3: TRIPLE-A LONG — highest conviction setup.")
+alertcondition(tripleAShort and isMkt, "Triple-A Short ★",   "Valentini Pro v3: TRIPLE-A SHORT — highest conviction setup.")
+alertcondition(bullBOS,                "Bullish BOS",         "Valentini Pro v3: Bullish Break of Structure confirmed.")
+alertcondition(bearBOS,                "Bearish BOS",         "Valentini Pro v3: Bearish Break of Structure confirmed.")
+alertcondition(bullMSS,                "Bullish MSS (CHoCH)", "Valentini Pro v3: Bullish Market Structure Shift — potential trend reversal.")
+alertcondition(bearMSS,                "Bearish MSS (CHoCH)", "Valentini Pro v3: Bearish Market Structure Shift — potential trend reversal.")
+alertcondition(inBullOB and longEntry, "Long from Bull OB",   "Valentini Pro v3: LONG entry from a bullish Order Block.")
+alertcondition(inBearOB and shortEntry,"Short from Bear OB",  "Valentini Pro v3: SHORT entry from a bearish Order Block.")
+alertcondition(absorption and isMkt,   "Absorption Detected", "Valentini Pro v3: Absorption candle at key level.")
