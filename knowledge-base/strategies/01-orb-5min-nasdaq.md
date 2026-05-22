@@ -227,7 +227,7 @@ Practitioner write-ups and replications:
 
 ## 12. Next actions for me
 
-- [ ] Build the Pine Script version of ORB-5 in `indicators/pine-script/orb-5.pine` and confirm it lights up the right candles on a 5-min NQ chart.
+- [x] Build the Pine Script version of ORB-5 in [`indicators/pine-script/orb-5.pine`](../../indicators/pine-script/orb-5.pine). Apply to a 5-min NQ chart and confirm that the OR box, breakout entries, SL, TP1 and EMA trail line up with this document's ruleset.
 - [ ] Run a manual backtest on 2024 NQ data (~250 days) and record win rate / avg R / max drawdown in a new file under `backtests/`.
 - [ ] Paper-trade ORB-5 for 30 sessions, journaling each one with the existing `journal/_template.md`.
 - [ ] If the 30-session paper test holds together, draft `02-orb-5-stocks-in-play.md` with the multi-stock variant.

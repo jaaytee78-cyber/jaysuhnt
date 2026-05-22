@@ -1,0 +1,305 @@
+// © jaysuhnt
+// ORB-5 — 5-minute Opening Range Breakout for NASDAQ.
+// Mechanical scalping strategy based on Zarattini & Aziz (SSRN 2023, 2024).
+// Full ruleset: knowledge-base/strategies/01-orb-5min-nasdaq.md
+//
+// Designed primarily for the 5-minute timeframe on NQ / MNQ / NAS100 / QQQ / TQQQ.
+// Will also run on 1-min and 3-min charts (the OR is built across multiple bars).
+// On timeframes greater than 5m a warning label is drawn.
+
+//@version=5
+strategy(
+     "Jaysuhnt — ORB-5 NASDAQ",
+     overlay                 = true,
+     pyramiding              = 0,
+     default_qty_type        = strategy.fixed,
+     default_qty_value       = 1,
+     initial_capital         = 50000,
+     currency                = currency.USD,
+     commission_type         = strategy.commission.cash_per_contract,
+     commission_value        = 0.62,
+     slippage                = 1,
+     calc_on_every_tick      = false,
+     process_orders_on_close = true,
+     max_lines_count         = 500,
+     max_boxes_count         = 500,
+     max_labels_count        = 500)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+grpSession = "Session & Time"
+tz        = input.string("America/New_York", "Timezone", options = ["America/New_York", "Europe/London", "Etc/UTC"], group = grpSession)
+sessOR    = input.session("0930-0935", "Opening Range window", group = grpSession, tooltip = "The 09:30–09:34:59 ET 5-min candle.")
+sessTrade = input.session("0935-1130", "Entry window",         group = grpSession, tooltip = "No new entries outside this window.")
+sessFlat  = input.session("1555-1600", "Hard-close window",    group = grpSession, tooltip = "Position is flattened inside this window.")
+
+grpRules = "Strategy Rules"
+useCloseConfirm = input.bool(true,  "Require CLOSE beyond OR (else high/low touch)", group = grpRules)
+firstOnly       = input.bool(true,  "Take only the FIRST breakout per session",       group = grpRules)
+useNewsBlock    = input.bool(false, "Manual no-trade today (FOMC / NFP / CPI / etc.)", group = grpRules)
+
+grpFilters = "OR-Width Filter"
+useORWidth = input.bool(true,  "Filter by OR width vs 14-day average", group = grpFilters)
+orMaxMult  = input.float(1.5,  "Skip if OR > X × 14d avg", minval = 1.0,  step = 0.1,  group = grpFilters)
+orMinMult  = input.float(0.4,  "Skip if OR < X × 14d avg", minval = 0.05, step = 0.05, group = grpFilters)
+
+grpRisk = "Risk & Targets"
+riskPct     = input.float(0.5,  "Risk per trade (% of equity)", minval = 0.05, step = 0.05, group = grpRisk)
+dailyLossR  = input.float(2.0,  "Daily loss limit (R)",         minval = 0.5,  step = 0.5,  group = grpRisk)
+tp1R        = input.float(1.0,  "TP1 at this many R",           minval = 0.25, step = 0.25, group = grpRisk)
+tp1Pct      = input.float(50.0, "% of position to close at TP1",minval = 10.0, maxval = 90.0, step = 5.0, group = grpRisk)
+beAfterTP1  = input.bool(true,  "Move stop to break-even after TP1",                       group = grpRisk)
+useEmaTrail = input.bool(true,  "Trail runner with EMA",                                    group = grpRisk)
+emaLen      = input.int(9,      "EMA length for runner trail",  minval = 3,                 group = grpRisk)
+
+grpViz = "Visuals"
+showOR     = input.bool(true,  "Draw OR box & extension lines", group = grpViz)
+showLevels = input.bool(true,  "Draw entry / SL / TP1 markers", group = grpViz)
+showStats  = input.bool(true,  "Show stats table (top-right)",  group = grpViz)
+colOR      = input.color(color.new(color.yellow, 80), "OR colour",    group = grpViz)
+colLong    = input.color(color.new(color.green, 30),  "Long colour",  group = grpViz)
+colShort   = input.color(color.new(color.red, 30),    "Short colour", group = grpViz)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+inSession(sess) => not na(time(timeframe.period, sess, tz))
+
+isOR       = inSession(sessOR)
+startedOR  = isOR     and not isOR[1]
+endedOR    = not isOR and     isOR[1]
+
+inEntryWin = inSession(sessTrade)
+inFlatWin  = inSession(sessFlat)
+
+// Position-sizing helper. Falls back to 1 contract if the math is undefined.
+calcQty(_entry, _stop) =>
+    riskUnit   = math.abs(_entry - _stop)
+    riskDollar = strategy.equity * (riskPct / 100.0)
+    pointVal   = syminfo.pointvalue
+    raw        = riskUnit > 0 and pointVal > 0 ? riskDollar / (riskUnit * pointVal) : 1.0
+    math.max(1, math.floor(raw))
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+var float orHi           = na
+var float orLo           = na
+var float orRange        = na
+var bool  orLocked       = false
+var bool  breakoutTaken  = false
+var int   orStartBar     = na
+var float dayStartEquity = na
+
+var float entryPx  = na
+var float stopPx   = na
+var float tp1Px    = na
+var bool  tp1Hit   = false
+var int   tradeDir = 0   // +1 long, -1 short, 0 flat
+
+// 14-day rolling history of OR widths (for the width filter).
+var array<float> orHistory = array.new<float>(0)
+
+// Visual handles
+var box  orBox    = na
+var line orHiLine = na
+var line orLoLine = na
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TIMEFRAME GUARDRAIL
+// ─────────────────────────────────────────────────────────────────────────────
+isValidTF = timeframe.in_seconds() <= 300
+if barstate.islast and not isValidTF
+    label.new(bar_index, high, "ORB-5 expects a 5-min or lower timeframe.", style = label.style_label_left, color = color.red, textcolor = color.white, size = size.small)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BUILD THE OPENING RANGE
+// ─────────────────────────────────────────────────────────────────────────────
+if startedOR
+    orHi           := high
+    orLo           := low
+    orRange        := na
+    orLocked       := false
+    breakoutTaken  := false
+    orStartBar     := bar_index
+    dayStartEquity := strategy.equity
+    tradeDir       := 0
+    tp1Hit         := false
+    if showOR
+        orBox := box.new(left = bar_index, top = high, right = bar_index + 1, bottom = low,
+             bgcolor = colOR, border_color = color.new(colOR, 30))
+else if isOR
+    orHi := math.max(orHi, high)
+    orLo := math.min(orLo, low)
+    if showOR and not na(orBox)
+        box.set_top(orBox, orHi)
+        box.set_bottom(orBox, orLo)
+        box.set_right(orBox, bar_index + 1)
+
+// Lock the OR on the first bar after the OR window ends and push width to history
+if endedOR
+    orRange  := orHi - orLo
+    orLocked := true
+    if not na(orRange) and orRange > 0
+        array.push(orHistory, orRange)
+        if array.size(orHistory) > 14
+            array.shift(orHistory)
+    if showOR
+        orHiLine := line.new(x1 = bar_index, y1 = orHi, x2 = bar_index + 1, y2 = orHi,
+             color = color.new(colOR, 0), width = 1, style = line.style_dashed)
+        orLoLine := line.new(x1 = bar_index, y1 = orLo, x2 = bar_index + 1, y2 = orLo,
+             color = color.new(colOR, 0), width = 1, style = line.style_dashed)
+
+// Extend OR H/L lines through the entry window
+if orLocked and showOR and inEntryWin
+    if not na(orHiLine)
+        line.set_x2(orHiLine, bar_index + 1)
+    if not na(orLoLine)
+        line.set_x2(orLoLine, bar_index + 1)
+
+// 14-day average OR width
+avgOrRange = array.size(orHistory) > 0 ? array.avg(orHistory) : na
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILTERS
+// ─────────────────────────────────────────────────────────────────────────────
+orWidthOk = not useORWidth or na(avgOrRange) or (orRange <= avgOrRange * orMaxMult and orRange >= avgOrRange * orMinMult)
+
+dailyLossDollar = na(dayStartEquity) ? na : dayStartEquity * (riskPct / 100.0) * dailyLossR
+dayPnl          = na(dayStartEquity) ? 0.0 : strategy.equity - dayStartEquity
+dailyLossOk     = na(dailyLossDollar) ? true : dayPnl > -dailyLossDollar
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENTRIES
+// ─────────────────────────────────────────────────────────────────────────────
+canEnter = orLocked and inEntryWin and not useNewsBlock and orWidthOk and dailyLossOk
+     and (not firstOnly or not breakoutTaken) and strategy.position_size == 0
+
+triggerLong  = useCloseConfirm ? close > orHi : high > orHi
+triggerShort = useCloseConfirm ? close < orLo : low  < orLo
+
+longSignal  = canEnter and triggerLong  and not triggerShort
+shortSignal = canEnter and triggerShort and not triggerLong
+
+if longSignal
+    breakoutTaken := true
+    entryPx       := close
+    stopPx        := orLo - syminfo.mintick
+    tp1Px         := close + (close - stopPx) * tp1R
+    tp1Hit        := false
+    tradeDir      := 1
+    qty           = calcQty(entryPx, stopPx)
+    strategy.entry("L", strategy.long, qty = qty)
+    strategy.exit("L-TP1", from_entry = "L", limit = tp1Px, stop = stopPx, qty_percent = tp1Pct)
+    strategy.exit("L-Run", from_entry = "L", stop  = stopPx)
+    if showLevels
+        label.new(bar_index, entryPx,
+             "Long\nE: "  + str.tostring(entryPx, format.mintick) +
+             "\nSL: "     + str.tostring(stopPx,  format.mintick) +
+             "\nTP1: "    + str.tostring(tp1Px,   format.mintick),
+             style = label.style_label_left, color = colLong, textcolor = color.white, size = size.small)
+
+if shortSignal
+    breakoutTaken := true
+    entryPx       := close
+    stopPx        := orHi + syminfo.mintick
+    tp1Px         := close - (stopPx - close) * tp1R
+    tp1Hit        := false
+    tradeDir      := -1
+    qty           = calcQty(entryPx, stopPx)
+    strategy.entry("S", strategy.short, qty = qty)
+    strategy.exit("S-TP1", from_entry = "S", limit = tp1Px, stop = stopPx, qty_percent = tp1Pct)
+    strategy.exit("S-Run", from_entry = "S", stop  = stopPx)
+    if showLevels
+        label.new(bar_index, entryPx,
+             "Short\nE: " + str.tostring(entryPx, format.mintick) +
+             "\nSL: "     + str.tostring(stopPx,  format.mintick) +
+             "\nTP1: "    + str.tostring(tp1Px,   format.mintick),
+             style = label.style_label_left, color = colShort, textcolor = color.white, size = size.small)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANAGE OPEN POSITION (TP1 detection + EMA trail + EOD flat)
+// ─────────────────────────────────────────────────────────────────────────────
+ema = ta.ema(close, emaLen)
+
+// First touch of TP1 flips the flag
+if not tp1Hit and tradeDir ==  1 and high >= tp1Px
+    tp1Hit := true
+if not tp1Hit and tradeDir == -1 and low  <= tp1Px
+    tp1Hit := true
+
+// Long runner stop management
+if strategy.position_size > 0 and tradeDir == 1
+    newStop = stopPx
+    if tp1Hit and beAfterTP1
+        newStop := math.max(newStop, entryPx)
+    if tp1Hit and useEmaTrail
+        newStop := math.max(newStop, ema - syminfo.mintick)
+    if newStop != stopPx
+        stopPx := newStop
+        strategy.exit("L-Run", from_entry = "L", stop = stopPx)
+
+// Short runner stop management
+if strategy.position_size < 0 and tradeDir == -1
+    newStop = stopPx
+    if tp1Hit and beAfterTP1
+        newStop := math.min(newStop, entryPx)
+    if tp1Hit and useEmaTrail
+        newStop := math.min(newStop, ema + syminfo.mintick)
+    if newStop != stopPx
+        stopPx := newStop
+        strategy.exit("S-Run", from_entry = "S", stop = stopPx)
+
+// Hard close at end of day
+if inFlatWin and strategy.position_size != 0
+    strategy.close_all(comment = "EOD")
+
+// Reset trade-direction flag once flat and outside the entry window
+if strategy.position_size == 0 and tradeDir != 0 and not inEntryWin
+    tradeDir := 0
+    tp1Hit   := false
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PLOTS
+// ─────────────────────────────────────────────────────────────────────────────
+plot(orLocked ? orHi : na,  "OR High", color = color.new(colOR, 0), style = plot.style_linebr, linewidth = 1)
+plot(orLocked ? orLo : na,  "OR Low",  color = color.new(colOR, 0), style = plot.style_linebr, linewidth = 1)
+plot(useEmaTrail ? ema : na,"EMA trail", color = color.new(color.aqua, 0), linewidth = 1)
+
+plot(strategy.position_size != 0 ? entryPx : na, "Entry", color = color.new(color.white, 0), style = plot.style_linebr, linewidth = 1)
+plot(strategy.position_size != 0 ? stopPx  : na, "Stop",  color = color.new(color.red,   0), style = plot.style_linebr, linewidth = 1)
+plot(strategy.position_size != 0 and not tp1Hit ? tp1Px : na, "TP1", color = color.new(color.green, 0), style = plot.style_linebr, linewidth = 1)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATS TABLE
+// ─────────────────────────────────────────────────────────────────────────────
+var table tbl = table.new(position.top_right, 2, 9, frame_color = color.gray, frame_width = 1, border_color = color.gray, border_width = 1)
+
+if showStats and barstate.islast
+    table.cell(tbl, 0, 0, "ORB-5 NASDAQ", text_color = color.yellow, bgcolor = color.new(color.black, 70), text_size = size.small)
+    table.cell(tbl, 1, 0, "",             text_color = color.yellow, bgcolor = color.new(color.black, 70), text_size = size.small)
+
+    table.cell(tbl, 0, 1, "OR Hi",        text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_left)
+    table.cell(tbl, 1, 1, orLocked ? str.tostring(orHi, format.mintick) : "—", text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_right)
+
+    table.cell(tbl, 0, 2, "OR Lo",        text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_left)
+    table.cell(tbl, 1, 2, orLocked ? str.tostring(orLo, format.mintick) : "—", text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_right)
+
+    table.cell(tbl, 0, 3, "OR Range",     text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_left)
+    table.cell(tbl, 1, 3, na(orRange) ? "—" : str.tostring(orRange, format.mintick), text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_right)
+
+    table.cell(tbl, 0, 4, "OR 14d avg",   text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_left)
+    table.cell(tbl, 1, 4, na(avgOrRange) ? "—" : str.tostring(avgOrRange, format.mintick), text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_right)
+
+    table.cell(tbl, 0, 5, "Width OK",     text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_left)
+    table.cell(tbl, 1, 5, orWidthOk ? "Yes" : "No", text_color = orWidthOk ? color.green : color.red, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_right)
+
+    table.cell(tbl, 0, 6, "Day P&L",      text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_left)
+    table.cell(tbl, 1, 6, "$" + str.tostring(dayPnl, "#.##"), text_color = dayPnl >= 0 ? color.green : color.red, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_right)
+
+    table.cell(tbl, 0, 7, "Daily limit",  text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_left)
+    table.cell(tbl, 1, 7, na(dailyLossDollar) ? "—" : ("$-" + str.tostring(dailyLossDollar, "#.##")), text_color = dailyLossOk ? color.green : color.red, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_right)
+
+    table.cell(tbl, 0, 8, "Closed trades",text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_left)
+    table.cell(tbl, 1, 8, str.tostring(strategy.closedtrades), text_color = color.white, bgcolor = color.new(color.black, 70), text_size = size.small, text_halign = text.align_right)
