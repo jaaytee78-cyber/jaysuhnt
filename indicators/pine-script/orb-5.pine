@@ -6,8 +6,18 @@
 // Designed primarily for the 5-minute timeframe on NQ / MNQ / NAS100 / QQQ / TQQQ.
 // Will also run on 1-min and 3-min charts (the OR is built across multiple bars).
 // On timeframes greater than 5m a warning label is drawn.
+//
+// Pine Script v6. v6 breaking changes that affected the design:
+//   - margin_long / margin_short default is now 100 — set explicitly here so
+//     backtest results stay reproducible across versions.
+//   - strict booleans: every condition used in `if` / ternary is guaranteed
+//     non-na via short-circuit on `orLocked` / `strategy.position_size`.
+//   - lazy and/or evaluation: relied on for the OR-width filter so we never
+//     compare against `na` when the 14-day average is still warming up.
+//   - integer division now fractional: all risk-math divisions use float
+//     literals (e.g. `100.0`) to make intent unambiguous.
 
-//@version=5
+//@version=6
 strategy(
      "Jaysuhnt — ORB-5 NASDAQ",
      overlay                 = true,
@@ -19,6 +29,8 @@ strategy(
      commission_type         = strategy.commission.cash_per_contract,
      commission_value        = 0.62,
      slippage                = 1,
+     margin_long             = 100,
+     margin_short            = 100,
      calc_on_every_tick      = false,
      process_orders_on_close = true,
      max_lines_count         = 500,
@@ -164,7 +176,7 @@ avgOrRange = array.size(orHistory) > 0 ? array.avg(orHistory) : na
 // ─────────────────────────────────────────────────────────────────────────────
 // FILTERS
 // ─────────────────────────────────────────────────────────────────────────────
-orWidthOk = not useORWidth or na(avgOrRange) or (orRange <= avgOrRange * orMaxMult and orRange >= avgOrRange * orMinMult)
+orWidthOk = not useORWidth or na(avgOrRange) or na(orRange) or (orRange <= avgOrRange * orMaxMult and orRange >= avgOrRange * orMinMult)
 
 dailyLossDollar = na(dayStartEquity) ? na : dayStartEquity * (riskPct / 100.0) * dailyLossR
 dayPnl          = na(dayStartEquity) ? 0.0 : strategy.equity - dayStartEquity
