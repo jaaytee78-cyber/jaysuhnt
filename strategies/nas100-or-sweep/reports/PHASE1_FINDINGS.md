@@ -67,3 +67,71 @@ The pattern has **a real but fragile edge** in raw form. Before we invest more i
 If A produces a more tradeable profile (e.g. 45% win rate, +0.2R expectancy) **and** B shows the raw edge survives costs, we move to Phase 2 (full backtest with equity curve, drawdowns, regime tests). If both look weak, we pivot rules — maybe to **NY AM PD-Liquidity Sweep** (Option C from the original menu) before more upgrades.
 
 **Cost decision:** I would *not* upgrade Polygon yet. We have 2 years and 501 days — plenty for these experiments. Upgrade only if we hit a real edge and want walk-forward validation on 5+ years.
+
+
+
+---
+
+# Update — Experiments A & B (variant grid + costs + bootstrap CIs)
+
+**See `reports/03_variant_grid.md` for the full table.** Summary below.
+
+We tested **8 variants** of the strategy (different stop methods, target methods, entry timing) under two cost models (gross / net with $0.01/share each side) and ran 5,000-iter bootstrap 95% CIs on every expectancy.
+
+## Headline result
+
+**Zero variants reject the null hypothesis "no edge" at 95% confidence after costs.**
+
+| Rank | Variant | Net Exp R | 95% CI | Win % | Verdict |
+|---|---|---|---|---|---|
+| 1 | v7_buffer_confirm_2R | -0.017R | (-0.145, +0.114) | 35.8% | CI straddles 0 |
+| 2 | v2_buffer_5c | **+0.100R** | (-0.150, +0.374) | 20.8% | CI straddles 0 |
+| 3 | v5_pct_or_30_2R | -0.027R | (-0.152, +0.104) | 34.0% | CI straddles 0 |
+| ... | ... | ... | ... | ... | ... |
+| 8 | v3_fixed_1R | **-0.216R** | (-0.307, -0.126) | 42.8% | **Confirmed loser** |
+
+## What we learned
+
+1. **The raw pattern probably has *some* edge but our sample (n=453) is too small to prove it.** v1 baseline and v2_buffer_5c have point estimates of +0.06R / +0.10R after costs — directionally positive — but the 95% CIs are gigantic ([-0.20, +0.34] for v1) because the R-distribution is fat-tailed. To halve the CI width we'd need ~4× the sample (≈1,800 setups, i.e. ~5+ years of data).
+
+2. **A tight-stop / fixed-target combo is statistically a *losing* strategy.** v3_fixed_1R with a tight stop and 1R target has a 95% CI of (-0.31R, -0.13R), entirely below zero. So while the "lottery ticket" structure (huge wins, many small losses) might have edge, capping the wins demonstrably destroys it. **The fat tail is doing the work.**
+
+3. **Wider stops help slippage survival but don't fix the small-sample problem.** The %-OR stops (v5, v8) reduce the % of risk lost to slippage from ~5% to ~3%, but the underlying edge is still too noisy to detect.
+
+4. **Confirmation entry doesn't add value here.** v6/v7/v8 all use confirmation and trade ~10% fewer days (413 vs 453); their net expectancies are no better than the equivalent sweep-close variants. Confirmation appears to filter *roughly proportionally* — not selectively against losers.
+
+5. **Win-rate and expectancy are nearly orthogonal.** v3 has the highest win rate (42.8%) and the worst expectancy. v1 has the lowest win rate (19.4%) and one of the highest expectancies. Don't optimise for win rate — optimise for expectancy.
+
+## What this means strategically
+
+The honest read is:
+
+- This strategy as a *standalone, mechanical* edge **isn't proven** on QQQ within our 2-year, 501-day sample. It's not falsified either — the point estimates are positive and consistent year-over-year (2024: +0.08R, 2025: +0.16R, 2026: +0.14R). It's *plausibly real but unproven*.
+- To resolve, we need either **more data** (5+ years to shrink the CI) or **better setup quality** (filter to a subset where the edge is bigger).
+
+## Three forward paths
+
+### Path 1 — More data
+Upgrade Polygon to Stocks Starter (~$29/mo for 1-2 months), pull 5+ years, re-run the same grid. With ~1,250 days the CIs roughly halve, which would clearly distinguish "real but small edge" from "no edge".
+
+### Path 2 — Add a confluence filter on existing data
+Test whether a filter concentrates the edge into a smaller, higher-quality subset. Candidates that have a hypothesis behind them (not data-mined):
+- **HTF bias filter:** only take longs when 1H/4H trend is up, vice versa
+- **Liquidity context:** only take sweeps that occur near PDH/PDL or pre-market high/low
+- **Volatility regime:** only take when ATR(14d) is in the top half (more room to run to target)
+- **No major news on tap:** skip CPI/FOMC/NFP days
+
+If any single filter lifts net expectancy CI lower bound above zero, we have something. If none do, the pattern probably isn't tradable as a primary edge.
+
+### Path 3 — Pivot
+Strategy doesn't exist in isolation — it could still be a *confluence* in a larger system (e.g. ICT model where this is one of three required ingredients). Or pivot to PDH/PDL liquidity sweep (Option C from the original menu).
+
+## My recommendation
+
+**Path 2 first**, then Path 1 if Path 2 looks promising. The reasoning:
+
+- Path 2 costs nothing and uses existing data. If a sensible filter (e.g. HTF bias) lifts the lower CI bound above zero, that's *direct evidence* the pattern has a real edge inside a higher-quality subset.
+- If no filter helps, then more data alone (Path 1) probably won't either — the pattern is too weak. We'd pivot.
+- If a filter helps, *then* upgrade Polygon and validate on 5 years. That's where rigorous walk-forward starts to matter.
+
+I'd start with **HTF bias** because it's the most ICT-classical and has the strongest a-priori case. One filter at a time, no kitchen-sink.

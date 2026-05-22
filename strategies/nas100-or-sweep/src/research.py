@@ -1,37 +1,41 @@
 """
 Research helpers: sweep detection, day classification, R-multiple computation.
 
-Definitions we use throughout EDA
---------------------------------
-**Opening Range (OR)**
-    OR-H = max high of bars in [09:30, 09:45) NY local.
-    OR-L = min low of bars in same window.
-    OR-size = OR-H - OR-L.
+This module is parameterised over a ``VariantConfig`` so the same evaluation
+plumbing can score many alternative entry/stop/target rules. Defaults reproduce
+the strict v1 baseline used in ``reports/02_edge_analysis.md``.
 
-**Trade window**
-    [09:45, 11:00) NY local.
+Definitions
+-----------
+**Opening Range (OR)** is computed by ``sessions.opening_ranges``.
 
-**Upper sweep bar** (1m bar in trade window)
-    bar.high > OR-H + epsilon  AND  bar.close <= OR-H
+**Sweep bar** (1m bar in [09:45, 11:00) NY)
+    Upper:  ``bar.high > OR-H``  AND  ``bar.close <= OR-H``
+    Lower:  ``bar.low  < OR-L``  AND  ``bar.close >= OR-L``
 
-**Lower sweep bar** (1m bar in trade window)
-    bar.low  < OR-L - epsilon  AND  bar.close >= OR-L
+**Entry methods**
+    ``sweep_close``    enter at close of the sweep bar (default)
+    ``confirm_close``  require the next bar to also close back inside the OR;
+                       enter at that bar's close. If confirmation fails we
+                       move on to the next sweep that *does* confirm.
 
-**First sweep**
-    The earliest upper-or-lower sweep bar in the trade window. That's the
-    setup we analyse - multi-sweep days are recorded but we never re-enter.
+**Stop methods**
+    ``wick_tight``    stop = sweep wick + ``stop_buffer`` ($0.01 default)
+    ``wick_buffer``   stop = sweep wick + ``stop_buffer`` (any larger buffer)
+    ``pct_or``        stop = entry +/- (or_size * ``stop_pct_or``)
 
-**Reversal success** (post-sweep)
-    After the first sweep, price reaches the *opposite* OR side before either
-    (a) the trade window ends or (b) price breaks the sweep wick (stop).
+**Target methods**
+    ``opposite_or``   target = opposite OR side
+    ``fixed_R``       target = entry +/- (risk * ``target_R``)
 
-These are deliberately strict and objective. We can relax them later (e.g.
-require closure of the next bar back inside, allow partial-wick targets) and
-measure how each relaxation changes the edge.
+**Costs**
+    ``CostConfig.slippage_per_share`` is applied once on entry and once on
+    exit (the worst-case retail assumption). It reduces realised PnL but
+    does *not* alter the stop or target prices used for trade simulation.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
@@ -39,48 +43,73 @@ import pandas as pd
 from . import sessions
 
 
-EPS = 0.0  # add a small offset (e.g. 0.005) if you want to require strict overshoot
+EPS = 0.0  # require strict overshoot if you set this > 0
+
+
+# --------------------------------------------------------------------------- #
+# Configuration objects
+# --------------------------------------------------------------------------- #
+@dataclass(frozen=True)
+class VariantConfig:
+    """Knobs that define one strategy variant."""
+    name: str = "v1_baseline"
+    entry_method: str = "sweep_close"          # sweep_close | confirm_close
+    stop_method: str = "wick_tight"            # wick_tight | wick_buffer | pct_or
+    stop_buffer: float = 0.01                  # $ added beyond wick (wick_*)
+    stop_pct_or: float = 0.30                  # fraction of or_size (pct_or)
+    target_method: str = "opposite_or"         # opposite_or | fixed_R
+    target_R: float = 1.0                      # multiplier (fixed_R)
+    description: str = ""
+
+
+@dataclass(frozen=True)
+class CostConfig:
+    """Round-trip execution cost per share. Applied to realised PnL."""
+    slippage_per_share: float = 0.0
+    commission_per_share: float = 0.0
+
+    @property
+    def per_round_trip(self) -> float:
+        return 2.0 * (self.slippage_per_share + self.commission_per_share)
 
 
 # --------------------------------------------------------------------------- #
 # Per-day setup table
 # --------------------------------------------------------------------------- #
 @dataclass(frozen=True)
-class _SweepResult:
-    side: str | None              # "upper", "lower", or None (no sweep)
-    sweep_ts: pd.Timestamp | None # NY-local timestamp of the sweep bar
-    sweep_high: float | None      # bar high (max excursion of the sweep wick)
-    sweep_low: float | None       # bar low
-    sweep_close: float | None     # close of the sweep bar (entry price for v1)
+class _Setup:
+    side: str                       # "upper" or "lower"
+    sweep_ts: pd.Timestamp          # NY-local timestamp of the sweep bar
+    sweep_high: float
+    sweep_low: float
+    sweep_close: float
+    entry_ts: pd.Timestamp          # equals sweep_ts unless confirm_close
+    entry_price: float
 
 
-def build_setup_table(bars: pd.DataFrame) -> pd.DataFrame:
+def build_setup_table(
+    bars: pd.DataFrame,
+    config: VariantConfig | None = None,
+    costs: CostConfig | None = None,
+) -> pd.DataFrame:
     """
-    Compute per-NY-day setup features required for the rest of the EDA.
+    Compute per-NY-day setup features under the supplied variant + cost model.
 
-    Output columns
-    --------------
-    or_open, or_high, or_low, or_close, or_size, or_mid, or_n_bars
-        Opening Range descriptors.
-    sweep_side          str | NaN         "upper" / "lower" / NaN
-    sweep_ts            datetime64[ns]    NY-local time of first sweep
-    sweep_high/low/close                  Sweep bar OHLC fields we care about
-    target_hit          bool              Reached opposite OR side before stop
-    stop_hit            bool              Broke sweep wick before opposite OR
-    timed_out           bool              Neither, ran out of trade window
-    bars_to_target      int | NaN         Minutes from sweep bar to target hit
-    bars_to_stop        int | NaN
-    mfe                 float             Max favourable excursion in points (post-entry)
-    mae                 float             Max adverse excursion in points (post-entry)
-    r_multiple          float             Realised R = pnl / stop_distance
+    The output schema is stable across variants so downstream analysis code
+    can compare them. Columns include OR descriptors, sweep info, entry/stop/
+    target prices, hit-or-miss flags, MFE/MAE, and final R-multiple.
     """
+    config = config or VariantConfig()
+    costs = costs or CostConfig()
+
     if bars.empty:
         return pd.DataFrame()
 
     or_table = sessions.opening_ranges(bars)
     trade = sessions.trade_window(bars)
+    if trade.empty:
+        return pd.DataFrame()
 
-    # Add NY-date column once for fast grouping in the trade window too.
     ny_dates = trade.index.tz_convert(sessions.NY_TZ).date
     trade = trade.copy()
     trade["__ny_date"] = ny_dates
@@ -88,42 +117,52 @@ def build_setup_table(bars: pd.DataFrame) -> pd.DataFrame:
     rows: list[dict] = []
     for ny_date, day_or in or_table.iterrows():
         if day_or["n_bars"] < 10:
-            # Half-day or partial-data day - skip for v1 cleanliness.
             continue
 
         day_trade = trade[trade["__ny_date"] == ny_date.date()]
         if day_trade.empty:
             continue
 
-        sweep = _first_sweep(day_trade, day_or["or_high"], day_or["or_low"])
+        setup = _find_entry(day_trade, day_or["or_high"], day_or["or_low"], config)
 
         row: dict = {
             "ny_date": ny_date,
-            "or_open": day_or["or_open"],
-            "or_high": day_or["or_high"],
-            "or_low": day_or["or_low"],
-            "or_close": day_or["or_close"],
-            "or_size": day_or["or_size"],
-            "or_mid": day_or["or_mid"],
+            "or_open": float(day_or["or_open"]),
+            "or_high": float(day_or["or_high"]),
+            "or_low": float(day_or["or_low"]),
+            "or_close": float(day_or["or_close"]),
+            "or_size": float(day_or["or_size"]),
+            "or_mid": float(day_or["or_mid"]),
             "or_n_bars": int(day_or["n_bars"]),
-            "sweep_side": sweep.side,
-            "sweep_ts": sweep.sweep_ts,
-            "sweep_high": sweep.sweep_high,
-            "sweep_low": sweep.sweep_low,
-            "sweep_close": sweep.sweep_close,
         }
 
-        if sweep.side is None:
+        if setup is None:
             row.update(
+                sweep_side=None, sweep_ts=None,
+                sweep_high=None, sweep_low=None, sweep_close=None,
+                entry_ts=None, entry_price=None,
+                stop_price=None, target_price=None, risk=None,
                 target_hit=False, stop_hit=False, timed_out=True,
                 bars_to_target=np.nan, bars_to_stop=np.nan,
-                mfe=np.nan, mae=np.nan, r_multiple=np.nan,
+                mfe=np.nan, mae=np.nan,
+                r_multiple_gross=np.nan, r_multiple=np.nan,
             )
         else:
-            outcome = _evaluate_outcome(
-                day_trade, sweep, day_or["or_high"], day_or["or_low"]
+            stop_px = _compute_stop(setup, day_or["or_size"], config)
+            target_px = _compute_target(setup, stop_px, day_or["or_high"], day_or["or_low"], config)
+            outcome = _evaluate_outcome(day_trade, setup, stop_px, target_px, costs)
+            row.update(
+                sweep_side=setup.side,
+                sweep_ts=setup.sweep_ts,
+                sweep_high=setup.sweep_high,
+                sweep_low=setup.sweep_low,
+                sweep_close=setup.sweep_close,
+                entry_ts=setup.entry_ts,
+                entry_price=setup.entry_price,
+                stop_price=stop_px,
+                target_price=target_px,
+                **outcome,
             )
-            row.update(outcome)
 
         rows.append(row)
 
@@ -138,110 +177,182 @@ def build_setup_table(bars: pd.DataFrame) -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------- #
-# Internals
+# Entry detection
 # --------------------------------------------------------------------------- #
-def _first_sweep(day_trade: pd.DataFrame, or_high: float, or_low: float) -> _SweepResult:
-    """Find the first bar in the trade window that wicks beyond OR and closes back inside."""
-    upper_mask = (day_trade["high"] > or_high + EPS) & (day_trade["close"] <= or_high)
-    lower_mask = (day_trade["low"] < or_low - EPS) & (day_trade["close"] >= or_low)
-    candidate_mask = upper_mask | lower_mask
-    if not candidate_mask.any():
-        return _SweepResult(None, None, None, None, None)
-
-    first_idx = candidate_mask.idxmax()  # first True
-    bar = day_trade.loc[first_idx]
-    side = "upper" if upper_mask.loc[first_idx] else "lower"
-    ny_ts = first_idx.tz_convert(sessions.NY_TZ)
-    return _SweepResult(
-        side=side,
-        sweep_ts=ny_ts,
-        sweep_high=float(bar["high"]),
-        sweep_low=float(bar["low"]),
-        sweep_close=float(bar["close"]),
-    )
-
-
-def _evaluate_outcome(
+def _find_entry(
     day_trade: pd.DataFrame,
-    sweep: _SweepResult,
     or_high: float,
     or_low: float,
+    config: VariantConfig,
+) -> _Setup | None:
+    """Find the first sweep that satisfies the configured entry method."""
+    upper_mask = (day_trade["high"] > or_high + EPS) & (day_trade["close"] <= or_high)
+    lower_mask = (day_trade["low"] < or_low - EPS) & (day_trade["close"] >= or_low)
+    sweep_mask = upper_mask | lower_mask
+
+    if not sweep_mask.any():
+        return None
+
+    candidate_indices = day_trade.index[sweep_mask]
+    for idx in candidate_indices:
+        bar = day_trade.loc[idx]
+        side = "upper" if upper_mask.loc[idx] else "lower"
+        sweep_ts_ny = idx.tz_convert(sessions.NY_TZ)
+
+        if config.entry_method == "sweep_close":
+            return _Setup(
+                side=side,
+                sweep_ts=sweep_ts_ny,
+                sweep_high=float(bar["high"]),
+                sweep_low=float(bar["low"]),
+                sweep_close=float(bar["close"]),
+                entry_ts=sweep_ts_ny,
+                entry_price=float(bar["close"]),
+            )
+
+        if config.entry_method == "confirm_close":
+            after = day_trade.loc[day_trade.index > idx]
+            if after.empty:
+                continue  # no confirmation bar available
+            confirm_bar = after.iloc[0]
+            confirm_idx = after.index[0]
+
+            # Confirmation: the next bar must close back inside the OR *and*
+            # not break the sweep wick on its own (else we already lost).
+            if side == "upper":
+                if confirm_bar["close"] > or_high:
+                    continue  # close above OR - no confirmation
+                if confirm_bar["high"] > bar["high"]:
+                    continue  # would have stopped out before we could confirm
+            else:
+                if confirm_bar["close"] < or_low:
+                    continue
+                if confirm_bar["low"] < bar["low"]:
+                    continue
+
+            return _Setup(
+                side=side,
+                sweep_ts=sweep_ts_ny,
+                sweep_high=float(bar["high"]),
+                sweep_low=float(bar["low"]),
+                sweep_close=float(bar["close"]),
+                entry_ts=confirm_idx.tz_convert(sessions.NY_TZ),
+                entry_price=float(confirm_bar["close"]),
+            )
+
+        raise ValueError(f"Unknown entry_method: {config.entry_method}")
+
+    return None
+
+
+# --------------------------------------------------------------------------- #
+# Stop / Target pricing
+# --------------------------------------------------------------------------- #
+def _compute_stop(setup: _Setup, or_size: float, config: VariantConfig) -> float:
+    if config.stop_method in ("wick_tight", "wick_buffer"):
+        if setup.side == "upper":
+            return setup.sweep_high + config.stop_buffer
+        return setup.sweep_low - config.stop_buffer
+
+    if config.stop_method == "pct_or":
+        offset = or_size * config.stop_pct_or
+        if setup.side == "upper":
+            return setup.entry_price + offset
+        return setup.entry_price - offset
+
+    raise ValueError(f"Unknown stop_method: {config.stop_method}")
+
+
+def _compute_target(
+    setup: _Setup,
+    stop_price: float,
+    or_high: float,
+    or_low: float,
+    config: VariantConfig,
+) -> float:
+    if config.target_method == "opposite_or":
+        return or_low if setup.side == "upper" else or_high
+
+    if config.target_method == "fixed_R":
+        risk = abs(stop_price - setup.entry_price)
+        offset = risk * config.target_R
+        if setup.side == "upper":
+            return setup.entry_price - offset
+        return setup.entry_price + offset
+
+    raise ValueError(f"Unknown target_method: {config.target_method}")
+
+
+# --------------------------------------------------------------------------- #
+# Outcome simulation
+# --------------------------------------------------------------------------- #
+def _evaluate_outcome(
+    day_trade: pd.DataFrame,
+    setup: _Setup,
+    stop_price: float,
+    target_price: float,
+    costs: CostConfig,
 ) -> dict:
-    """
-    Walk forward from the bar after the sweep and decide whether the trade hit
-    target (opposite OR side), stop (beyond sweep wick by 1 tick), or timed out.
-    """
-    # We use $0.01 as one "tick" for QQQ (penny pricing).
-    tick = 0.01
-    after = day_trade.loc[day_trade.index > sweep.sweep_ts.tz_convert("UTC")]
+    """Walk forward from the bar after entry, evaluating stop/target/timeout."""
+    after = day_trade.loc[day_trade.index > setup.entry_ts.tz_convert("UTC")]
     if after.empty:
-        return _empty_outcome()
+        return _empty_outcome(setup, stop_price)
 
-    if sweep.side == "upper":
-        entry = sweep.sweep_close
-        stop = sweep.sweep_high + tick
-        target = or_low
-        # short trade: pnl positive when price falls
-        risk = stop - entry
-        if risk <= 0:
-            return _empty_outcome()
+    if setup.side == "upper":
+        risk = stop_price - setup.entry_price
+    else:
+        risk = setup.entry_price - stop_price
 
-        target_hit_ts = _first_hit(after["low"] <= target, after.index)
-        stop_hit_ts = _first_hit(after["high"] >= stop, after.index)
-        target_hit, stop_hit, hit_ts = _resolve(target_hit_ts, stop_hit_ts)
+    if risk <= 0:
+        return _empty_outcome(setup, stop_price)
 
-        # MFE/MAE measured up to the first hit (or end of window if neither).
-        end_ts = hit_ts if hit_ts is not None else after.index[-1]
-        slice_ = after.loc[:end_ts]
-        mfe = entry - slice_["low"].min()        # short: lower price is favourable
-        mae = slice_["high"].max() - entry
+    if setup.side == "upper":
+        target_hit_ts = _first_hit(after["low"] <= target_price, after.index)
+        stop_hit_ts = _first_hit(after["high"] >= stop_price, after.index)
+    else:
+        target_hit_ts = _first_hit(after["high"] >= target_price, after.index)
+        stop_hit_ts = _first_hit(after["low"] <= stop_price, after.index)
 
+    target_hit, stop_hit, hit_ts = _resolve(target_hit_ts, stop_hit_ts)
+    end_ts = hit_ts if hit_ts is not None else after.index[-1]
+    slice_ = after.loc[:end_ts]
+
+    if setup.side == "upper":
+        mfe = setup.entry_price - slice_["low"].min()
+        mae = slice_["high"].max() - setup.entry_price
         if target_hit:
-            r_multiple = (entry - target) / risk
+            raw_pnl = setup.entry_price - target_price
         elif stop_hit:
-            r_multiple = -1.0
-        else:
-            # Timed out - mark to last bar's close.
-            close = float(after["close"].iloc[-1])
-            r_multiple = (entry - close) / risk
-
-    else:  # lower sweep => long trade
-        entry = sweep.sweep_close
-        stop = sweep.sweep_low - tick
-        target = or_high
-        risk = entry - stop
-        if risk <= 0:
-            return _empty_outcome()
-
-        target_hit_ts = _first_hit(after["high"] >= target, after.index)
-        stop_hit_ts = _first_hit(after["low"] <= stop, after.index)
-        target_hit, stop_hit, hit_ts = _resolve(target_hit_ts, stop_hit_ts)
-
-        end_ts = hit_ts if hit_ts is not None else after.index[-1]
-        slice_ = after.loc[:end_ts]
-        mfe = slice_["high"].max() - entry
-        mae = entry - slice_["low"].min()
-
-        if target_hit:
-            r_multiple = (target - entry) / risk
-        elif stop_hit:
-            r_multiple = -1.0
+            raw_pnl = -(stop_price - setup.entry_price)
         else:
             close = float(after["close"].iloc[-1])
-            r_multiple = (close - entry) / risk
+            raw_pnl = setup.entry_price - close
+    else:
+        mfe = slice_["high"].max() - setup.entry_price
+        mae = setup.entry_price - slice_["low"].min()
+        if target_hit:
+            raw_pnl = target_price - setup.entry_price
+        elif stop_hit:
+            raw_pnl = -(setup.entry_price - stop_price)
+        else:
+            close = float(after["close"].iloc[-1])
+            raw_pnl = close - setup.entry_price
 
-    bars_to_target = len(slice_) if target_hit else np.nan
-    bars_to_stop = len(slice_) if stop_hit else np.nan
+    r_gross = raw_pnl / risk
+    net_pnl = raw_pnl - costs.per_round_trip
+    r_net = net_pnl / risk
 
     return {
+        "risk": float(risk),
         "target_hit": bool(target_hit),
         "stop_hit": bool(stop_hit),
         "timed_out": bool(not target_hit and not stop_hit),
-        "bars_to_target": bars_to_target,
-        "bars_to_stop": bars_to_stop,
+        "bars_to_target": float(len(slice_)) if target_hit else np.nan,
+        "bars_to_stop": float(len(slice_)) if stop_hit else np.nan,
         "mfe": float(mfe),
         "mae": float(mae),
-        "r_multiple": float(r_multiple),
+        "r_multiple_gross": float(r_gross),
+        "r_multiple": float(r_net),
     }
 
 
@@ -255,10 +366,7 @@ def _resolve(
     target_ts: pd.Timestamp | None,
     stop_ts: pd.Timestamp | None,
 ) -> tuple[bool, bool, pd.Timestamp | None]:
-    """
-    If both target and stop are touched, the earlier wins. If they happen on
-    the same bar, we conservatively take the stop (worst case for the trader).
-    """
+    """Earlier wins; ties go to the stop (worst case for the trader)."""
     if target_ts is None and stop_ts is None:
         return False, False, None
     if target_ts is None:
@@ -270,11 +378,17 @@ def _resolve(
     return True, False, target_ts
 
 
-def _empty_outcome() -> dict:
+def _empty_outcome(setup: _Setup, stop_price: float) -> dict:
+    if setup.side == "upper":
+        risk = stop_price - setup.entry_price
+    else:
+        risk = setup.entry_price - stop_price
     return {
+        "risk": float(risk) if risk > 0 else np.nan,
         "target_hit": False, "stop_hit": False, "timed_out": True,
         "bars_to_target": np.nan, "bars_to_stop": np.nan,
-        "mfe": np.nan, "mae": np.nan, "r_multiple": np.nan,
+        "mfe": np.nan, "mae": np.nan,
+        "r_multiple_gross": np.nan, "r_multiple": np.nan,
     }
 
 
@@ -282,7 +396,7 @@ def _empty_outcome() -> dict:
 # Aggregate stats
 # --------------------------------------------------------------------------- #
 def edge_summary(setups: pd.DataFrame) -> pd.Series:
-    """One-shot summary of the unconditional edge across all setups with a sweep."""
+    """Summary across all setups that produced an entry."""
     s = setups[setups["sweep_side"].notna()].copy()
     n = len(s)
     if n == 0:
@@ -291,6 +405,9 @@ def edge_summary(setups: pd.DataFrame) -> pd.Series:
     return pd.Series(
         {
             "days_total": int(len(setups)),
+            "days_with_entry": int(n),
+            "entry_rate": n / len(setups),
+            # Back-compat aliases for the original 02 script.
             "days_with_sweep": int(n),
             "sweep_rate": n / len(setups),
             "p_upper_first": float((s["sweep_side"] == "upper").mean()),
@@ -298,6 +415,7 @@ def edge_summary(setups: pd.DataFrame) -> pd.Series:
             "p_stop_hit": float(s["stop_hit"].mean()),
             "p_timeout": float(s["timed_out"].mean()),
             "expectancy_R": float(s["r_multiple"].mean()),
+            "expectancy_R_gross": float(s["r_multiple_gross"].mean()),
             "median_R": float(s["r_multiple"].median()),
             "win_rate": float((s["r_multiple"] > 0).mean()),
             "avg_win_R": float(s.loc[s["r_multiple"] > 0, "r_multiple"].mean()) if (s["r_multiple"] > 0).any() else float("nan"),
@@ -305,3 +423,68 @@ def edge_summary(setups: pd.DataFrame) -> pd.Series:
             "or_size_median": float(s["or_size"].median()),
         }
     )
+
+
+# --------------------------------------------------------------------------- #
+# Standard variant catalogue
+# --------------------------------------------------------------------------- #
+def standard_variants() -> list[VariantConfig]:
+    """The 8 variants we test in scripts/03_variant_grid.py."""
+    return [
+        VariantConfig(
+            name="v1_baseline",
+            entry_method="sweep_close",
+            stop_method="wick_tight", stop_buffer=0.01,
+            target_method="opposite_or",
+            description="Strict ICT: sweep close entry, 1c-tight stop, opposite OR target.",
+        ),
+        VariantConfig(
+            name="v2_buffer_5c",
+            entry_method="sweep_close",
+            stop_method="wick_buffer", stop_buffer=0.05,
+            target_method="opposite_or",
+            description="Wider 5c stop above wick, opposite OR target.",
+        ),
+        VariantConfig(
+            name="v3_fixed_1R",
+            entry_method="sweep_close",
+            stop_method="wick_tight", stop_buffer=0.01,
+            target_method="fixed_R", target_R=1.0,
+            description="Tight stop, target capped at 1R.",
+        ),
+        VariantConfig(
+            name="v4_buffer_2R",
+            entry_method="sweep_close",
+            stop_method="wick_buffer", stop_buffer=0.05,
+            target_method="fixed_R", target_R=2.0,
+            description="5c-buffer stop, target 2R.",
+        ),
+        VariantConfig(
+            name="v5_pct_or_30_2R",
+            entry_method="sweep_close",
+            stop_method="pct_or", stop_pct_or=0.30,
+            target_method="fixed_R", target_R=2.0,
+            description="Stop = 30% of OR (volatility-scaled), target 2R.",
+        ),
+        VariantConfig(
+            name="v6_confirm_or",
+            entry_method="confirm_close",
+            stop_method="wick_tight", stop_buffer=0.01,
+            target_method="opposite_or",
+            description="Confirmation entry, tight stop, opposite OR target.",
+        ),
+        VariantConfig(
+            name="v7_buffer_confirm_2R",
+            entry_method="confirm_close",
+            stop_method="wick_buffer", stop_buffer=0.05,
+            target_method="fixed_R", target_R=2.0,
+            description="Confirmation entry, 5c stop, target 2R.",
+        ),
+        VariantConfig(
+            name="v8_pct_or_30_confirm_2R",
+            entry_method="confirm_close",
+            stop_method="pct_or", stop_pct_or=0.30,
+            target_method="fixed_R", target_R=2.0,
+            description="Confirmation entry, 30%-OR stop, target 2R.",
+        ),
+    ]
