@@ -1,9 +1,33 @@
 //@version=6
-indicator("Fabio Valentini Pro Scalper v3", overlay=true,
+indicator("Fabio Valentini Pro Scalper v3.1", overlay=true,
      max_labels_count=500, max_lines_count=500, max_boxes_count=300)
 
 // ═══════════════════════════════════════════════════════════════
-//  FABIO VALENTINI PRO SCALPER v3
+//  FABIO VALENTINI PRO SCALPER — v3.1 (priority correctness fixes)
+//
+//  Changes from v3:
+//   #1  POC histogram is now rebuilt every bar (was: only on barstate.islast,
+//       so nearPOC was always na on history — silently disabled the score
+//       factor and Triple-A a1 zone test on backtest replay).
+//   #2  Trade P&L locks the TP1 distance at entry (tradeReward) instead of
+//       reading the live dynTP1 = ATR*mult*2, which drifts with ATR between
+//       entry and exit. sessionPnL and win-rate stats are now consistent.
+//   #3  Triple-A a1 reset is split by direction. Previously a single OR over
+//       all zone conditions kept a1Bull alive while price was in a *bear*
+//       zone, and vice-versa.
+//   #4  HTF security uses ta.ema(close, 50)[1] + lookahead_on (the canonical
+//       no-repaint pattern), eliminating intra-bar HTF filter flicker.
+//   #5  Structure-aware SL uses the last *confirmed* swing low/high from
+//       ta.pivotlow/pivothigh, not the rolling 10-bar extreme. The previous
+//       version often placed SL at the entry bar's own low on impulse bars.
+//
+//  Behaviour deliberately unchanged: confluence-score weighting, re-entry
+//  edge case, TP2 management, ATR-relative tolerances, dead cumDelta,
+//  isSessStart hourly-chart edge case. See the open issues thread on the
+//  baseline PR for the deferred items.
+// ═══════════════════════════════════════════════════════════════
+
+// ─── Original v3 design notes ───────────────────────────────────
 //  Built upon v2 with the following major additions:
 //
 //  NEW — Market Structure (MSS/BOS)
@@ -162,7 +186,10 @@ emaCrossDown = ta.crossunder(emaFast, emaMid)
 //  HTF TREND FILTER
 // ───────────────────────────────────────────────────────────────
 
-htfEMA50    = request.security(syminfo.tickerid, htfTF, ta.ema(close, 50), lookahead=barmerge.lookahead_off)
+// FIX (priority #4): use the most recently *closed* HTF bar's value to avoid
+// intra-bar flicker on the live bar. Combining lookahead_on with [1] is the
+// canonical no-repaint pattern for higher-timeframe values.
+htfEMA50    = request.security(syminfo.tickerid, htfTF, ta.ema(close, 50)[1], lookahead=barmerge.lookahead_on)
 htfBullish  = close > htfEMA50
 htfBearish  = close < htfEMA50
 htfOk_long  = useHTF ? htfBullish : true
@@ -222,8 +249,15 @@ levelSize   = priceRange / vpLevels
 var float pocPrice    = na
 var float maxVolLevel = 0.0
 
-if barstate.islast
-    float[] levelVol = array.new_float(vpLevels, 0.0)
+// FIX (priority #1): rebuild the volume-profile histogram on every bar (once
+// we have enough lookback), not only on barstate.islast. Previously pocPrice
+// was na on every historical bar, silently disabling the nearPOC factor in
+// both the Triple-A a1 test and the confluence score on backtest replay.
+// Cost is bounded: vpLookback * vpLevels = 50 * 24 = 1200 ops/bar at default.
+var float[] levelVol = array.new_float(vpLevels, 0.0)
+
+if bar_index >= vpLookback and priceRange > 0
+    array.fill(levelVol, 0.0)
     for i = 0 to vpLookback - 1
         barMid   = (high[i] + low[i]) / 2.0
         levelIdx = math.floor((barMid - lowestLow) / levelSize)
@@ -464,8 +498,13 @@ if a1BullCondition
 if a1BearCondition
     a1Bear    := true
     a1BearBar := bar_index
-if not (nearPOC or vwapRetestBull or nearPDH or vwapRetestBear or nearPDL)
+// FIX (priority #3): reset bull and bear a1 state independently. The previous
+// single-OR check let a1Bull persist while price was sitting in a *bear* zone
+// (e.g. vwapRetestBear), and vice-versa, because any direction's zone
+// condition kept both flags alive.
+if not (nearPOC or vwapRetestBull or nearPDH)
     a1Bull := false
+if not (nearPOC or vwapRetestBear or nearPDL)
     a1Bear := false
 
 a2Bull = a1Bull and absorption and bar_index - nz(a1BullBar, bar_index) <= 5
@@ -537,16 +576,16 @@ scoreOk_short = scoreShort >= minScore
 
 // ───────────────────────────────────────────────────────────────
 //  STRUCTURE-AWARE STOP LOSS
-//  Find nearest swing low (for longs) within 1.5×ATR of close.
-//  Use that as SL if available; else fall back to dynSL.
+//  FIX (priority #5): use the last *confirmed* swing low/high tracked from
+//  ta.pivotlow / ta.pivothigh in the market-structure section above, not the
+//  rolling 10-bar extreme. ta.lowest(low, 10) on a strong impulse entry bar
+//  often returns the current bar's low itself, placing SL on top of entry.
+//  Confirmed pivots lag by mssLookback bars by design — that's the price of a
+//  structurally meaningful level.
 // ───────────────────────────────────────────────────────────────
 
-swingSLWindow = 10
-nearestSwingLow  = ta.lowest(low,  swingSLWindow)
-nearestSwingHigh = ta.highest(high, swingSLWindow)
-
-structSL_long  = useSwingSL and (close - nearestSwingLow)  <= atrVal * 1.5 ? nearestSwingLow  : na
-structSL_short = useSwingSL and (nearestSwingHigh - close) <= atrVal * 1.5 ? nearestSwingHigh : na
+structSL_long  = useSwingSL and not na(lastSwingLow)  and (close - lastSwingLow)  <= atrVal * 1.5 ? lastSwingLow  : na
+structSL_short = useSwingSL and not na(lastSwingHigh) and (lastSwingHigh - close) <= atrVal * 1.5 ? lastSwingHigh : na
 
 effectiveSL_long  = not na(structSL_long)  ? (close - structSL_long)  : dynSL
 effectiveSL_short = not na(structSL_short) ? (structSL_short - close) : dynSL
@@ -584,6 +623,7 @@ var float tradeSL      = na
 var float tradeTP1     = na
 var float tradeTP2     = na
 var float tradeRisk    = na   // locked SL distance at entry for accurate P&L
+var float tradeReward  = na   // FIX (priority #2): locked TP1 distance at entry, so sessionPnL doesn't drift with live ATR
 var int   tradeWins    = 0
 var int   tradeLosses  = 0
 var float sessionPnL   = 0.0
@@ -599,7 +639,7 @@ if tradeState == 1
     else if high >= tradeTP1
         tradeState := 0
         tradeWins  += 1
-        sessionPnL += dynTP1
+        sessionPnL += tradeReward
 
 if tradeState == -1
     if high >= tradeSL
@@ -609,26 +649,28 @@ if tradeState == -1
     else if low <= tradeTP1
         tradeState := 0
         tradeWins  += 1
-        sessionPnL += dynTP1
+        sessionPnL += tradeReward
 
 longEntry  = tradeState == 0 and rawLong  and not rawLong[1]
 shortEntry = tradeState == 0 and rawShort and not rawShort[1]
 
 if longEntry
-    tradeState := 1
-    tradeEntry := close
-    tradeSL    := not na(structSL_long)  ? structSL_long  : close - dynSL
-    tradeTP1   := close + dynTP1
-    tradeTP2   := close + dynTP2
-    tradeRisk  := not na(structSL_long)  ? (close - structSL_long)  : dynSL
+    tradeState  := 1
+    tradeEntry  := close
+    tradeSL     := not na(structSL_long)  ? structSL_long  : close - dynSL
+    tradeTP1    := close + dynTP1
+    tradeTP2    := close + dynTP2
+    tradeRisk   := not na(structSL_long)  ? (close - structSL_long)  : dynSL
+    tradeReward := dynTP1
 
 if shortEntry
-    tradeState := -1
-    tradeEntry := close
-    tradeSL    := not na(structSL_short) ? structSL_short : close + dynSL
-    tradeTP1   := close - dynTP1
-    tradeTP2   := close - dynTP2
-    tradeRisk  := not na(structSL_short) ? (structSL_short - close) : dynSL
+    tradeState  := -1
+    tradeEntry  := close
+    tradeSL     := not na(structSL_short) ? structSL_short : close + dynSL
+    tradeTP1    := close - dynTP1
+    tradeTP2    := close - dynTP2
+    tradeRisk   := not na(structSL_short) ? (structSL_short - close) : dynSL
+    tradeReward := dynTP1
 
 longSetupTag  = s4Long  ? "Triple-A ★" : s3Long  ? "PDH Break"   : s2Long  ? "VWAP Retest" : "EMA Cross"
 shortSetupTag = s4Short ? "Triple-A ★" : s3Short ? "PDL Break"   : s2Short ? "VWAP Retest" : "EMA Cross"
@@ -819,7 +861,7 @@ if barstate.islast and showTable
     scoreLCol = scoreLong  >= minScore ? color.new(#00E676,0) : color.gray
     scoreSCol = scoreShort >= minScore ? color.new(#FF1744,0) : color.gray
 
-    table.cell(dash, 0, 0, "VALENTINI PRO v3  |  " + modeStr,
+    table.cell(dash, 0, 0, "VALENTINI PRO v3.1  |  " + modeStr,
          text_color=color.white, bgcolor=modeCol, text_size=size.small)
     table.cell(dash, 1, 0, "", bgcolor=modeCol)
 
