@@ -1,30 +1,53 @@
 //@version=6
-indicator("Fabio Valentini Pro Scalper v3.1", overlay=true,
+indicator("Fabio Valentini Pro Scalper v3.2", overlay=true,
      max_labels_count=500, max_lines_count=500, max_boxes_count=300)
 
 // ═══════════════════════════════════════════════════════════════
-//  FABIO VALENTINI PRO SCALPER — v3.1 (priority correctness fixes)
+//  FABIO VALENTINI PRO SCALPER — v3.2 (score + tolerances rework)
 //
-//  Changes from v3:
-//   #1  POC histogram is now rebuilt every bar (was: only on barstate.islast,
-//       so nearPOC was always na on history — silently disabled the score
-//       factor and Triple-A a1 zone test on backtest replay).
-//   #2  Trade P&L locks the TP1 distance at entry (tradeReward) instead of
-//       reading the live dynTP1 = ATR*mult*2, which drifts with ATR between
-//       entry and exit. sessionPnL and win-rate stats are now consistent.
-//   #3  Triple-A a1 reset is split by direction. Previously a single OR over
-//       all zone conditions kept a1Bull alive while price was in a *bear*
-//       zone, and vice-versa.
-//   #4  HTF security uses ta.ema(close, 50)[1] + lookahead_on (the canonical
-//       no-repaint pattern), eliminating intra-bar HTF filter flicker.
-//   #5  Structure-aware SL uses the last *confirmed* swing low/high from
-//       ta.pivotlow/pivothigh, not the rolling 10-bar extreme. The previous
-//       version often placed SL at the entry bar's own low on impulse bars.
+//  Changes from v3.1:
+//   #7  Confluence score reworked. Two issues fixed:
+//       (a) HTF factor used `htfOk_long` which is `true` whenever the HTF
+//           filter is OFF, giving every bar a free +1. Now uses the raw
+//           `htfBullish`/`htfBearish` so the score reflects actual HTF
+//           alignment regardless of whether HTF is being used as a gate.
+//       (b) `tripleALong` was both a +1 score factor AND a setup type whose
+//           own definition already includes bullDelta + zone proximity +
+//           aboveVWAP — i.e. it was triple-counting things already in the
+//           score. Replaced with a session cumulative-delta factor so we
+//           still have a 0–7 range and we put the previously-dead
+//           `cumDelta` variable to work.
 //
-//  Behaviour deliberately unchanged: confluence-score weighting, re-entry
-//  edge case, TP2 management, ATR-relative tolerances, dead cumDelta,
-//  isSessStart hourly-chart edge case. See the open issues thread on the
-//  baseline PR for the deferred items.
+//   #11 Hard-coded percentages replaced with ATR-relative tolerances so
+//       the indicator behaves the same on ES @ 5,000 and a $30 stock:
+//       - nearPOC                      0.2% of price → ATR multiple
+//       - vwapRetestBull/Bear          5 bp around VWAP → ATR multiple
+//       - nearPDH/nearPDL              aaTolerance% → ATR multiple
+//       New input `keyLevelAtrMult` (default 0.25×ATR) controls them.
+//       The legacy `aaTolerance` input is removed.
+//
+//   #8  Re-entry edge case fixed. The previous gate
+//           longEntry = flat and rawLong and not rawLong[1]
+//       silently dropped entries on the bar after a trade closed if the
+//       raw signal had been true on the closing bar (because we'd been in
+//       a trade, not because the signal was new). Now: if we were in a
+//       trade on the previous bar, the rising-edge requirement is waived.
+//
+//   #13 isSessStart used a 1-minute window (`0930-0931`) which only fires
+//       on charts whose bar timestamp falls inside that window. On 30m or
+//       60m charts the bar timestamp is 09:30 (or earlier) and lands
+//       outside the window in some setups, so VWAP and cumDelta never
+//       reset. Replaced with `ta.change(time("D"...))` against the
+//       regular session, which fires once on the first bar of any chart
+//       TF inside the session.
+// ═══════════════════════════════════════════════════════════════
+//
+//  Earlier (v3.1) priority fixes preserved:
+//   #1 POC rebuilt every bar
+//   #2 P&L uses locked tradeReward
+//   #3 Triple-A a1 reset split by direction
+//   #4 HTF security closed-bar pattern
+//   #5 Structure-aware SL uses confirmed pivots
 // ═══════════════════════════════════════════════════════════════
 
 // ─── Original v3 design notes ───────────────────────────────────
@@ -112,7 +135,10 @@ htfTF        = input.timeframe("60", "HTF Timeframe",                 group=grpH
 grpTripleA = "Triple-A Setup"
 useTripleA   = input.bool(true,  "Require Triple-A Confirmation",     group=grpTripleA,
      tooltip="ON = only Triple-A signals. OFF = all four setups active.")
-aaTolerance  = input.float(0.15, "Accumulation Zone Tolerance %",     group=grpTripleA, step=0.05)
+
+grpTol = "Level Proximity"
+keyLevelAtrMult = input.float(0.25, "Key-level proximity (×ATR)",     group=grpTol, step=0.05, minval=0.05, maxval=2.0,
+     tooltip="How close price must be to POC, PDH, PDL or VWAP to count as 'near'. Expressed as a multiple of ATR so it scales with each instrument.")
 
 grpConfl = "Confluence Filter"
 minScore     = input.int(4, "Minimum Confluence Score (0–7)",         group=grpConfl, minval=0, maxval=7,
@@ -166,7 +192,12 @@ isKZ        = not na(time("1", kzSession,   "America/New_York"))
 isAftKZ     = not na(time("1", kzAfternoon, "America/New_York"))
 isActive    = isKZ or isAftKZ
 isMkt       = not na(time("1", "0930-1600", "America/New_York"))
-isSessStart = not na(time("1", "0930-0931", "America/New_York"))
+// FIX (priority #13): use day-change inside the regular session as the VWAP
+// / cumDelta anchor. The old "0930-0931" 1-minute window only fires on chart
+// timeframes whose bar timestamp lands inside that minute (1m, 5m, 15m).
+// On 30m / 1h / 4h charts the bar timestamp falls outside the window and
+// VWAP / cumDelta never reset.
+isSessStart = ta.change(time("D", "0930-1600", "America/New_York")) != 0
 newDay      = ta.change(time("D")) != 0
 
 // ───────────────────────────────────────────────────────────────
@@ -181,6 +212,16 @@ ribbonBull   = emaFast > emaMid and emaMid > emaSlow
 ribbonBear   = emaFast < emaMid and emaMid < emaSlow
 emaCrossUp   = ta.crossover(emaFast,  emaMid)
 emaCrossDown = ta.crossunder(emaFast, emaMid)
+
+// ───────────────────────────────────────────────────────────────
+//  ATR (lifted above VWAP/POC/PDH-PDL so atrVal can be used in their
+//  proximity tests — see priority #11.)
+// ───────────────────────────────────────────────────────────────
+
+atrVal = ta.atr(atrLen)
+dynSL  = useAtrRisk ? atrVal * atrMult       : slPoints
+dynTP1 = useAtrRisk ? atrVal * atrMult * 2.0 : tpPoints
+dynTP2 = useAtrRisk ? atrVal * atrMult * 4.0 : tp2Points
 
 // ───────────────────────────────────────────────────────────────
 //  HTF TREND FILTER
@@ -204,8 +245,10 @@ htfOk_short = useHTF ? htfBearish : true
 
 aboveVWAP      = close > vwapVal
 belowVWAP      = close < vwapVal
-vwapRetestBull = low  <= vwapVal * 1.0005 and close > vwapVal
-vwapRetestBear = high >= vwapVal * 0.9995 and close < vwapVal
+// FIX (priority #11): ATR-relative VWAP retest tolerance instead of fixed
+// 5 bp band. Multiplier shared with POC/PDH/PDL via keyLevelAtrMult.
+vwapRetestBull = low  <= vwapVal + atrVal * keyLevelAtrMult and close > vwapVal
+vwapRetestBear = high >= vwapVal - atrVal * keyLevelAtrMult and close < vwapVal
 overExtUp      = close >= vwapU2
 overExtDown    = close <= vwapL2
 
@@ -267,7 +310,10 @@ if bar_index >= vpLookback and priceRange > 0
     maxIdx       = array.indexof(levelVol, maxVolLevel)
     pocPrice    := lowestLow + (maxIdx + 0.5) * levelSize
 
-nearPOC = not na(pocPrice) and math.abs(close - pocPrice) / close < 0.002
+// FIX (priority #11): ATR-relative POC proximity instead of fixed 0.2% of
+// price, so the same input works on ES @ 5,000, NQ @ 18,000, FX or low-
+// priced equities without retuning.
+nearPOC = not na(pocPrice) and math.abs(close - pocPrice) <= atrVal * keyLevelAtrMult
 
 // ───────────────────────────────────────────────────────────────
 //  PREVIOUS DAY HIGH / LOW
@@ -287,8 +333,11 @@ else
     dayHigh := math.max(nz(dayHigh, high), high)
     dayLow  := math.min(nz(dayLow,  low),  low)
 
-nearPDH = not na(pdHigh) and math.abs(close - pdHigh) / close < aaTolerance / 100
-nearPDL = not na(pdLow)  and math.abs(close - pdLow)  / close < aaTolerance / 100
+// FIX (priority #11): ATR-relative PDH/PDL proximity. The legacy
+// `aaTolerance` percentage input is removed — keyLevelAtrMult covers all
+// key-level proximity checks (POC, VWAP, PDH, PDL).
+nearPDH = not na(pdHigh) and math.abs(close - pdHigh) <= atrVal * keyLevelAtrMult
+nearPDL = not na(pdLow)  and math.abs(close - pdLow)  <= atrVal * keyLevelAtrMult
 
 var line pdHLine = na
 var line pdLLine = na
@@ -300,15 +349,6 @@ if newDay and not na(pdHigh) and showPDLevels
          color=color.new(#FFD600, 0), width=2, style=line.style_dotted, extend=extend.right)
     pdLLine := line.new(bar_index, pdLow,  bar_index + 500, pdLow,
          color=color.new(#FFD600, 0), width=2, style=line.style_dotted, extend=extend.right)
-
-// ───────────────────────────────────────────────────────────────
-//  ATR
-// ───────────────────────────────────────────────────────────────
-
-atrVal = ta.atr(atrLen)
-dynSL  = useAtrRisk ? atrVal * atrMult       : slPoints
-dynTP1 = useAtrRisk ? atrVal * atrMult * 2.0 : tpPoints
-dynTP2 = useAtrRisk ? atrVal * atrMult * 4.0 : tp2Points
 
 // ───────────────────────────────────────────────────────────────
 //  MARKET STRUCTURE — BOS / MSS (CHoCH)
@@ -543,14 +583,28 @@ candleBear = close < open and bodyRatio > 0.4
 //  Each potential long/short entry is scored 0–7.
 //  Score ≥ minScore required to generate a signal.
 //
+//  FIX (priority #7): two issues fixed in the v3 score —
+//   (a) HTF factor now uses raw `htfBullish` / `htfBearish`, not the gated
+//       `htfOk_long` / `htfOk_short` which return `true` when the filter is
+//       OFF — that gave every bar a free +1 even when HTF wasn't being
+//       used as a gate.
+//   (b) `tripleALong` / `tripleAShort` were used as a +1 score factor AND
+//       as a setup type. Their definition already requires bullDelta +
+//       (nearPOC or vwapRetestBull or nearPDH) + aboveVWAP + absorption +
+//       aggression — i.e. it triple-counts factors already in the score.
+//       Dropped from the score; Triple-A remains a separate setup (s4).
+//       The freed-up slot is filled by session cumulative delta (cumDelta),
+//       which was being computed but never used — a real, independent
+//       order-flow factor.
+//
 //  Long scoring factors:
 //    1. EMA ribbon bullish            (+1)
 //    2. Above VWAP                    (+1)
-//    3. Bull delta confirmed          (+1)
-//    4. Near POC / OB / FVG          (+1)
-//    5. HTF bullish                   (+1)
+//    3. Bull delta on this bar        (+1)
+//    4. Near POC / OB / FVG           (+1)
+//    5. HTF trend bullish             (+1)
 //    6. Bullish market structure      (+1)
-//    7. Triple-A pattern              (+1)
+//    7. Cumulative session delta > 0  (+1)
 // ───────────────────────────────────────────────────────────────
 
 scoreLong =
@@ -558,18 +612,18 @@ scoreLong =
      (aboveVWAP           ? 1 : 0) +
      (bullDelta           ? 1 : 0) +
      (nearPOC or inBullOB or inBullFVG ? 1 : 0) +
-     (htfOk_long          ? 1 : 0) +
+     (htfBullish          ? 1 : 0) +
      (structureDir == 1   ? 1 : 0) +
-     (tripleALong         ? 1 : 0)
+     (cumDelta > 0        ? 1 : 0)
 
 scoreShort =
      (ribbonBear          ? 1 : 0) +
      (belowVWAP           ? 1 : 0) +
      (bearDelta           ? 1 : 0) +
      (nearPOC or inBearOB or inBearFVG ? 1 : 0) +
-     (htfOk_short         ? 1 : 0) +
+     (htfBearish          ? 1 : 0) +
      (structureDir == -1  ? 1 : 0) +
-     (tripleAShort        ? 1 : 0)
+     (cumDelta < 0        ? 1 : 0)
 
 scoreOk_long  = scoreLong  >= minScore
 scoreOk_short = scoreShort >= minScore
@@ -651,8 +705,18 @@ if tradeState == -1
         tradeWins  += 1
         sessionPnL += tradeReward
 
-longEntry  = tradeState == 0 and rawLong  and not rawLong[1]
-shortEntry = tradeState == 0 and rawShort and not rawShort[1]
+// FIX (priority #8): Re-entry suppression — if we were in a trade on the
+// previous bar (and just closed this bar or earlier) the rising-edge gate
+// `not rawLong[1]` would silently drop a valid entry on the next bar
+// when rawLong was true throughout. Waive the rising-edge requirement
+// when the previous bar was not flat.
+flatNow      = tradeState == 0
+flatPrev     = nz(tradeState[1], 0) == 0
+risingLong   = flatPrev ? not rawLong[1]  : true
+risingShort  = flatPrev ? not rawShort[1] : true
+
+longEntry  = flatNow and rawLong  and risingLong
+shortEntry = flatNow and rawShort and risingShort
 
 if longEntry
     tradeState  := 1
@@ -861,7 +925,7 @@ if barstate.islast and showTable
     scoreLCol = scoreLong  >= minScore ? color.new(#00E676,0) : color.gray
     scoreSCol = scoreShort >= minScore ? color.new(#FF1744,0) : color.gray
 
-    table.cell(dash, 0, 0, "VALENTINI PRO v3.1  |  " + modeStr,
+    table.cell(dash, 0, 0, "VALENTINI PRO v3.2  |  " + modeStr,
          text_color=color.white, bgcolor=modeCol, text_size=size.small)
     table.cell(dash, 1, 0, "", bgcolor=modeCol)
 
