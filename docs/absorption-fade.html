@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absorption Fade — Trading Playbook</title>
+<style>
+:root {
+  --bg: #0e1116;
+  --bg-elev: #161b22;
+  --bg-elev-2: #1c232c;
+  --border: #2a313c;
+  --text: #e6edf3;
+  --text-dim: #9aa6b2;
+  --accent: #2f81f7;
+  --accent-soft: #1f6feb33;
+  --green: #3fb950;
+  --red: #f85149;
+  --amber: #d29922;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-elev: #f6f8fa;
+  --bg-elev-2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --text-dim: #57606a;
+  --accent: #0969da;
+  --accent-soft: #0969da1a;
+  --green: #1a7f37;
+  --red: #cf222e;
+  --amber: #9a6700;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex; align-items: center; gap: 16px;
+  flex-wrap: wrap;
+}
+header h1 {
+  margin: 0; font-size: 18px; font-weight: 600;
+  display: flex; align-items: center; gap: 10px;
+}
+header h1 .badge {
+  font-size: 11px; padding: 2px 8px; border-radius: 12px;
+  background: var(--accent-soft); color: var(--accent);
+  font-weight: 500;
+}
+header .spacer { flex: 1; }
+header button, header .iconbtn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text); padding: 6px 12px; border-radius: 6px;
+  cursor: pointer; font-size: 13px;
+  transition: all 0.15s;
+}
+header button:hover, header .iconbtn:hover {
+  background: var(--bg-elev-2); border-color: var(--accent);
+}
+nav.tabs {
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  display: flex; gap: 4px;
+  overflow-x: auto;
+  position: sticky; top: 53px; z-index: 99;
+}
+nav.tabs button {
+  background: transparent; border: none;
+  padding: 12px 16px;
+  color: var(--text-dim); cursor: pointer;
+  font-size: 14px; font-weight: 500;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+nav.tabs button:hover { color: var(--text); }
+nav.tabs button.active {
+  color: var(--accent); border-bottom-color: var(--accent);
+}
+main {
+  max-width: 980px; margin: 0 auto; padding: 30px 20px 80px;
+}
+section { display: none; }
+section.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+h2 {
+  font-size: 28px; margin: 0 0 8px; font-weight: 600;
+  border-bottom: 1px solid var(--border); padding-bottom: 12px;
+}
+h3 {
+  font-size: 19px; margin: 32px 0 10px; font-weight: 600;
+}
+h4 {
+  font-size: 15px; margin: 20px 0 8px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.lead {
+  color: var(--text-dim); font-size: 15px;
+  margin: 6px 0 24px;
+}
+p { margin: 8px 0 14px; }
+table {
+  width: 100%; border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 14px;
+  background: var(--bg-elev);
+  border-radius: 6px; overflow: hidden;
+}
+th, td {
+  padding: 10px 12px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+th { background: var(--bg-elev-2); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); }
+tr:last-child td { border-bottom: none; }
+code { font-family: var(--mono); font-size: 13px; background: var(--bg-elev-2); padding: 2px 6px; border-radius: 4px; }
+pre {
+  background: var(--bg-elev); border: 1px solid var(--border);
+  padding: 14px 16px; border-radius: 8px;
+  overflow-x: auto; font-family: var(--mono); font-size: 13px;
+  line-height: 1.5;
+}
+pre code { background: transparent; padding: 0; }
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 12px 16px; border-radius: 0 6px 6px 0;
+  margin: 16px 0; font-size: 14px;
+}
+.callout.warn { border-left-color: var(--amber); background: rgba(210, 153, 34, 0.1); }
+.callout.danger { border-left-color: var(--red); background: rgba(248, 81, 73, 0.1); }
+.callout.success { border-left-color: var(--green); background: rgba(63, 185, 80, 0.1); }
+.callout strong { display: block; margin-bottom: 4px; }
+ul, ol { padding-left: 22px; margin: 10px 0; }
+li { margin: 4px 0; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Checklist */
+.checklist { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+.checklist label {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; user-select: none;
+  transition: all 0.15s;
+  font-size: 14px;
+}
+.checklist label:hover { border-color: var(--accent); }
+.checklist input[type="checkbox"] {
+  margin: 3px 0 0; cursor: pointer;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+.checklist label.checked {
+  background: var(--bg-elev-2);
+  color: var(--text-dim);
+}
+.checklist label.checked .label-text {
+  text-decoration: line-through;
+}
+.checklist .label-num {
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 20px;
+}
+.checklist h4 { margin-top: 24px; }
+.section-controls {
+  display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.btn {
+  background: var(--accent); color: white;
+  border: none; padding: 8px 16px; border-radius: 6px;
+  cursor: pointer; font-size: 13px; font-weight: 500;
+}
+.btn:hover { opacity: 0.9; }
+.btn.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn.secondary:hover { background: var(--bg-elev-2); border-color: var(--accent); }
+.btn.danger { background: var(--red); }
+.progress-bar {
+  height: 6px; background: var(--bg-elev-2); border-radius: 3px;
+  overflow: hidden; margin: 8px 0 16px;
+}
+.progress-fill {
+  height: 100%; background: var(--accent);
+  width: 0%; transition: width 0.3s;
+}
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px; margin: 16px 0;
+}
+.stat {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  padding: 14px; border-radius: 8px;
+}
+.stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-value { font-size: 24px; font-weight: 600; margin-top: 4px; }
+.stat-value.green { color: var(--green); }
+.stat-value.red { color: var(--red); }
+.stat-value.amber { color: var(--amber); }
+
+/* Calculator */
+.calc {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 16px 0;
+}
+.calc-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) { .calc-row { grid-template-columns: 1fr; } }
+.calc label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 4px; }
+.calc input[type="number"], .calc input[type="text"], .calc textarea, .calc select {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 12px; border-radius: 6px;
+  font-size: 14px;
+  font-family: var(--sans);
+}
+.calc input:focus, .calc textarea:focus, .calc select:focus {
+  outline: none; border-color: var(--accent);
+}
+.calc textarea { font-family: var(--mono); font-size: 13px; min-height: 120px; resize: vertical; }
+.verdict {
+  margin-top: 16px; padding: 14px;
+  border-radius: 6px; font-weight: 500;
+  border: 1px solid var(--border);
+}
+.verdict.pass { background: rgba(63, 185, 80, 0.1); border-color: var(--green); color: var(--green); }
+.verdict.fail { background: rgba(248, 81, 73, 0.1); border-color: var(--red); color: var(--red); }
+.verdict.neutral { background: var(--bg-elev-2); }
+
+/* Roadmap */
+.phase {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 18px 22px;
+  margin: 14px 0;
+}
+.phase h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+.phase-status {
+  font-size: 11px; padding: 3px 10px;
+  border-radius: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.phase-status.todo { background: var(--bg-elev-2); color: var(--text-dim); }
+.phase-status.active { background: var(--accent-soft); color: var(--accent); }
+.phase-status.done { background: rgba(63, 185, 80, 0.2); color: var(--green); }
+.gate-table th { font-size: 12px; }
+.gate-table td .gate-pass {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 12px; font-weight: 500;
+}
+.gate-pass.yes { background: rgba(63, 185, 80, 0.2); color: var(--green); }
+.gate-pass.no { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+
+/* Search */
+.search-bar {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+.search-bar input {
+  flex: 1;
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 12px; border-radius: 6px;
+  font-size: 14px;
+}
+.search-bar input:focus { outline: none; border-color: var(--accent); }
+.hidden-by-search { display: none !important; }
+mark { background: var(--accent-soft); color: var(--accent); padding: 0 2px; border-radius: 2px; }
+
+/* Print */
+@media print {
+  header, nav.tabs, .section-controls, .no-print { display: none !important; }
+  section { display: block !important; page-break-after: always; }
+  body { background: white; color: black; font-size: 11pt; }
+  main { max-width: none; padding: 0; }
+  table, pre, .callout, .calc, .phase {
+    background: white !important; color: black !important;
+    border: 1px solid #999 !important;
+  }
+  .checklist label { background: white; color: black; border: 1px solid #999; }
+  a { color: black; text-decoration: underline; }
+  h2 { page-break-before: auto; }
+}
+
+/* Footer */
+footer {
+  text-align: center; padding: 30px 20px;
+  color: var(--text-dim); font-size: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 60px;
+}
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--bg-elev-2); color: var(--text);
+  border: 1px solid var(--accent);
+  padding: 12px 18px; border-radius: 6px;
+  z-index: 1000;
+  opacity: 0; transform: translateY(10px);
+  transition: all 0.25s;
+  pointer-events: none;
+  font-size: 14px;
+}
+.toast.show { opacity: 1; transform: none; }
+
+/* Tag chips */
+.tag {
+  display: inline-block; font-size: 11px; padding: 2px 8px;
+  border-radius: 10px; background: var(--bg-elev-2);
+  color: var(--text-dim); margin-right: 4px;
+  font-weight: 500;
+}
+.tag.green { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+.tag.red { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+.tag.amber { background: rgba(210, 153, 34, 0.15); color: var(--amber); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Absorption Fade <span class="badge">Playbook v1.0</span></h1>
+  <div class="spacer"></div>
+  <button class="iconbtn" onclick="toggleTheme()" title="Toggle theme">🌓 Theme</button>
+  <button class="iconbtn" onclick="window.print()" title="Print">🖨 Print</button>
+  <button class="iconbtn" onclick="exportState()" title="Export progress as JSON">⬇ Export</button>
+  <button class="iconbtn" onclick="document.getElementById('importFile').click()" title="Import progress from JSON">⬆ Import</button>
+  <input type="file" id="importFile" accept="application/json" onchange="importState(event)" style="display:none">
+</header>
+
+<nav class="tabs">
+  <button data-tab="overview" class="active">Overview</button>
+  <button data-tab="strategy">Strategy</button>
+  <button data-tab="checklist">Checklist</button>
+  <button data-tab="roadmap">Roadmap</button>
+  <button data-tab="backtest">Backtest</button>
+  <button data-tab="calculator">Calculator</button>
+  <button data-tab="indicator">Indicator</button>
+  <button data-tab="databento">Databento</button>
+</nav>
+
+<main>
+
+<!-- ========================================================== OVERVIEW -->
+<section id="overview" class="active">
+  <h2>Overview</h2>
+  <p class="lead">A mechanical, order-flow scalping strategy for ES / NQ futures on the ATAS platform — with a live, interactive playbook you can use offline.</p>
+
+  <div class="callout">
+    <strong>How to use this document</strong>
+    Everything is local-first. Your checklist progress, roadmap status, and backtest entries are saved automatically in your browser. Use <em>Export</em> to back up your state to a JSON file, or <em>Import</em> to restore it.
+  </div>
+
+  <h3>What's inside</h3>
+  <table>
+    <thead><tr><th>Tab</th><th>Use it for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Strategy</strong></td><td>The full Absorption Fade spec — model, conditions, examples</td></tr>
+      <tr><td><strong>Checklist</strong></td><td>Live pre-trade checklist. Tap to check, persists locally.</td></tr>
+      <tr><td><strong>Roadmap</strong></td><td>4-phase plan with decision gates and your status tracker</td></tr>
+      <tr><td><strong>Backtest</strong></td><td>Form to log a single instance — outputs markdown to copy</td></tr>
+      <tr><td><strong>Calculator</strong></td><td>Expectancy / win rate / R-multiple stats from your trades</td></tr>
+      <tr><td><strong>Indicator</strong></td><td>ATAS Scout install + tuning notes</td></tr>
+      <tr><td><strong>Databento</strong></td><td>Phase 4 stress-testing future-work plan</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The mental model in one sentence</h3>
+  <div class="callout success">
+    <strong>You are not predicting — you are reading a transaction.</strong>
+    Aggressors hit a level expecting a breakout. Limit orders eat them. Price doesn't move. They cover. You ride their exit.
+  </div>
+
+  <h3>Hard prerequisites before you trade this</h3>
+  <ul>
+    <li>ATAS subscription with footprint / cluster data</li>
+    <li>Live order-flow data for ES / NQ (CME data fee covered through your broker or ATAS)</li>
+    <li>Phase 1 of the roadmap completed (30 manual replay instances logged)</li>
+    <li>Phase 2 indicator-aided gate passed (100+ instances, win rate ≥ 50%)</li>
+    <li>You can describe the 5 conditions from memory</li>
+  </ul>
+
+  <div class="callout warn">
+    <strong>This file is offline-safe.</strong> No internet required. No tracking. No external libraries. Save it anywhere — Dropbox, USB stick, phone — and it just works.
+  </div>
+</section>
+
+<!-- ========================================================== STRATEGY -->
+<section id="strategy">
+  <h2>Strategy — Absorption Fade</h2>
+  <p class="lead">A mechanical order-flow scalp for NQ / ES futures.</p>
+
+  <div class="search-bar no-print">
+    <input type="text" id="strategySearch" placeholder="🔍 Search this section..." oninput="searchSection('strategy', this.value)">
+  </div>
+
+  <div class="callout warn">
+    <strong>Platform note</strong>
+    This strategy requires bid/ask split volume (footprint) and a Cumulative Delta indicator. TradingView does <strong>not</strong> provide this for futures in a usable form. AF is a <strong>futures-only, ATAS-track</strong> strategy that runs in parallel to the ICT/SMC TradingView track.
+  </div>
+
+  <h3>The mental model</h3>
+  <p>Price runs into a known level. Aggressive market orders pile in expecting a breakout. Someone bigger is sitting there with limit orders, eating every print. The aggressors get filled but <strong>price doesn't move</strong>. They're now trapped. When they realize it and cover, the reversal you're trading is just <em>their</em> exit liquidity.</p>
+
+  <h3>ATAS chart configuration</h3>
+  <h4>Chart 1 — Execution (the chart you trade from)</h4>
+  <ul>
+    <li><strong>Timeframe:</strong> 1-minute footprint (or 30-second on NQ during high vol)</li>
+    <li><strong>Footprint mode:</strong> Bid x Ask (numbers visible on each cluster)</li>
+    <li><strong>Imbalance threshold:</strong> 300% (highlights diagonal imbalances)</li>
+    <li><strong>Cluster colouring:</strong> by Delta</li>
+    <li><strong>Overlays:</strong> Session VWAP + 1σ and 2σ bands; Cumulative Delta (separate pane); Volume Profile — Session (POC / VAH / VAL)</li>
+  </ul>
+
+  <h4>Chart 2 — Context (don't trade from this, just confirm)</h4>
+  <ul>
+    <li>5-minute candles</li>
+    <li>Session VWAP</li>
+    <li>Daily Volume Profile (last 5 days, POC + value areas)</li>
+    <li>Prior day H/L, weekly H/L plotted</li>
+  </ul>
+
+  <h4>Chart 3 — DOM (optional but recommended)</h4>
+  <ul><li>Watch for pulled liquidity at your level when you're about to enter.</li></ul>
+
+  <h3>Mechanical entry — 5 conditions, all required</h3>
+  <p>You do not take the trade unless <strong>all five</strong> print. No exceptions.</p>
+
+  <table>
+    <thead><tr><th>#</th><th>Condition</th><th>What you're looking at</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>Location</strong></td><td>Price tags a <em>predefined</em> level: prior day H/L, weekly H/L, session VAH/VAL, overnight H/L, or HVN on daily profile</td></tr>
+      <tr><td>2</td><td><strong>Volume spike</strong></td><td>Bar volume ≥ 1.5× the 20-bar average</td></tr>
+      <tr><td>3</td><td><strong>Heavy delta, no progress</strong></td><td>Bar delta ≥ ±70% of bar volume <strong>AND</strong> body closes in the opposite ≤25% of range, <strong>OR</strong> wick ≥ 60% of range</td></tr>
+      <tr><td>4</td><td><strong>CVD divergence</strong></td><td>Price prints a new HH/LL vs prior 5–10 bars; CVD does <strong>not</strong> confirm</td></tr>
+      <tr><td>5</td><td><strong>Trigger bar</strong></td><td>Next 1m bar closes <em>back through</em> the midpoint of the absorption bar</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Entry / stop / targets</h4>
+  <ul>
+    <li><strong>Entry:</strong> Market on close of the trigger bar (condition 5)</li>
+    <li><strong>Stop:</strong> 1 tick beyond the wick of the absorption bar</li>
+    <li><strong>TP1:</strong> 1R → close 50%, move stop to breakeven</li>
+    <li><strong>TP2:</strong> Session POC, opposite VWAP band, or next HVN (whichever hits first)</li>
+    <li><strong>Time stop:</strong> If 5 minutes pass without TP1, exit at market</li>
+  </ul>
+
+  <h3>Worked example (ES)</h3>
+<pre>Level: Prior day high @ 5482.25
+1-min absorption bar prints:
+  - Volume:   4,200 (avg 2,100)            ✓ 1.5x+
+  - Delta:    +2,950 (70% of vol)          ✓ heavy buying
+  - Range:    5482.25 → 5483.50 (5 ticks)
+  - Close:    5482.50 (bottom 20%)         ✓ no progress
+  - Upper wick: 4 ticks                     ✓ rejection
+  - CVD:      prior swing high @ +8,400,
+              this bar peaks at +7,900     ✓ divergence
+
+Trigger bar (next 1m): closes 5481.75 (below mid 5482.88) ✓
+
+ENTRY: Short @ 5481.75
+STOP:  5483.75 (1 tick above wick)  → 8 tick risk = $100/contract
+TP1:   5479.75 (1R)                 → close half
+TP2:   Session POC @ 5476.00        → ~24 tick gain on remainder = ~3R total</pre>
+
+  <h3>Risk rules <span class="tag red">non-negotiable</span></h3>
+  <ul>
+    <li><strong>Risk per trade:</strong> 0.25% – 0.5% of account</li>
+    <li><strong>Daily loss limit:</strong> 2R or 1.5% — stop trading</li>
+    <li><strong>Daily profit lock:</strong> at +3R, reduce size 50% or stop</li>
+    <li><strong>Max trades per session:</strong> 3–5 A+ setups, not 30</li>
+    <li><strong>Sessions only:</strong> NY Open (9:30–11:00 ET); London/NY overlap (8:00–10:00 ET); NY PM (1:30–3:00 ET); skip lunch (11:30–1:00 ET)</li>
+    <li><strong>No trades</strong> during FOMC, CPI, NFP for the first 5 minutes</li>
+    <li><strong>One AF setup per level.</strong> If it fails, the level failed. Move on.</li>
+  </ul>
+
+  <h3>Common mistakes to avoid</h3>
+  <ol>
+    <li><strong>Trading absorption mid-range.</strong> Only at predefined HTF levels. Mid-range absorption is noise.</li>
+    <li><strong>Front-running the trigger bar.</strong> Wait for the close. The trigger bar IS the edge.</li>
+    <li><strong>Ignoring CVD on small ranges.</strong> If session range &lt; 20 ticks (ES), CVD signal is unreliable. Skip.</li>
+    <li><strong>Re-entering after a stop-out.</strong> One AF setup per level, ever.</li>
+    <li><strong>Trading during news.</strong> Absorption signatures lie during news prints.</li>
+    <li><strong>NQ on tight stops.</strong> NQ wicks are violent. Use 12+ tick stops or stick to ES until consistent.</li>
+  </ol>
+
+  <h3>Why this works — research basis</h3>
+  <ul>
+    <li><strong>Stacked imbalances</strong> show diagonal aggression where market orders eat 3+ price levels in a row — a documented signature of institutional participation. Source: <a href="https://atas.net/blog/trading-by-levels-with-the-big-trades-stacked-imbalance-and-speed-of-tape-indicators/" target="_blank" rel="noopener">ATAS — Trading by levels with the Big Trades, Stacked Imbalance and Speed of Tape indicators</a>.</li>
+    <li><strong>Absorption + CVD divergence</strong> is one of the more reliable reversal signals because aggressive market orders are being eaten by passive limit orders — i.e. a larger player is taking the other side. Sources: <a href="https://www.tradingview.com/script/p0EgGtfv-CVD-Pro-Absorption-Exhaustion-Divergence/" target="_blank" rel="noopener">TradingView — CVD Pro: Absorption, Exhaustion &amp; Divergence</a>, <a href="https://damnpropfirms.com/blog/fakeouts-futures-order-flow-strategies" target="_blank" rel="noopener">Damn Prop Firms — Fakeouts in Futures: Order Flow Strategies</a>.</li>
+    <li><strong>VWAP + Volume Profile context</strong> filters out a large share of bad setups by forcing trades only at meaningful levels.</li>
+    <li><strong>Trapped traders</strong> — when aggressors get filled into a level that fails, they become forced sellers/buyers on the reversal, providing the exit liquidity you target. Source: <a href="https://www.chartfanatics.com/strategies/order-flow-strategy" target="_blank" rel="noopener">ChartFanatics — Trading Trapped Buyers &amp; Sellers with Order Flow</a>.</li>
+  </ul>
+  <p style="font-size: 12px; color: var(--text-dim);"><em>Content from external sources was rephrased for compliance with licensing restrictions.</em></p>
+
+  <h3>Where this fits in the broader plan</h3>
+  <ul>
+    <li><strong>Phase 1:</strong> Manual replay in ATAS — log 30 instances by hand.</li>
+    <li><strong>Phase 2:</strong> Custom ATAS indicator (<code>AbsorptionFadeScout</code>) auto-detects setups so you can scale to 100+ instances.</li>
+    <li><strong>Phase 3:</strong> Forward-test live on micros (MES / MNQ).</li>
+    <li><strong>Phase 4:</strong> Databento + Python for multi-year robustness testing.</li>
+  </ul>
+  <p>See the <strong>Roadmap</strong> tab for the full phase plan with decision gates.</p>
+</section>
+
+<!-- ========================================================= CHECKLIST -->
+<section id="checklist">
+  <h2>Pre-Trade Checklist</h2>
+  <p class="lead">Tap each box. Progress saves automatically. Reset before each trading session.</p>
+
+  <div class="progress-bar"><div class="progress-fill" id="checklistProgress"></div></div>
+  <div class="section-controls no-print">
+    <button class="btn secondary" onclick="resetChecklist()">↻ Reset all</button>
+    <span style="color: var(--text-dim); font-size: 13px; align-self: center;" id="checklistCount">0 / 0 checked</span>
+  </div>
+
+  <div class="checklist" id="checklistContainer">
+    <h4>Before the session</h4>
+    <label data-key="ck-pre-1"><input type="checkbox"><span>Mapped levels: PDH/PDL, weekly H/L, overnight H/L, session VAH/VAL, daily POC, key HVNs</span></label>
+    <label data-key="ck-pre-2"><input type="checkbox"><span>Within session window? (NY Open 9:30–11:00 / Overlap 8:00–10:00 / NY PM 13:30–15:00 ET)</span></label>
+    <label data-key="ck-pre-3"><input type="checkbox"><span>No high-impact news in next 5 min? (FOMC, CPI, NFP, PMI)</span></label>
+    <label data-key="ck-pre-4"><input type="checkbox"><span>Account daily loss limit not yet hit? (-2R / -1.5%)</span></label>
+    <label data-key="ck-pre-5"><input type="checkbox"><span>Account daily profit lock not yet hit? (+3R)</span></label>
+
+    <h4>Setup conditions (all 5 must print)</h4>
+    <label data-key="ck-c1"><input type="checkbox"><span class="label-num">#1</span><span class="label-text"><strong>Location</strong> — price tagged a <em>predefined</em> HTF level (not mid-range)</span></label>
+    <label data-key="ck-c2"><input type="checkbox"><span class="label-num">#2</span><span class="label-text"><strong>Volume spike</strong> — bar volume ≥ 1.5× the 20-bar average</span></label>
+    <label data-key="ck-c3"><input type="checkbox"><span class="label-num">#3</span><span class="label-text"><strong>Heavy delta, no progress</strong> — delta ≥ ±70% of vol AND (close in opposite 25% OR wick ≥ 60% of range)</span></label>
+    <label data-key="ck-c4"><input type="checkbox"><span class="label-num">#4</span><span class="label-text"><strong>CVD divergence</strong> — price made new HH/LL vs prior 5–10 bars; CVD did not confirm</span></label>
+    <label data-key="ck-c5"><input type="checkbox"><span class="label-num">#5</span><span class="label-text"><strong>Trigger bar</strong> — next 1m bar closed back through midpoint of the absorption bar</span></label>
+
+    <h4>Execution</h4>
+    <label data-key="ck-ex-1"><input type="checkbox"><span>Risk on this trade ≤ 0.5% of account?</span></label>
+    <label data-key="ck-ex-2"><input type="checkbox"><span>Stop placed 1 tick beyond the absorption wick?</span></label>
+    <label data-key="ck-ex-3"><input type="checkbox"><span>TP1 = 1R marked? (close 50% there, move stop to BE)</span></label>
+    <label data-key="ck-ex-4"><input type="checkbox"><span>TP2 marked = session POC / opposite VWAP band / next HVN?</span></label>
+    <label data-key="ck-ex-5"><input type="checkbox"><span>Time-stop reminder set? (5 min without TP1 → exit)</span></label>
+
+    <h4>After the trade</h4>
+    <label data-key="ck-post-1"><input type="checkbox"><span>Logged in backtest log (replay) or journal (live)</span></label>
+    <label data-key="ck-post-2"><input type="checkbox"><span>Screenshot saved (entry + exit + HTF context)</span></label>
+    <label data-key="ck-post-3"><input type="checkbox"><span>Score recorded (1–5 conditions met)</span></label>
+    <label data-key="ck-post-4"><input type="checkbox"><span>One thing to remember written down</span></label>
+  </div>
+
+  <h3>Hard stops — if any are true, walk away</h3>
+  <div class="callout danger">
+    <ul style="margin: 4px 0;">
+      <li>Already lost 2R today</li>
+      <li>Already up 3R+ today (lock the win)</li>
+      <li>Already taken 5 trades today</li>
+      <li>Just got stopped out — don't re-enter the same level</li>
+      <li>Feeling tilted, frustrated, or "needing" a trade</li>
+      <li>Price is mid-range with no nearby HTF level</li>
+      <li>Session range &lt; 20 ticks on ES (CVD signal unreliable)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ========================================================== ROADMAP -->
+<section id="roadmap">
+  <h2>4-Phase Roadmap</h2>
+  <p class="lead">Don't skip phases. Each gate must pass before advancing.</p>
+
+  <div class="section-controls no-print">
+    <button class="btn secondary" onclick="resetRoadmap()">↻ Reset roadmap status</button>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 1 — Manual replay <span class="phase-status" id="ps1">todo</span></h3>
+    <p><strong>Goal:</strong> Learn to <em>see</em> the setup. No code, no automation.</p>
+    <ul>
+      <li><strong>Tool:</strong> ATAS Replay mode</li>
+      <li><strong>Instrument:</strong> ES only (cleaner than NQ)</li>
+      <li><strong>Sample size:</strong> 30 instances minimum</li>
+      <li><strong>Time:</strong> ~1 week of evenings</li>
+    </ul>
+    <h4>Decision gate</h4>
+    <table class="gate-table">
+      <thead><tr><th>Metric</th><th>Required to advance</th></tr></thead>
+      <tbody>
+        <tr><td>Win rate</td><td>≥ 45%</td></tr>
+        <tr><td>Avg R</td><td>≥ 1.3</td></tr>
+        <tr><td>Expectancy</td><td>Positive (&gt; 0.2R per trade)</td></tr>
+        <tr><td>Sample size</td><td>30+ instances</td></tr>
+      </tbody>
+    </table>
+    <div class="checklist">
+      <label data-key="rm-p1-start"><input type="checkbox"><span>Phase 1 started</span></label>
+      <label data-key="rm-p1-pass"><input type="checkbox"><span>Phase 1 decision gate passed</span></label>
+    </div>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 2 — Custom ATAS indicator <span class="phase-status" id="ps2">todo</span></h3>
+    <p><strong>Goal:</strong> Scale sample size 5–10× by auto-detecting setups in replay.</p>
+    <ul>
+      <li><strong>Tool:</strong> <code>AbsorptionFadeScout</code> indicator (C#, in repo)</li>
+      <li><strong>Build:</strong> Kiro writes the code; you compile and load</li>
+      <li><strong>Output:</strong> 100+ instances logged</li>
+    </ul>
+    <h4>Decision gate</h4>
+    <table class="gate-table">
+      <thead><tr><th>Metric</th><th>Required to advance</th></tr></thead>
+      <tbody>
+        <tr><td>Win rate</td><td>≥ 50%</td></tr>
+        <tr><td>Avg R</td><td>≥ 1.4</td></tr>
+        <tr><td>Expectancy</td><td>≥ 0.3R per trade</td></tr>
+        <tr><td>Sample size</td><td>100+ instances</td></tr>
+        <tr><td>Robustness</td><td>Edge holds across ≥ 2 market regimes (trend / chop)</td></tr>
+      </tbody>
+    </table>
+    <div class="checklist">
+      <label data-key="rm-p2-built"><input type="checkbox"><span>Indicator compiled and installed in ATAS</span></label>
+      <label data-key="rm-p2-tuned"><input type="checkbox"><span>Indicator tuned with first round of feedback</span></label>
+      <label data-key="rm-p2-pass"><input type="checkbox"><span>Phase 2 decision gate passed</span></label>
+    </div>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 3 — Live forward-test on micros <span class="phase-status" id="ps3">todo</span></h3>
+    <p><strong>Goal:</strong> Find out what slippage, emotions, and fills do to the edge.</p>
+    <ul>
+      <li><strong>Tool:</strong> ATAS live, micros only — MES or MNQ</li>
+      <li><strong>Size:</strong> 1 contract per trade</li>
+      <li><strong>Sample size:</strong> 30+ live trades, minimum 4 weeks</li>
+    </ul>
+    <h4>Decision gate</h4>
+    <table class="gate-table">
+      <thead><tr><th>Metric</th><th>Required to advance</th></tr></thead>
+      <tbody>
+        <tr><td>Live expectancy</td><td>≥ 70% of Phase 2 expectancy</td></tr>
+        <tr><td>Adherence</td><td>Followed plan ≥ 90% of trades</td></tr>
+        <tr><td>Max drawdown</td><td>Within 1.5× backtest max DD</td></tr>
+        <tr><td>Psych</td><td>No tilted / impulsive trades</td></tr>
+      </tbody>
+    </table>
+    <div class="checklist">
+      <label data-key="rm-p3-start"><input type="checkbox"><span>Phase 3 micros forward-test started</span></label>
+      <label data-key="rm-p3-pass"><input type="checkbox"><span>Phase 3 decision gate passed</span></label>
+    </div>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 4 — Databento robustness testing <span class="phase-status" id="ps4">todo</span></h3>
+    <p><strong>Goal:</strong> Stress-test edge across years of data and multiple regimes.</p>
+    <ul>
+      <li><strong>Tool:</strong> Databento (CME Globex MDP 3.0) + Python</li>
+      <li><strong>Scope:</strong> 5+ years of ES; walk-forward optimisation; regime-segmented stats</li>
+      <li><strong>Cost:</strong> ~$150–500 historical data pull</li>
+    </ul>
+    <h4>Decision gate</h4>
+    <table class="gate-table">
+      <thead><tr><th>Metric</th><th>Required to size up</th></tr></thead>
+      <tbody>
+        <tr><td>Edge holds in 4+ regimes</td><td>Positive expectancy in all</td></tr>
+        <tr><td>Worst calendar year</td><td>Profitable or break-even</td></tr>
+        <tr><td>Max DD</td><td>&lt; 15R or &lt; 10% of account</td></tr>
+        <tr><td>Walk-forward OOS</td><td>≥ 60% of in-sample expectancy</td></tr>
+      </tbody>
+    </table>
+    <div class="checklist">
+      <label data-key="rm-p4-start"><input type="checkbox"><span>Phase 4 Databento research complete</span></label>
+      <label data-key="rm-p4-pass"><input type="checkbox"><span>Phase 4 decision gate passed</span></label>
+      <label data-key="rm-p4-sized"><input type="checkbox"><span>Sized up to full contracts</span></label>
+    </div>
+  </div>
+
+  <h3>Anti-patterns that kill traders here</h3>
+  <div class="callout warn">
+    <ul>
+      <li><strong>Skipping straight to Phase 4</strong> because "code feels productive." It isn't.</li>
+      <li><strong>Skipping Phase 3</strong> because backtest looked great. Slippage and emotions aren't in your backtest.</li>
+      <li><strong>Sizing up before Phase 4 passes.</strong> Live edge on micros ≠ scalable edge.</li>
+      <li><strong>Tweaking rules after every losing trade.</strong> Rules change at decision gates only.</li>
+      <li><strong>Trading other instruments</strong> (CL, GC, RTY) before ES is profitable.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ========================================================== BACKTEST -->
+<section id="backtest">
+  <h2>Backtest Instance Logger</h2>
+  <p class="lead">Fill in the form. Click "Generate markdown" to copy a clean log entry.</p>
+
+  <div class="calc">
+    <div class="calc-row">
+      <div><label>Date (YYYY-MM-DD)</label><input type="text" id="bt-date" placeholder="2026-05-12"></div>
+      <div><label>Instance number for the day</label><input type="number" id="bt-num" placeholder="03" min="1"></div>
+    </div>
+    <div class="calc-row">
+      <div><label>Instrument</label>
+        <select id="bt-inst">
+          <option>ES</option><option>NQ</option><option>MES</option><option>MNQ</option>
+        </select>
+      </div>
+      <div><label>Time (ET)</label><input type="text" id="bt-time" placeholder="14:32"></div>
+    </div>
+    <div class="calc-row">
+      <div><label>Session window</label>
+        <select id="bt-session">
+          <option>NY Open</option><option>Overlap</option><option>NY PM</option><option>Other (flag)</option>
+        </select>
+      </div>
+      <div><label>Phase</label>
+        <select id="bt-phase">
+          <option>Phase 1 (manual replay)</option><option>Phase 2 (indicator)</option><option>Phase 3 (live)</option>
+        </select>
+      </div>
+    </div>
+
+    <h4>Conditions (check what passed)</h4>
+    <div class="checklist" style="margin: 8px 0;">
+      <label><input type="checkbox" id="bt-c1"><span>#1 Location at predefined HTF level</span></label>
+      <label><input type="checkbox" id="bt-c2"><span>#2 Volume ≥ 1.5× 20-bar avg</span></label>
+      <label><input type="checkbox" id="bt-c3"><span>#3 Delta ≥ ±70% AND (close ≤25% opp OR wick ≥60%)</span></label>
+      <label><input type="checkbox" id="bt-c4"><span>#4 CVD divergence vs prior 5–10 bars</span></label>
+      <label><input type="checkbox" id="bt-c5"><span>#5 Trigger bar closed through midpoint</span></label>
+    </div>
+
+    <h4>Trade details (if 5/5)</h4>
+    <div class="calc-row">
+      <div><label>Direction</label>
+        <select id="bt-dir"><option>Long</option><option>Short</option></select>
+      </div>
+      <div><label>Entry price</label><input type="number" step="0.01" id="bt-entry"></div>
+    </div>
+    <div class="calc-row">
+      <div><label>Stop price</label><input type="number" step="0.01" id="bt-stop"></div>
+      <div><label>Stop distance (ticks)</label><input type="number" id="bt-stopticks"></div>
+    </div>
+    <div class="calc-row">
+      <div><label>TP1 price (1R)</label><input type="number" step="0.01" id="bt-tp1"></div>
+      <div><label>TP2 price</label><input type="number" step="0.01" id="bt-tp2"></div>
+    </div>
+
+    <h4>Outcome</h4>
+    <div class="calc-row">
+      <div><label>Result in R</label><input type="number" step="0.1" id="bt-r" placeholder="e.g. 2.5 or -1.0"></div>
+      <div><label>Hold time</label><input type="text" id="bt-hold" placeholder="e.g. 3m20s"></div>
+    </div>
+    <div><label>Notes / lessons</label><textarea id="bt-notes" placeholder="What worked? What didn't? One thing to remember..."></textarea></div>
+
+    <div class="section-controls" style="margin-top: 16px;">
+      <button class="btn" onclick="generateBacktest()">⚙ Generate markdown</button>
+      <button class="btn secondary" onclick="clearBacktest()">Clear form</button>
+      <button class="btn secondary" onclick="copyBacktest()">📋 Copy</button>
+    </div>
+
+    <textarea id="bt-output" style="margin-top: 12px; min-height: 200px;" placeholder="Generated markdown will appear here..."></textarea>
+  </div>
+
+  <h3>Sample size targets</h3>
+  <table>
+    <thead><tr><th>Phase</th><th>Min instances</th><th>What to record</th></tr></thead>
+    <tbody>
+      <tr><td>Phase 1 (manual replay)</td><td>30</td><td>All 5 conditions evaluated by hand</td></tr>
+      <tr><td>Phase 2 (indicator)</td><td>100</td><td>Indicator-flagged setups + manual condition #1</td></tr>
+      <tr><td>Phase 3 (live micros)</td><td>30</td><td>Real fills, real slippage</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <strong>Honesty rules</strong>
+    <ul style="margin: 4px 0;">
+      <li>Log losses <em>even when you wouldn't have taken the trade live.</em> A 5/5 setup that lost is data.</li>
+      <li>Do <strong>not</strong> retroactively decide "I would have skipped that one." Hindsight cheating.</li>
+      <li>4/5 setup that ran 3R? Still <strong>not</strong> a win. Rules are rules.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ========================================================== CALCULATOR -->
+<section id="calculator">
+  <h2>Stats Calculator</h2>
+  <p class="lead">Enter your batch results. Verdict against the gate is computed live.</p>
+
+  <div class="calc">
+    <div class="calc-row">
+      <div><label>Wins</label><input type="number" id="cw" min="0" value="0" oninput="recalc()"></div>
+      <div><label>Losses</label><input type="number" id="cl" min="0" value="0" oninput="recalc()"></div>
+    </div>
+    <div class="calc-row">
+      <div><label>Breakevens</label><input type="number" id="cb" min="0" value="0" oninput="recalc()"></div>
+      <div><label>Time-stop exits (count as small loss/BE)</label><input type="number" id="ct" min="0" value="0" oninput="recalc()"></div>
+    </div>
+    <div class="calc-row">
+      <div><label>Avg win in R (e.g. 2.0)</label><input type="number" step="0.01" id="caw" value="2.0" oninput="recalc()"></div>
+      <div><label>Avg loss in R (e.g. -1.0)</label><input type="number" step="0.01" id="cal" value="-1.0" oninput="recalc()"></div>
+    </div>
+    <div class="calc-row">
+      <div><label>Phase to test against</label>
+        <select id="cphase" onchange="recalc()">
+          <option value="1">Phase 1 (≥45% WR, ≥1.3R, ≥0.2 EV)</option>
+          <option value="2">Phase 2 (≥50% WR, ≥1.4R, ≥0.3 EV)</option>
+          <option value="3">Phase 3 (live, vs Phase 2 baseline)</option>
+        </select>
+      </div>
+      <div><label>Min sample size</label><input type="number" id="cmin" value="30" oninput="recalc()"></div>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-label">Total trades</div><div class="stat-value" id="sTotal">0</div></div>
+    <div class="stat"><div class="stat-label">Win rate</div><div class="stat-value" id="sWR">0%</div></div>
+    <div class="stat"><div class="stat-label">Avg win</div><div class="stat-value green" id="sAW">0.0R</div></div>
+    <div class="stat"><div class="stat-label">Avg loss</div><div class="stat-value red" id="sAL">0.0R</div></div>
+    <div class="stat"><div class="stat-label">Expectancy</div><div class="stat-value" id="sEV">0.0R</div></div>
+    <div class="stat"><div class="stat-label">Total R</div><div class="stat-value" id="sTotalR">0.0R</div></div>
+  </div>
+
+  <div class="verdict neutral" id="verdict">Enter trades to see verdict.</div>
+
+  <h3>Expectancy formula</h3>
+  <pre>Expectancy (R) = (Win% × Avg Win R) − (Loss% × |Avg Loss R|)</pre>
+
+  <div class="callout">
+    <strong>Reminder</strong>
+    Expectancy is your edge per trade. Multiply by your number of trades per month to estimate monthly R. Multiply by your $/R to estimate $.
+  </div>
+</section>
+
+<!-- ========================================================= INDICATOR -->
+<section id="indicator">
+  <h2>AbsorptionFadeScout — ATAS Indicator</h2>
+  <p class="lead">Custom C# indicator that auto-detects 4 of the 5 AF conditions. You confirm location.</p>
+
+  <div class="callout warn">
+    <strong>Status: Phase 2 skeleton.</strong>
+    Compilable and runnable, but condition math is intentionally simple. Tuning happens once Phase 1 data tells us what works.
+  </div>
+
+  <h3>What it does</h3>
+  <table>
+    <thead><tr><th>Condition</th><th>Auto-detected?</th></tr></thead>
+    <tbody>
+      <tr><td>#1 Location at HTF level</td><td><span class="tag red">Your job</span></td></tr>
+      <tr><td>#2 Volume spike (≥ 1.5× 20-bar avg)</td><td><span class="tag green">Auto</span></td></tr>
+      <tr><td>#3 Heavy delta + no progress</td><td><span class="tag green">Auto</span></td></tr>
+      <tr><td>#4 CVD divergence</td><td><span class="tag green">Auto</span></td></tr>
+      <tr><td>#5 Trigger bar closes through midpoint</td><td><span class="tag green">Auto</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Zero-programming install (Windows)</h3>
+  <ol>
+    <li><strong>Install Visual Studio Community 2022</strong> (free) from <code>visualstudio.microsoft.com/downloads/</code>. Tick the <em>.NET desktop development</em> workload.</li>
+    <li><strong>Locate ATAS DLLs:</strong> <code>C:\Users\&lt;YOU&gt;\AppData\Roaming\ATAS\Bin</code>. You should see <code>ATAS.Indicators.dll</code>, <code>ATAS.DataFeedsCore.dll</code>, <code>OFT.Attributes.dll</code>, <code>Utils.Common.dll</code>.</li>
+    <li><strong>Open the project:</strong> double-click <code>AbsorptionFadeScout.csproj</code> in this repo.</li>
+    <li><strong>Add references:</strong> right-click References → Add Reference → Browse → select all 4 DLLs above.</li>
+    <li><strong>Build:</strong> menu Build → Build Solution (or Ctrl+Shift+B). Watch for "1 succeeded, 0 failed".</li>
+    <li><strong>Install in ATAS:</strong> copy the resulting <code>AbsorptionFadeScout.dll</code> into <code>C:\Users\&lt;YOU&gt;\Documents\ATAS\Indicators</code> (create folder if needed).</li>
+    <li><strong>Restart ATAS</strong> → open chart → indicator → search "Absorption Fade Scout" → add.</li>
+  </ol>
+
+  <h3>Configurable parameters</h3>
+  <table>
+    <thead><tr><th>Parameter</th><th>Default</th><th>Range</th></tr></thead>
+    <tbody>
+      <tr><td>Volume Multiplier</td><td>1.5</td><td>1.0 – 5.0</td></tr>
+      <tr><td>Volume Avg Period</td><td>20</td><td>5 – 100</td></tr>
+      <tr><td>Delta Threshold %</td><td>70</td><td>40 – 95</td></tr>
+      <tr><td>Body Close %</td><td>25</td><td>5 – 50</td></tr>
+      <tr><td>Wick %</td><td>60</td><td>30 – 90</td></tr>
+      <tr><td>CVD Lookback Bars</td><td>8</td><td>3 – 30</td></tr>
+      <tr><td>Min Score To Plot</td><td>4</td><td>2 – 4</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Common errors</h3>
+  <table>
+    <thead><tr><th>Error</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>'ATAS.Indicators' could not be found</code></td><td>DLLs not referenced</td><td>Redo step 4</td></tr>
+      <tr><td>Build OK but indicator missing in ATAS</td><td>DLL in wrong folder</td><td>Copy to <code>Documents\ATAS\Indicators</code></td></tr>
+      <tr><td>ATAS crashes on chart load</td><td>Indicator threw exception</td><td>Check <code>Documents\ATAS\Logs\</code>, paste to Kiro</td></tr>
+      <tr><td>Indicator never plots</td><td>Conditions too strict</td><td>Send screenshot of expected setup → Kiro adjusts</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>Feedback loop</strong>
+    Send Kiro: (1) chart screenshot, (2) plain-English description of what's right/wrong, (3) bar values if visible (volume, delta, close pos), (4) time + instrument. Kiro ships a new <code>.cs</code>, you rebuild, iterate.
+  </div>
+</section>
+
+<!-- ========================================================== DATABENTO -->
+<section id="databento">
+  <h2>Databento — Phase 4 Future Work</h2>
+  <p class="lead">Don't start until Phase 3 passes.</p>
+
+  <div class="callout danger">
+    <strong>Gated.</strong> Phase 4 is for <em>stress-testing</em> an edge you've already validated, not discovering one. Skipping to Databento is the classic time-sink trap.
+  </div>
+
+  <h3>Why Databento (and not ATAS Replay)</h3>
+  <p>ATAS Replay is fine for visual review of one day. To test edge across <strong>years</strong> of data and multiple regimes you need: programmatic access, tick-level fidelity, historical depth (5+ years).</p>
+
+  <h3>Dataset</h3>
+  <ul>
+    <li><strong>Dataset ID:</strong> <code>GLBX.MDP3</code> — CME Globex MDP 3.0</li>
+    <li><strong>Covers:</strong> CME, CBOT, NYMEX, COMEX (ES, NQ, MES, MNQ included)</li>
+    <li><strong>Schemas needed:</strong> <code>trades</code>, <code>mbp-1</code> (top-of-book quotes), optionally <code>mbp-10</code></li>
+  </ul>
+
+  <h3>Cost estimate</h3>
+  <table>
+    <thead><tr><th>Item</th><th>Estimate</th></tr></thead>
+    <tbody>
+      <tr><td>ES trades, 5 years</td><td>~$30–80</td></tr>
+      <tr><td>ES mbp-1 quotes, 5 years</td><td>~$50–150</td></tr>
+      <tr><td>NQ trades + mbp-1, 5 years</td><td>~$80–200</td></tr>
+      <tr><td><strong>Total budget</strong></td><td><strong>~$150–500</strong></td></tr>
+    </tbody>
+  </table>
+  <p>One-time historical pull. Store locally, re-run backtests offline forever.</p>
+
+  <h3>Build outline</h3>
+  <pre>backtests/absorption-fade/databento/
+├── README.md
+├── pyproject.toml
+├── requirements.txt        # databento, pandas, numpy, pyarrow
+├── src/
+│   ├── data_pull.py        # Pull trades + mbp-1, save as parquet
+│   ├── footprint.py        # Reconstruct per-price bid/ask volume
+│   ├── candles.py          # Aggregate to 1m / 30s with delta, CVD
+│   ├── conditions.py       # The 5 AF conditions
+│   ├── backtest.py         # Walk history, simulate w/ slippage
+│   ├── stats.py            # Win%, EV, max DD, per-regime breakdown
+│   └── plot.py             # Equity curve + signal markers
+├── notebooks/
+│   ├── 01-data-explore.ipynb
+│   ├── 02-condition-tuning.ipynb
+│   └── 03-walk-forward.ipynb
+└── results/</pre>
+
+  <h3>Key engineering challenges</h3>
+  <ol>
+    <li><strong>Footprint reconstruction.</strong> Match each trade to prevailing best bid/ask at nanosecond timestamp.</li>
+    <li><strong>Session handling.</strong> Clean RTH boundaries for VWAP / Volume Profile.</li>
+    <li><strong>Continuous contract joining.</strong> Front-month rolls every quarter — Volume / OI / calendar method.</li>
+    <li><strong>Slippage model.</strong> Min 1 tick adverse on entry + 1 tick on exit.</li>
+    <li><strong>Walk-forward, not single backtest.</strong> Optimize on years 1–3, test on year 4. Repeat.</li>
+  </ol>
+</section>
+
+</main>
+
+<footer>
+  Absorption Fade Playbook · v1.0 · jaaytee78-cyber/jaysuhnt · Built locally, runs offline.
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+//============================================================
+// Theme
+//============================================================
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('af-theme', next);
+}
+(function initTheme(){
+  const saved = localStorage.getItem('af-theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  else document.documentElement.setAttribute('data-theme', 'dark');
+})();
+
+//============================================================
+// Tabs
+//============================================================
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    localStorage.setItem('af-tab', btn.dataset.tab);
+  });
+});
+(function initTab(){
+  const saved = localStorage.getItem('af-tab');
+  if (saved) {
+    const btn = document.querySelector(`nav.tabs button[data-tab="${saved}"]`);
+    if (btn) btn.click();
+  }
+})();
+
+//============================================================
+// Checklist persistence
+//============================================================
+function setupChecklists() {
+  document.querySelectorAll('label[data-key]').forEach(label => {
+    const key = label.dataset.key;
+    const cb = label.querySelector('input[type="checkbox"]');
+    const saved = localStorage.getItem('af-' + key);
+    if (saved === '1') { cb.checked = true; label.classList.add('checked'); }
+    cb.addEventListener('change', () => {
+      localStorage.setItem('af-' + key, cb.checked ? '1' : '0');
+      label.classList.toggle('checked', cb.checked);
+      updateChecklistProgress();
+      updateRoadmapStatus();
+    });
+  });
+  updateChecklistProgress();
+  updateRoadmapStatus();
+}
+
+function updateChecklistProgress() {
+  const checks = document.querySelectorAll('#checklistContainer label[data-key]');
+  if (!checks.length) return;
+  const checked = Array.from(checks).filter(l => l.querySelector('input').checked).length;
+  const pct = Math.round((checked / checks.length) * 100);
+  const fill = document.getElementById('checklistProgress');
+  if (fill) fill.style.width = pct + '%';
+  const cnt = document.getElementById('checklistCount');
+  if (cnt) cnt.textContent = `${checked} / ${checks.length} checked`;
+}
+
+function resetChecklist() {
+  if (!confirm('Reset all checklist boxes?')) return;
+  document.querySelectorAll('#checklistContainer label[data-key]').forEach(l => {
+    l.querySelector('input').checked = false;
+    l.classList.remove('checked');
+    localStorage.removeItem('af-' + l.dataset.key);
+  });
+  updateChecklistProgress();
+  toast('Checklist reset.');
+}
+
+//============================================================
+// Roadmap status
+//============================================================
+function updateRoadmapStatus() {
+  const phases = {
+    1: { start: 'rm-p1-start', pass: 'rm-p1-pass' },
+    2: { built: 'rm-p2-built', tuned: 'rm-p2-tuned', pass: 'rm-p2-pass' },
+    3: { start: 'rm-p3-start', pass: 'rm-p3-pass' },
+    4: { start: 'rm-p4-start', pass: 'rm-p4-pass', sized: 'rm-p4-sized' }
+  };
+  for (const [n, keys] of Object.entries(phases)) {
+    const vals = Object.values(keys).map(k => localStorage.getItem('af-' + k) === '1');
+    const el = document.getElementById('ps' + n);
+    if (!el) continue;
+    if (vals.every(v => v)) {
+      el.textContent = 'done'; el.className = 'phase-status done';
+    } else if (vals.some(v => v)) {
+      el.textContent = 'in progress'; el.className = 'phase-status active';
+    } else {
+      el.textContent = 'todo'; el.className = 'phase-status todo';
+    }
+  }
+}
+
+function resetRoadmap() {
+  if (!confirm('Reset all roadmap phase status?')) return;
+  document.querySelectorAll('.phase label[data-key]').forEach(l => {
+    l.querySelector('input').checked = false;
+    l.classList.remove('checked');
+    localStorage.removeItem('af-' + l.dataset.key);
+  });
+  updateRoadmapStatus();
+  toast('Roadmap reset.');
+}
+
+//============================================================
+// Calculator
+//============================================================
+function recalc() {
+  const wins = +document.getElementById('cw').value || 0;
+  const losses = +document.getElementById('cl').value || 0;
+  const be = +document.getElementById('cb').value || 0;
+  const ts = +document.getElementById('ct').value || 0;
+  const aw = +document.getElementById('caw').value || 0;
+  const al = +document.getElementById('cal').value || 0;
+  const phase = document.getElementById('cphase').value;
+  const minN = +document.getElementById('cmin').value || 30;
+
+  const total = wins + losses + be + ts;
+  const wr = total ? (wins / total) * 100 : 0;
+  const lr = total ? ((losses + ts) / total) * 100 : 0;
+  const ev = (wr/100) * aw + (lr/100) * al; // al is negative
+  const totalR = wins * aw + (losses + ts) * al;
+
+  document.getElementById('sTotal').textContent = total;
+  document.getElementById('sWR').textContent = wr.toFixed(1) + '%';
+  document.getElementById('sAW').textContent = aw.toFixed(2) + 'R';
+  document.getElementById('sAL').textContent = al.toFixed(2) + 'R';
+  const evEl = document.getElementById('sEV');
+  evEl.textContent = ev.toFixed(2) + 'R';
+  evEl.className = 'stat-value ' + (ev > 0 ? 'green' : ev < 0 ? 'red' : 'amber');
+  const trEl = document.getElementById('sTotalR');
+  trEl.textContent = totalR.toFixed(1) + 'R';
+  trEl.className = 'stat-value ' + (totalR > 0 ? 'green' : totalR < 0 ? 'red' : 'amber');
+
+  // Verdict
+  const v = document.getElementById('verdict');
+  let pass = true, reasons = [];
+  const gates = {
+    1: { wr: 45, aw: 1.3, ev: 0.2 },
+    2: { wr: 50, aw: 1.4, ev: 0.3 },
+    3: { wr: 50, aw: 1.4, ev: 0.3 } // simplified — manually compare to P2
+  };
+  const g = gates[phase];
+  if (total < minN) { pass = false; reasons.push(`Sample size too small (${total} < ${minN})`); }
+  if (wr < g.wr) { pass = false; reasons.push(`Win rate ${wr.toFixed(1)}% < ${g.wr}%`); }
+  if (aw < g.aw) { pass = false; reasons.push(`Avg win ${aw.toFixed(2)}R < ${g.aw}R`); }
+  if (ev < g.ev) { pass = false; reasons.push(`Expectancy ${ev.toFixed(2)}R < ${g.ev}R`); }
+
+  if (total === 0) {
+    v.className = 'verdict neutral';
+    v.textContent = 'Enter trades to see verdict.';
+  } else if (pass) {
+    v.className = 'verdict pass';
+    v.innerHTML = `✅ <strong>Phase ${phase} gate PASSED.</strong> Advance to next phase.`;
+  } else {
+    v.className = 'verdict fail';
+    v.innerHTML = `❌ <strong>Phase ${phase} gate FAILED.</strong><br>` + reasons.map(r => '• ' + r).join('<br>');
+  }
+}
+
+//============================================================
+// Backtest log generator
+//============================================================
+function generateBacktest() {
+  const v = id => document.getElementById(id).value;
+  const c = id => document.getElementById(id).checked;
+  const date = v('bt-date') || 'YYYY-MM-DD';
+  const num = v('bt-num') || 'NN';
+  const inst = v('bt-inst');
+  const time = v('bt-time') || '__:__';
+  const session = v('bt-session');
+  const phase = v('bt-phase');
+
+  const score = ['bt-c1','bt-c2','bt-c3','bt-c4','bt-c5'].filter(c).length;
+  const taken = score === 5;
+
+  const md = `# AF Instance — ${date} — ${inst} — #${num}
+
+## Context
+- **Date / time (ET):** ${date} ${time}
+- **Instrument:** ${inst}
+- **Session window:** ${session}
+- **Phase:** ${phase}
+
+## Condition checks
+
+| # | Condition | Pass? |
+|---|---|---|
+| 1 | Location — predefined HTF level | ${c('bt-c1') ? '✓' : '✗'} |
+| 2 | Volume ≥ 1.5× 20-bar avg | ${c('bt-c2') ? '✓' : '✗'} |
+| 3 | Delta ≥ ±70% AND (close ≤25% opp OR wick ≥60%) | ${c('bt-c3') ? '✓' : '✗'} |
+| 4 | CVD divergence vs prior 5–10 bars | ${c('bt-c4') ? '✓' : '✗'} |
+| 5 | Trigger bar closed back through midpoint | ${c('bt-c5') ? '✓' : '✗'} |
+
+**Score: ${score} / 5**
+**Trade taken?** ${taken ? 'Yes (5/5)' : 'No (filtered)'}
+
+## Trade details
+- **Direction:** ${v('bt-dir')}
+- **Entry price:** ${v('bt-entry') || '—'}
+- **Stop price:** ${v('bt-stop') || '—'}
+- **Stop distance (ticks):** ${v('bt-stopticks') || '—'}
+- **TP1 price (1R):** ${v('bt-tp1') || '—'}
+- **TP2 price:** ${v('bt-tp2') || '—'}
+
+## Outcome
+- **Result in R:** ${v('bt-r') || '—'}
+- **Hold time:** ${v('bt-hold') || '—'}
+
+## Notes / lessons
+${v('bt-notes') || '_(none)_'}
+`;
+
+  document.getElementById('bt-output').value = md;
+  toast('Markdown generated. Click Copy to grab it.');
+}
+
+function clearBacktest() {
+  ['bt-date','bt-num','bt-time','bt-entry','bt-stop','bt-stopticks','bt-tp1','bt-tp2','bt-r','bt-hold','bt-notes','bt-output']
+    .forEach(id => document.getElementById(id).value = '');
+  ['bt-c1','bt-c2','bt-c3','bt-c4','bt-c5'].forEach(id => document.getElementById(id).checked = false);
+  toast('Form cleared.');
+}
+
+function copyBacktest() {
+  const out = document.getElementById('bt-output');
+  if (!out.value) { toast('Nothing to copy yet — generate first.'); return; }
+  out.select();
+  try {
+    navigator.clipboard.writeText(out.value);
+    toast('Copied to clipboard.');
+  } catch (e) {
+    document.execCommand('copy');
+    toast('Copied (legacy).');
+  }
+}
+
+//============================================================
+// Search
+//============================================================
+function searchSection(sectionId, query) {
+  const section = document.getElementById(sectionId);
+  const q = query.trim().toLowerCase();
+  // Reset
+  section.querySelectorAll('mark').forEach(m => {
+    const parent = m.parentNode;
+    parent.replaceChild(document.createTextNode(m.textContent), m);
+    parent.normalize();
+  });
+  section.querySelectorAll('.hidden-by-search').forEach(el => el.classList.remove('hidden-by-search'));
+  if (!q) return;
+  // Highlight
+  const blocks = section.querySelectorAll('p, li, td, h3, h4, pre');
+  blocks.forEach(b => {
+    if (b.textContent.toLowerCase().includes(q)) {
+      const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+      b.innerHTML = b.innerHTML.replace(re, '<mark>$1</mark>');
+    }
+  });
+}
+
+//============================================================
+// Export / import state
+//============================================================
+function exportState() {
+  const state = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k.startsWith('af-')) state[k] = localStorage.getItem(k);
+  }
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `absorption-fade-state-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Exported.');
+}
+
+function importState(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const obj = JSON.parse(e.target.result);
+      Object.entries(obj).forEach(([k, v]) => {
+        if (k.startsWith('af-')) localStorage.setItem(k, v);
+      });
+      // Re-init checkboxes
+      document.querySelectorAll('label[data-key]').forEach(label => {
+        const key = label.dataset.key;
+        const cb = label.querySelector('input[type="checkbox"]');
+        const saved = localStorage.getItem('af-' + key);
+        cb.checked = saved === '1';
+        label.classList.toggle('checked', cb.checked);
+      });
+      updateChecklistProgress();
+      updateRoadmapStatus();
+      toast('Imported state.');
+    } catch (err) {
+      toast('Import failed — invalid file.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+//============================================================
+// Toast
+//============================================================
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+//============================================================
+// Init
+//============================================================
+setupChecklists();
+recalc();
+</script>
+
+</body>
+</html>
