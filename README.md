@@ -8,11 +8,15 @@ My personal repository as I work toward becoming a full-time trader.
 |---|---|
 | `knowledge-base/` | Notes on strategies, concepts, and lessons learned |
 | `indicators/pine-script/` | Custom TradingView indicators (Pine Script v5) |
+| `indicators/atas-csharp/` | Custom ATAS indicators (C#) for futures order-flow work |
 | `journal/` | Trade log, weekly reviews, psychology notes |
 | `backtests/` | Strategy test results and analysis |
 
 ## Trading profile
 
+I'm running two parallel tracks:
+
+### Track A — TradingView / ICT-SMC (primary, current)
 - **Instruments:** XAU/USD (Gold), NAS100, EUR/USD, GBP/USD
 - **Style:** Scalping
 - **Timeframes:** 1m / 3m / 5m
@@ -21,8 +25,17 @@ My personal repository as I work toward becoming a full-time trader.
 - **Account:** Demo (building consistency before going live)
 - **Approach:** ICT / Smart Money Concepts foundation
 
+### Track B — ATAS / Futures order flow (research)
+- **Instruments:** ES, NQ (and micros MES, MNQ)
+- **Style:** Mechanical scalping with discretion on level selection
+- **Timeframes:** 30s / 1m footprint, 5m context
+- **Platform:** ATAS
+- **Stage:** Phase 1 manual replay — see [Absorption Fade roadmap](knowledge-base/strategies/absorption-fade-roadmap.md)
+- **Approach:** Order-flow (footprint, delta, CVD divergence, absorption)
+
 ## Roadmap
 
+### Track A (TradingView / ICT-SMC)
 - [x] Set up repository structure
 - [ ] Killzones / sessions indicator
 - [ ] ICT/SMC core concepts reference
@@ -32,6 +45,17 @@ My personal repository as I work toward becoming a full-time trader.
 - [ ] Fair Value Gap (FVG) detector
 - [ ] Trade journal template
 - [ ] First backtested strategy
+
+### Track B (ATAS / Futures order flow)
+- [x] Strategy spec: [Absorption Fade](knowledge-base/strategies/absorption-fade-scalp.md)
+- [x] Pre-trade checklist
+- [x] 4-phase roadmap with decision gates
+- [x] Backtest template
+- [x] ATAS indicator skeleton (`AbsorptionFadeScout`)
+- [ ] Phase 1: 30 manual replay instances
+- [ ] Phase 2: indicator tuned and 100+ instances
+- [ ] Phase 3: live forward-test on micros
+- [ ] Phase 4: Databento robustness backtest
 
 ## Rules I'm building habits around
 
