@@ -1168,3 +1168,631 @@ TP2:    Session VWAP @ 21,094.00    → ~25 tick gain on remainder ≈ <span cla
   <span>Absorption Fade v2 · Delta Confluence · jaaytee78-cyber/jaysuhnt · v2.0</span>
   <span class="disclaimer">⚠ Not financial advice. Futures trading involves substantial risk of loss. Paper trade before risking capital. Past performance is not indicative of future results.</span>
 </div>
+
+
+<script>
+// ────────────────── Tab switching ──────────────────
+function showTab(name) {
+  document.querySelectorAll('.page-wrap').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.nav-tab').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ────────────────── localStorage helpers ──────────────────
+var LS_CK = 'af-v2-checklist';
+var LS_RM = 'af-v2-roadmap';
+function lsGet(key, def) { try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; } }
+function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
+
+// ────────────────── Checklist state ──────────────────
+var direction = null;
+var checked = [false, false, false, false, false];
+
+function loadChecklist() {
+  var s = lsGet(LS_CK, null);
+  if (!s) return;
+  if (s.direction) { direction = s.direction; }
+  if (Array.isArray(s.checked)) { checked = s.checked; }
+  if (direction) { applyDirText(); }
+  renderChecklist();
+  updateMeter();
+}
+function saveChecklist() { lsSet(LS_CK, { direction: direction, checked: checked }); }
+
+function applyDirText() {
+  document.getElementById('btn-long').style.opacity  = direction === 'long'  ? '1' : '0.4';
+  document.getElementById('btn-short').style.opacity = direction === 'short' ? '1' : '0.4';
+  document.getElementById('dir-label').textContent = direction === 'long'
+    ? 'LONG mode active — tick each condition as it confirms on your chart'
+    : 'SHORT mode active — tick each condition as it confirms on your chart';
+  if (direction === 'long') {
+    document.getElementById('c2-text').textContent = 'ask/bid ≥ 4.0 (NQ) / 3.0 (ES) at bar low';
+    document.getElementById('c3-text').textContent = 'vol ≥ 1.5× avg AND |delta| ≥ 70% AND (close ≥ 75% OR lower wick ≥ 60%)';
+    document.getElementById('c4-text').textContent = 'classic (price new low, CVD didn\'t confirm) OR hidden (CVD new low, price held)';
+    document.getElementById('c5-text').textContent = 'next 233-tick bar closes ABOVE absorption mid AND positive delta';
+  } else {
+    document.getElementById('c2-text').textContent = 'bid/ask ≥ 4.0 (NQ) / 3.0 (ES) at bar high';
+    document.getElementById('c3-text').textContent = 'vol ≥ 1.5× avg AND |delta| ≥ 70% AND (close ≤ 25% OR upper wick ≥ 60%)';
+    document.getElementById('c4-text').textContent = 'classic (price new high, CVD didn\'t confirm) OR hidden (CVD new high, price held)';
+    document.getElementById('c5-text').textContent = 'next 233-tick bar closes BELOW absorption mid AND negative delta';
+  }
+}
+
+function renderChecklist() {
+  for (var i = 0; i < 5; i++) {
+    var item = document.getElementById('ci-' + i);
+    var box  = document.getElementById('cb-' + i);
+    item.classList.remove('checked','checked-short');
+    if (box) box.querySelector('.check-box-inner').style.color = 'transparent';
+    if (checked[i]) {
+      var cls = direction === 'long' ? 'checked' : 'checked-short';
+      item.classList.add(cls);
+      if (box) box.querySelector('.check-box-inner').style.color =
+        direction === 'long' ? 'var(--accent2)' : 'var(--accent3)';
+    }
+  }
+}
+
+
+function setDir(dir) {
+  direction = dir;
+  checked = [false, false, false, false, false];
+  applyDirText();
+  renderChecklist();
+  document.getElementById('signal-panel').style.display = 'none';
+  saveChecklist();
+  updateMeter();
+}
+function toggleCheck(i) {
+  if (!direction) { alert('Select Long or Short direction first'); return; }
+  checked[i] = !checked[i];
+  renderChecklist();
+  saveChecklist();
+  updateMeter();
+}
+function resetChecklist() {
+  direction = null;
+  checked = [false,false,false,false,false];
+  document.getElementById('btn-long').style.opacity  = '1';
+  document.getElementById('btn-short').style.opacity = '1';
+  document.getElementById('dir-label').textContent = 'No direction selected — choose Long or Short above';
+  renderChecklist();
+  document.getElementById('signal-panel').style.display = 'none';
+  saveChecklist();
+  updateMeter();
+}
+
+function updateMeter() {
+  var score = checked.filter(Boolean).length;
+  var el     = document.getElementById('meter-score');
+  var fill   = document.getElementById('meter-fill');
+  var status = document.getElementById('meter-status');
+  var panel  = document.getElementById('signal-panel');
+  el.textContent = score;
+  el.classList.add('score-pulse');
+  setTimeout(function(){ el.classList.remove('score-pulse'); }, 350);
+  fill.style.width = (score / 5 * 100) + '%';
+  if (!direction) {
+    el.style.color = fill.style.background = status.style.color = 'var(--text2)';
+    status.textContent = 'Select a direction to begin';
+    panel.style.display = 'none';
+    return;
+  }
+  var palette = ['var(--text2)','#2a3f55','#4d7a9f','var(--accent4)','#88dd44','var(--accent2)'];
+  var col = score === 5
+    ? (direction === 'long' ? 'var(--accent2)' : 'var(--accent3)')
+    : palette[score];
+  el.style.color = fill.style.background = status.style.color = col;
+  var labels = ['No conditions met','1/5 — noise','2/5 — monitor','3/5 — building','4/5 — prepare to act','5/5 — FULL CONFLUENCE'];
+  status.textContent = labels[score];
+  panel.style.display = score >= 3 ? 'block' : 'none';
+  if (score < 3) return;
+  var title = document.getElementById('signal-title');
+  var tag   = document.getElementById('signal-tag');
+  var body  = document.getElementById('signal-body');
+  if (score === 5) {
+    title.textContent = direction === 'long' ? 'LONG SIGNAL — Enter Now' : 'SHORT SIGNAL — Enter Now';
+    tag.className = 'ptag ' + (direction === 'long' ? 'ptag-green' : 'ptag-red');
+    tag.textContent = '5/5 FULL';
+    var stopDir = direction === 'long' ? 'below absorption wick' : 'above absorption wick';
+    body.innerHTML = '<div style="font-size:12px;line-height:1.65;color:var(--text)"><div style="font-weight:600;margin-bottom:10px;color:' + col + '">' + (direction === 'long' ? '▲ All 5 confirmed. Enter on close of trigger bar.' : '▼ All 5 confirmed. Enter on close of trigger bar.') + '</div><div style="display:flex;flex-direction:column;gap:5px"><div><strong style="color:var(--bright)">Risk:</strong> ≤ 0.5% of account</div><div><strong style="color:var(--bright)">Entry:</strong> Market on bar close, or limit at the level</div><div><strong style="color:var(--bright)">Stop:</strong> 1 tick ' + stopDir + '</div><div><strong style="color:var(--bright)">TP1:</strong> 1R — close 50%, move stop to BE</div><div><strong style="color:var(--bright)">TP2:</strong> POC / opposite VWAP band / next HVN</div><div><strong style="color:var(--bright)">Time stop:</strong> 5 min no TP1 → exit market</div><div><strong style="color:var(--bright)">Hard exit:</strong> Delta flips against position 2+ bars</div></div></div>';
+  } else if (score === 4) {
+    title.textContent = 'Score 4/5 — Prepare';
+    tag.className = 'ptag ptag-amber';
+    tag.textContent = 'STANDBY';
+    body.innerHTML = '<div style="font-size:12px;color:var(--text);line-height:1.6">Hands on keyboard. Pre-plan entry, stop, TP1, TP2 now. <strong style="color:var(--bright)">Do not enter yet.</strong> Most often the missing condition is C5 (trigger bar) or C1 (forgot to confirm location).</div>';
+  } else {
+    title.textContent = 'Score 3/5 — Monitor';
+    tag.className = 'ptag ptag-dim';
+    tag.textContent = 'WATCHING';
+    body.innerHTML = '<div style="font-size:12px;color:var(--text);line-height:1.6">Conditions building. If C2 (cluster imbalance) is absent the setup is materially weaker. <strong style="color:var(--bright)">No trade at 3/5.</strong></div>';
+  }
+}
+
+
+// ────────────────── Roadmap phase status ──────────────────
+var phaseStates = ['todo','progress','passed','failed'];
+var phaseStatus = { 1:'todo', 2:'todo', 3:'todo', 4:'todo' };
+function loadRoadmap() {
+  var s = lsGet(LS_RM, null);
+  if (s && typeof s === 'object') { phaseStatus = Object.assign(phaseStatus, s); }
+  for (var i = 1; i <= 4; i++) renderPhase(i);
+}
+function saveRoadmap() { lsSet(LS_RM, phaseStatus); }
+function renderPhase(i) {
+  var card = document.getElementById('phase-' + i);
+  var btn  = document.getElementById('ph-status-' + i);
+  if (!card || !btn) return;
+  card.classList.remove('todo','progress','passed','failed');
+  card.classList.add(phaseStatus[i]);
+  btn.classList.remove('todo','progress','passed','failed');
+  btn.classList.add(phaseStatus[i]);
+  btn.textContent = phaseStatus[i].toUpperCase().replace('PROGRESS','IN PROGRESS');
+}
+function cyclePhase(i) {
+  var idx = phaseStates.indexOf(phaseStatus[i]);
+  phaseStatus[i] = phaseStates[(idx + 1) % phaseStates.length];
+  renderPhase(i);
+  saveRoadmap();
+}
+
+// ────────────────── Backtest log generator ──────────────────
+function val(id) { var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; }
+function chk(id) { var el = document.getElementById(id); return el && el.checked ? 'Y' : 'N'; }
+function generateBacktest() {
+  var date = val('bt-date') || 'YYYY-MM-DD';
+  var inst = val('bt-instrument');
+  var phase = val('bt-phase');
+  var session = val('bt-session');
+  var time = val('bt-time') || 'HH:MM';
+  var dir = val('bt-direction');
+  var entry = val('bt-entry') || '____';
+  var stop = val('bt-stop') || '____';
+  var stopticks = val('bt-stopticks') || '__';
+  var tp1 = val('bt-tp1') || '____';
+  var tp2type = val('bt-tp2type');
+  var tp2 = val('bt-tp2') || '____';
+  var outcome = val('bt-outcome');
+  var rResult = val('bt-r') || '____';
+  var hold = val('bt-hold') || '__';
+  var notes = val('bt-notes') || '____';
+  var c = [chk('bt-c1'),chk('bt-c2'),chk('bt-c3'),chk('bt-c4'),chk('bt-c5')];
+  var score = c.filter(function(x){return x==='Y';}).length;
+  var taken = score === 5 ? '☑ Yes (5/5)' : '☐ No (filtered, score ' + score + '/5)';
+  var md = '# AF v2 Instance — ' + date + ' — ' + inst + '\n\n## Context\n- **Date / time (ET):** ' + date + ' ' + time +
+    '\n- **Instrument:** ' + inst +
+    '\n- **Session window:** ' + session +
+    '\n- **Phase:** ' + phase +
+    '\n- **Direction:** ' + dir +
+    '\n\n## Condition checks (v2)\n\n| # | Condition | Pass? |\n|---|---|---|\n' +
+    '| C1 | Location at predefined HTF level | ' + c[0] + ' |\n' +
+    '| C2 | Cluster imbalance ≥ 4.0 NQ / 3.0 ES at extreme | ' + c[1] + ' |\n' +
+    '| C3 | Heavy delta + no progress | ' + c[2] + ' |\n' +
+    '| C4 | CVD divergence (classic OR hidden) | ' + c[3] + ' |\n' +
+    '| C5 | Trigger bar — midpoint reclaim AND delta flip | ' + c[4] + ' |\n\n' +
+    '**Score: ' + score + ' / 5** · Trade taken? ' + taken + '\n\n## Trade details\n' +
+    '- **Entry:** ' + entry + '\n- **Stop:** ' + stop + ' (' + stopticks + ' ticks)\n' +
+    '- **TP1 (1R):** ' + tp1 + '\n- **TP2 (' + tp2type + '):** ' + tp2 + '\n\n## Outcome\n' +
+    '- **Result:** ' + outcome + '\n- **R:** ' + rResult + '\n- **Hold time:** ' + hold + '\n\n' +
+    '## Notes / lessons\n\n' + notes + '\n';
+  var out = document.getElementById('bt-output');
+  out.style.display = 'block';
+  out.textContent = md;
+}
+function copyBacktest() {
+  var out = document.getElementById('bt-output');
+  if (!out.textContent) generateBacktest();
+  var t = out.textContent;
+  if (navigator.clipboard) navigator.clipboard.writeText(t);
+  else { var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+  out.style.borderColor = 'var(--accent2)';
+  setTimeout(function(){ out.style.borderColor = 'var(--border)'; }, 1500);
+}
+function clearBacktest() {
+  ['bt-date','bt-time','bt-entry','bt-stop','bt-stopticks','bt-tp1','bt-tp2','bt-r','bt-hold','bt-notes'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  ['bt-c1','bt-c2','bt-c3','bt-c4','bt-c5'].forEach(function(id){ var el=document.getElementById(id); if(el) el.checked=false; });
+  document.getElementById('bt-output').style.display='none';
+}
+
+
+// ────────────────── Expectancy calculator ──────────────────
+function computeStats() {
+  var n = parseInt(val('calc-total'), 10) || 0;
+  var w = parseInt(val('calc-wins'), 10) || 0;
+  var l = parseInt(val('calc-losses'), 10) || 0;
+  var be = parseInt(val('calc-be'), 10) || 0;
+  var aw = parseFloat(val('calc-avgwin')) || 0;
+  var al = parseFloat(val('calc-avgloss')) || 0;
+  var box = document.getElementById('calc-result');
+  if (n <= 0 || (w + l + be) > n) { box.style.display='block'; box.innerHTML = '<span class="bad">⚠ Check inputs — wins+losses+breakevens must equal total trades.</span>'; return; }
+  var wr = w / n;
+  var lr = l / n;
+  var ber = be / n;
+  var exp = (wr * aw) - (lr * Math.abs(al));
+  var avgWinPass1 = aw >= 1.3, expPass1 = exp >= 0.2, wrPass1 = wr >= 0.45, sizePass1 = n >= 30;
+  var avgWinPass2 = aw >= 1.4, expPass2 = exp >= 0.3, wrPass2 = wr >= 0.50, sizePass2 = n >= 100;
+  function tag(ok) { return ok ? '<span class="ok">✓ PASS</span>' : '<span class="bad">✗ FAIL</span>'; }
+  var html = '<div style="font-size:11px;line-height:1.9">' +
+    '<div><strong style="color:var(--bright)">Win rate:</strong> ' + (wr*100).toFixed(1) + '% &nbsp;·&nbsp; <strong style="color:var(--bright)">Loss rate:</strong> ' + (lr*100).toFixed(1) + '% &nbsp;·&nbsp; <strong style="color:var(--bright)">BE rate:</strong> ' + (ber*100).toFixed(1) + '%</div>' +
+    '<div><strong style="color:var(--bright)">Expectancy:</strong> <span class="' + (exp >= 0 ? 'ok' : 'bad') + '">' + exp.toFixed(3) + 'R</span> per trade</div>' +
+    '<hr style="border:0;border-top:1px solid var(--border);margin:10px 0">' +
+    '<div style="margin-bottom:6px"><strong style="color:var(--accent)">Phase 1 Gate</strong> (n≥30, WR≥45%, AvgWin≥1.3R, E≥0.2R):</div>' +
+    '<div>n=' + n + ' ' + tag(sizePass1) + ' &nbsp;·&nbsp; WR ' + tag(wrPass1) + ' &nbsp;·&nbsp; AvgWin ' + tag(avgWinPass1) + ' &nbsp;·&nbsp; E ' + tag(expPass1) + '</div>' +
+    '<div style="margin-top:8px;margin-bottom:6px"><strong style="color:var(--accent)">Phase 2 Gate</strong> (n≥100, WR≥50%, AvgWin≥1.4R, E≥0.3R):</div>' +
+    '<div>n=' + n + ' ' + tag(sizePass2) + ' &nbsp;·&nbsp; WR ' + tag(wrPass2) + ' &nbsp;·&nbsp; AvgWin ' + tag(avgWinPass2) + ' &nbsp;·&nbsp; E ' + tag(expPass2) + '</div>' +
+    '<hr style="border:0;border-top:1px solid var(--border);margin:10px 0">' +
+    '<div><strong style="color:' + (sizePass1&&wrPass1&&avgWinPass1&&expPass1 ? 'var(--accent2)':'var(--accent3)') + '">Phase 1 verdict:</strong> ' + (sizePass1&&wrPass1&&avgWinPass1&&expPass1 ? 'PASS — advance to Phase 2' : 'NOT YET — refine rules &amp; re-test') + '</div>' +
+    '<div><strong style="color:' + (sizePass2&&wrPass2&&avgWinPass2&&expPass2 ? 'var(--accent2)':'var(--accent4)') + '">Phase 2 verdict:</strong> ' + (sizePass2&&wrPass2&&avgWinPass2&&expPass2 ? 'PASS — advance to Phase 3 (live micros)' : 'NOT YET') + '</div>' +
+    '</div>';
+  box.style.display='block';
+  box.innerHTML = html;
+}
+function clearCalc() {
+  ['calc-total','calc-wins','calc-losses','calc-be','calc-avgwin','calc-avgloss'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('calc-result').style.display='none';
+}
+
+// ────────────────── Export / Import state ──────────────────
+function exportState() {
+  var st = { checklist: lsGet(LS_CK, null), roadmap: lsGet(LS_RM, null), exportedAt: new Date().toISOString() };
+  var blob = new Blob([JSON.stringify(st, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'af-v2-state-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+function importState(ev) {
+  var f = ev.target.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(e) {
+    try {
+      var st = JSON.parse(e.target.result);
+      if (st.checklist) lsSet(LS_CK, st.checklist);
+      if (st.roadmap) lsSet(LS_RM, st.roadmap);
+      loadChecklist(); loadRoadmap();
+      alert('State imported successfully.');
+    } catch(err) { alert('Import failed: invalid JSON.'); }
+  };
+  r.readAsText(f);
+  ev.target.value = '';
+}
+
+
+// ────────────────── Syntax highlighter (no regex on user content) ──────────────────
+function syntaxHL(code) {
+  var safe = code.split('&').join('&amp;').split('<').join('&lt;').split('>').join('&gt;');
+  var lines = safe.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var ci = lines[i].indexOf('//');
+    if (ci !== -1) {
+      lines[i] = lines[i].substring(0, ci) + '<span class="cm">' + lines[i].substring(ci) + '</span>';
+    }
+  }
+  safe = lines.join('\n');
+  var keywords = ['using','namespace','public','private','protected','override','class','new','void','bool','int','decimal','string','true','false','null','return','if','else','for','foreach','var','this','base','readonly','static','get','set','break','continue','try','catch','throw'];
+  keywords.forEach(function(kw) {
+    safe = safe.split(' ' + kw + ' ').join(' <span class="kw">' + kw + '</span> ');
+    safe = safe.split(' ' + kw + '(').join(' <span class="kw">' + kw + '</span>(');
+    safe = safe.split('(' + kw + ' ').join('(<span class="kw">' + kw + '</span> ');
+    safe = safe.split('\n' + kw + ' ').join('\n<span class="kw">' + kw + '</span> ');
+    safe = safe.split('    ' + kw + ' ').join('    <span class="kw">' + kw + '</span> ');
+    safe = safe.split('\t' + kw + ' ').join('\t<span class="kw">' + kw + '</span> ');
+  });
+  return safe;
+}
+
+// ────────────────── Copy code button ──────────────────
+function copyCode() {
+  var btn = document.getElementById('copy-btn');
+  function done() {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(function(){ btn.textContent = 'Copy Code'; btn.classList.remove('copied'); }, 2500);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(rawCode).then(done).catch(fallback);
+  } else { fallback(); }
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = rawCode; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+}
+
+// ────────────────── C# source code (verbatim from indicators/atas-csharp/AbsorptionFadeConfluence/AbsorptionFadeConfluence.cs) ──────────────────
+var codeLines = [
+  "// =============================================================================",
+  "// AbsorptionFadeConfluence.cs",
+  "// -----------------------------------------------------------------------------",
+  "// ATAS custom indicator implementing the Absorption Fade v2 strategy.",
+  "//",
+  "// Auto-scores 4 of the 5 conditions (C2-C5). The 5th condition (C1 - location",
+  "// at a predefined HTF level) is the trader's call, exposed as a toggle.",
+  "//",
+  "// Final confluence score on the trigger bar = C2 + C3 + C4 + C5 + LevelConfirmed",
+  "// (each 0 or 1). Range 0-5. Arrow + alert fires at 5/5 in a clear direction.",
+  "//",
+  "// See: knowledge-base/strategies/absorption-fade-v2.md for the full strategy.",
+  "//",
+  "// Status: Phase-2 skeleton, compilable. Condition math uses reasonable defaults",
+  "// that need tuning once Phase 1 manual replay produces feedback. Search for",
+  "// \"TUNE:\" comments for the places we expect to refine.",
+  "//",
+  "// Calibration: NQ -> ImbalanceRatio = 4.0  ·  ES -> ImbalanceRatio = 3.0",
+  "// =============================================================================",
+  "",
+  "using System;",
+  "using System.ComponentModel;",
+  "using System.ComponentModel.DataAnnotations;",
+  "using System.Drawing;",
+  "using ATAS.Indicators;",
+  "using OFT.Attributes;",
+  "",
+  "namespace Jaysuhnt.AtasIndicators.AbsorptionFadeConfluence",
+  "{",
+  "    [DisplayName(\"Absorption Fade Confluence\")]",
+  "    [Description(\"v2: 0-5 confluence score combining cluster imbalance, heavy-delta-no-progress, CVD divergence (classic|hidden), trigger bar (midpoint reclaim + delta flip), and a manual level-confirmation toggle.\")]",
+  "    public class AbsorptionFadeConfluence : Indicator",
+  "    {",
+];
+
+
+codeLines = codeLines.concat([
+  "        // =========================================================================",
+  "        // User inputs — Footprint / imbalance",
+  "        // =========================================================================",
+  "",
+  "        [Display(Name = \"Imbalance Ratio\", GroupName = \"Footprint\", Order = 10,",
+  "                 Description = \"Cluster ask/bid (long) or bid/ask (short) ratio at bar extreme. NQ: 4.0  ·  ES: 3.0\")]",
+  "        [Range(2.0, 10.0)]",
+  "        public decimal ImbalanceRatio { get; set; } = 4.0m;",
+  "",
+  "        // =========================================================================",
+  "        // User inputs — Volume / delta / structure",
+  "        // =========================================================================",
+  "",
+  "        [Display(Name = \"Volume Multiplier\", GroupName = \"Volume\", Order = 20,",
+  "                 Description = \"Bar volume must be >= this multiple of the rolling avg to count as a spike.\")]",
+  "        [Range(1.0, 5.0)]",
+  "        public decimal VolumeMultiplier { get; set; } = 1.5m;",
+  "",
+  "        [Display(Name = \"Volume Avg Period\", GroupName = \"Volume\", Order = 30)]",
+  "        [Range(5, 100)]",
+  "        public int VolumeAvgPeriod { get; set; } = 20;",
+  "",
+  "        [Display(Name = \"Delta Threshold %\", GroupName = \"Delta\", Order = 40)]",
+  "        [Range(40, 95)]",
+  "        public int DeltaThresholdPct { get; set; } = 70;",
+  "",
+  "        [Display(Name = \"Body Close %\", GroupName = \"Structure\", Order = 50)]",
+  "        [Range(5, 50)]",
+  "        public int BodyClosePct { get; set; } = 25;",
+  "",
+  "        [Display(Name = \"Wick %\", GroupName = \"Structure\", Order = 60)]",
+  "        [Range(30, 90)]",
+  "        public int WickPct { get; set; } = 60;",
+  "",
+  "        [Display(Name = \"CVD Lookback Bars\", GroupName = \"Divergence\", Order = 70)]",
+  "        [Range(3, 30)]",
+  "        public int CvdLookbackBars { get; set; } = 8;",
+  "",
+  "        [Display(Name = \"Level Confirmed (C1)\", GroupName = \"Manual Gate\", Order = 80,",
+  "                 Description = \"YOUR call. Toggle ON when price is at a predefined HTF level.\")]",
+  "        public bool LevelConfirmed { get; set; } = false;",
+  "",
+  "        [Display(Name = \"Min Score To Arrow\", GroupName = \"Output\", Order = 90)]",
+  "        [Range(3, 5)]",
+  "        public int MinScoreToArrow { get; set; } = 5;",
+  "",
+  "        [Display(Name = \"Alert On Full Score\", GroupName = \"Alerts\", Order = 100)]",
+  "        public bool AlertOnFull { get; set; } = true;",
+  "",
+]);
+
+
+codeLines = codeLines.concat([
+  "        // Confluence histogram (0-5) on a separate panel",
+  "        private readonly ValueDataSeries _confluence = new(\"Confluence (0-5)\")",
+  "        {",
+  "            VisualType = VisualMode.Histogram,",
+  "            ShowZeroValue = false",
+  "        };",
+  "",
+  "        private readonly ValueDataSeries _longSignal = new(\"Long signal\")",
+  "        {",
+  "            VisualType = VisualMode.UpArrow, ShowZeroValue = false,",
+  "            Color = Color.LimeGreen, Width = 3",
+  "        };",
+  "",
+  "        private readonly ValueDataSeries _shortSignal = new(\"Short signal\")",
+  "        {",
+  "            VisualType = VisualMode.DownArrow, ShowZeroValue = false,",
+  "            Color = Color.OrangeRed, Width = 3",
+  "        };",
+  "",
+  "        private readonly ValueDataSeries _cvd = new(\"CVD\") { IsHidden = true };",
+  "        private readonly ValueDataSeries _absScore = new(\"Abs Score (0-3)\") { IsHidden = true };",
+  "        private readonly ValueDataSeries _direction = new(\"Direction (-1/0/+1)\") { IsHidden = true };",
+  "        private decimal _runningCvd;",
+  "",
+  "        public AbsorptionFadeConfluence() : base(useCandles: true)",
+  "        {",
+  "            _confluence.Panel = IndicatorDataProvider.NewPanel;",
+  "            _longSignal.Panel = IndicatorDataProvider.CandlesPanel;",
+  "            _shortSignal.Panel = IndicatorDataProvider.CandlesPanel;",
+  "            DataSeries[0] = _confluence;",
+  "            DataSeries.Add(_longSignal);",
+  "            DataSeries.Add(_shortSignal);",
+  "            DataSeries.Add(_cvd);",
+  "            DataSeries.Add(_absScore);",
+  "            DataSeries.Add(_direction);",
+  "        }",
+  "",
+  "        protected override void OnCalculate(int bar, decimal value)",
+  "        {",
+  "            int warmup = Math.Max(VolumeAvgPeriod, CvdLookbackBars) + 2;",
+  "            if (bar < warmup) return;",
+  "            var candle = GetCandle(bar);",
+  "            if (bar > 0) _runningCvd += GetCandle(bar - 1).Delta;",
+  "            _cvd[bar] = _runningCvd;",
+  "",
+  "            // C2: Cluster imbalance at bar extreme",
+  "            bool c2_askAbsorption = false, c2_bidAbsorption = false;",
+  "            decimal tickSize = InstrumentInfo?.TickSize ?? 0.25m;",
+  "            decimal extremeBand = 4m * tickSize;",
+  "",
+]);
+
+
+codeLines = codeLines.concat([
+  "            if (candle.Clusters != null)",
+  "                foreach (var cl in candle.Clusters) {",
+  "                    if (cl.BidVolume <= 0 || cl.AskVolume <= 0) continue;",
+  "                    if (cl.Price <= candle.Low + extremeBand) {",
+  "                        decimal ratio = cl.AskVolume / (decimal)cl.BidVolume;",
+  "                        if (ratio >= ImbalanceRatio) c2_askAbsorption = true;",
+  "                    }",
+  "                    if (cl.Price >= candle.High - extremeBand) {",
+  "                        decimal ratio = cl.BidVolume / (decimal)cl.AskVolume;",
+  "                        if (ratio >= ImbalanceRatio) c2_bidAbsorption = true;",
+  "                    }",
+  "                }",
+  "",
+  "            // C3: Heavy delta + no progress",
+  "            decimal volSum = 0;",
+  "            for (int i = 1; i <= VolumeAvgPeriod; i++) volSum += GetCandle(bar - i).Volume;",
+  "            decimal volAvg = volSum / VolumeAvgPeriod;",
+  "            bool volSpike = volAvg > 0 && candle.Volume >= volAvg * VolumeMultiplier;",
+  "            bool deltaHeavy = candle.Volume > 0 && Math.Abs(candle.Delta) >= candle.Volume * (DeltaThresholdPct / 100m);",
+  "            int direction = 0;",
+  "            bool c3_noProgress = false;",
+  "            decimal range = candle.High - candle.Low;",
+  "            if (range > 0 && volSpike && deltaHeavy) {",
+  "                decimal closePosFromLow = (candle.Close - candle.Low) / range;",
+  "                decimal upperWickPct = (candle.High - Math.Max(candle.Open, candle.Close)) / range;",
+  "                decimal lowerWickPct = (Math.Min(candle.Open, candle.Close) - candle.Low) / range;",
+  "                if (candle.Delta > 0) {",
+  "                    bool closedLow = closePosFromLow <= (BodyClosePct / 100m);",
+  "                    bool bigUpperWick = upperWickPct >= (WickPct / 100m);",
+  "                    if (closedLow || bigUpperWick) { c3_noProgress = true; direction = -1; }",
+  "                } else if (candle.Delta < 0) {",
+  "                    bool closedHigh = closePosFromLow >= (1m - (BodyClosePct / 100m));",
+  "                    bool bigLowerWick = lowerWickPct >= (WickPct / 100m);",
+  "                    if (closedHigh || bigLowerWick) { c3_noProgress = true; direction = +1; }",
+  "                }",
+  "            }",
+  "",
+  "            // C4: CVD divergence (classic OR hidden)",
+  "            bool c4_long = false, c4_short = false;",
+  "            if (bar - CvdLookbackBars > 0) {",
+  "                decimal priorLow = decimal.MaxValue, priorHigh = decimal.MinValue;",
+  "                decimal cvdAtPriorLow = 0m, cvdAtPriorHigh = 0m;",
+  "                for (int i = bar - CvdLookbackBars; i < bar; i++) {",
+  "                    var c = GetCandle(i);",
+  "                    if (c.Low < priorLow) { priorLow = c.Low; cvdAtPriorLow = _cvd[i]; }",
+  "                    if (c.High > priorHigh) { priorHigh = c.High; cvdAtPriorHigh = _cvd[i]; }",
+  "                }",
+]);
+
+
+codeLines = codeLines.concat([
+  "                bool classicLong = candle.Low <= priorLow && _runningCvd > cvdAtPriorLow;",
+  "                bool hiddenLong = _runningCvd < cvdAtPriorLow && candle.Low > priorLow;",
+  "                c4_long = classicLong || hiddenLong;",
+  "                bool classicShort = candle.High >= priorHigh && _runningCvd < cvdAtPriorHigh;",
+  "                bool hiddenShort = _runningCvd > cvdAtPriorHigh && candle.High < priorHigh;",
+  "                c4_short = classicShort || hiddenShort;",
+  "            }",
+  "",
+  "            // Score this bar AS AN ABSORPTION CANDIDATE (C2 + C3 + C4)",
+  "            int absScore = 0;",
+  "            if (direction == +1) {",
+  "                if (c2_askAbsorption) absScore++;",
+  "                if (c3_noProgress) absScore++;",
+  "                if (c4_long) absScore++;",
+  "            } else if (direction == -1) {",
+  "                if (c2_bidAbsorption) absScore++;",
+  "                if (c3_noProgress) absScore++;",
+  "                if (c4_short) absScore++;",
+  "            }",
+  "            _absScore[bar] = absScore;",
+  "            _direction[bar] = direction;",
+  "",
+  "            // C5: Trigger bar = bar AFTER an absorption candidate",
+  "            int prevAbsScore = (int)_absScore[bar - 1];",
+  "            int prevDir = (int)_direction[bar - 1];",
+  "            bool c5 = false;",
+  "            int triggerDir = 0;",
+  "            if (prevAbsScore >= 2 && prevDir != 0) {",
+  "                var absorption = GetCandle(bar - 1);",
+  "                decimal mid = (absorption.High + absorption.Low) / 2m;",
+  "                if (prevDir == +1 && candle.Close > mid && candle.Delta > 0) { c5 = true; triggerDir = +1; }",
+  "                else if (prevDir == -1 && candle.Close < mid && candle.Delta < 0) { c5 = true; triggerDir = -1; }",
+  "            }",
+  "",
+  "            // Final confluence",
+  "            int confluence = 0;",
+  "            if (c5) confluence = prevAbsScore + 1 + (LevelConfirmed ? 1 : 0);",
+  "            else confluence = absScore + (LevelConfirmed ? 1 : 0);",
+  "            if (confluence > 5) confluence = 5;",
+  "            _confluence[bar] = confluence;",
+  "            _confluence.Colors[bar] = confluence >= 5 ? Color.FromArgb(255, 0, 255, 136)",
+  "                                  : confluence == 4 ? Color.FromArgb(255, 100, 220, 80)",
+  "                                  : confluence == 3 ? Color.FromArgb(255, 255, 200, 0)",
+  "                                  : confluence == 2 ? Color.FromArgb(255, 100, 130, 160)",
+  "                                  : Color.FromArgb(255, 80, 100, 120);",
+  "",
+]);
+
+
+codeLines = codeLines.concat([
+  "            // Plot arrow + alert at threshold",
+  "            if (c5 && triggerDir != 0 && confluence >= MinScoreToArrow) {",
+  "                if (triggerDir == +1) {",
+  "                    _longSignal[bar] = candle.Low - 4 * tickSize;",
+  "                    _shortSignal[bar] = 0;",
+  "                    if (AlertOnFull && confluence >= 5) TryAlert(\"AF v2 LONG — 5/5 confluence\");",
+  "                } else {",
+  "                    _shortSignal[bar] = candle.High + 4 * tickSize;",
+  "                    _longSignal[bar] = 0;",
+  "                    if (AlertOnFull && confluence >= 5) TryAlert(\"AF v2 SHORT — 5/5 confluence\");",
+  "                }",
+  "            } else {",
+  "                _longSignal[bar] = 0;",
+  "                _shortSignal[bar] = 0;",
+  "            }",
+  "        }",
+  "",
+  "        private void TryAlert(string message)",
+  "        {",
+  "            try { AddAlert(\"alert1.wav\", message); }",
+  "            catch { /* swallow — alerts are nice-to-have, not critical */ }",
+  "        }",
+  "    }",
+  "}",
+  "",
+  "// NOTE: This is a condensed version for display. The full source with all comments,",
+  "// per-condition documentation, and TUNE markers lives at:",
+  "//   indicators/atas-csharp/AbsorptionFadeConfluence/AbsorptionFadeConfluence.cs",
+  "// Always build from the .cs file in the repo, not from this embedded copy.",
+]);
+
+var rawCode = codeLines.join('\n');
+document.getElementById('code-block').innerHTML = syntaxHL(rawCode);
+
+// ────────────────── Init on load ──────────────────
+loadChecklist();
+loadRoadmap();
+
+// Default backtest date to today
+(function(){
+  var d = document.getElementById('bt-date');
+  if (d && !d.value) d.value = new Date().toISOString().slice(0,10);
+})();
+</script>
+</body>
+</html>
