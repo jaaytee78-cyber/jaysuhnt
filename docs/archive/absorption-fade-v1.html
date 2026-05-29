@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Absorption Fade v2 — Delta Confluence Playbook</title>
+<title>Absorption Fade — Trading Playbook</title>
 <style>
 :root {
   --bg: #0e1116;
@@ -342,7 +342,7 @@ footer {
 <body>
 
 <header>
-  <h1>Absorption Fade <span class="badge">v2 · Delta Confluence</span></h1>
+  <h1>Absorption Fade <span class="badge">Playbook v1.0</span></h1>
   <div class="spacer"></div>
   <button class="iconbtn" onclick="toggleTheme()" title="Toggle theme">🌓 Theme</button>
   <button class="iconbtn" onclick="window.print()" title="Print">🖨 Print</button>
@@ -369,10 +369,6 @@ footer {
   <h2>Overview</h2>
   <p class="lead">A mechanical, order-flow scalping strategy for ES / NQ futures on the ATAS platform — with a live, interactive playbook you can use offline.</p>
 
-  <div class="callout warn">
-    <strong>v2 — Delta Confluence Edition.</strong> This is the merged best-of-both spec combining v1's validated discipline (% risk sizing, time stop, structural targets, 4-phase validation roadmap) with research-track refinements (233-tick footprint, instrument-calibrated 4:1 / 3:1 imbalance threshold, classic-or-hidden CVD divergence, dual-filter trigger bar). The v1 spec is preserved in <code>docs/archive/absorption-fade-v1.html</code> for reference. <strong>v2 inherits zero validation from v1</strong> — the 4-phase roadmap applies from scratch.
-  </div>
-
   <div class="callout">
     <strong>How to use this document</strong>
     Everything is local-first. Your checklist progress, roadmap status, and backtest entries are saved automatically in your browser. Use <em>Export</em> to back up your state to a JSON file, or <em>Import</em> to restore it.
@@ -387,7 +383,7 @@ footer {
       <tr><td><strong>Roadmap</strong></td><td>4-phase plan with decision gates and your status tracker</td></tr>
       <tr><td><strong>Backtest</strong></td><td>Form to log a single instance — outputs markdown to copy</td></tr>
       <tr><td><strong>Calculator</strong></td><td>Expectancy / win rate / R-multiple stats from your trades</td></tr>
-      <tr><td><strong>Indicator</strong></td><td>AbsorptionFadeConfluence — install + tuning notes</td></tr>
+      <tr><td><strong>Indicator</strong></td><td>ATAS Scout install + tuning notes</td></tr>
       <tr><td><strong>Databento</strong></td><td>Phase 4 stress-testing future-work plan</td></tr>
     </tbody>
   </table>
@@ -432,75 +428,64 @@ footer {
   <h3>ATAS chart configuration</h3>
   <h4>Chart 1 — Execution (the chart you trade from)</h4>
   <ul>
-    <li><strong>Bars:</strong> <strong>233-tick footprint</strong> — bar prints every 233 trades; captures microstructure without time-bar distortion</li>
+    <li><strong>Timeframe:</strong> 1-minute footprint (or 30-second on NQ during high vol)</li>
     <li><strong>Footprint mode:</strong> Bid x Ask (numbers visible on each cluster)</li>
-    <li><strong>Imbalance threshold:</strong> <strong>4.0 on NQ · 3.0 on ES</strong> (instrument-calibrated; NQ is materially noisier)</li>
+    <li><strong>Imbalance threshold:</strong> 300% (highlights diagonal imbalances)</li>
     <li><strong>Cluster colouring:</strong> by Delta</li>
-    <li><strong>Overlays on the same panel:</strong> Session VWAP + 1σ and 2σ bands; Volume Profile — Session (POC / VAH / VAL)</li>
-    <li><strong>Subgraph:</strong> Cumulative Delta (session-anchored)</li>
+    <li><strong>Overlays:</strong> Session VWAP + 1σ and 2σ bands; Cumulative Delta (separate pane); Volume Profile — Session (POC / VAH / VAL)</li>
   </ul>
 
   <h4>Chart 2 — Context (don't trade from this, just confirm)</h4>
   <ul>
-    <li>1-minute candles</li>
+    <li>5-minute candles</li>
     <li>Session VWAP</li>
     <li>Daily Volume Profile (last 5 days, POC + value areas)</li>
-    <li>Prior day H/L, weekly H/L, overnight H/L plotted</li>
+    <li>Prior day H/L, weekly H/L plotted</li>
   </ul>
 
-  <h4>Chart 3 — DOM + Smart Tape (optional but recommended)</h4>
-  <ul>
-    <li>DOM: watch for pulled liquidity at your level when about to enter</li>
-    <li>Smart Tape: min size 25–50 contracts; reconstructs split institutional orders</li>
-  </ul>
+  <h4>Chart 3 — DOM (optional but recommended)</h4>
+  <ul><li>Watch for pulled liquidity at your level when you're about to enter.</li></ul>
 
   <h3>Mechanical entry — 5 conditions, all required</h3>
-  <p>You do not take the trade unless <strong>all five</strong> print. No exceptions. The indicator auto-scores C2–C5 and gives you a 0–4 reading; C1 is your manual call.</p>
+  <p>You do not take the trade unless <strong>all five</strong> print. No exceptions.</p>
 
   <table>
     <thead><tr><th>#</th><th>Condition</th><th>What you're looking at</th></tr></thead>
     <tbody>
-      <tr><td>C1</td><td><strong>Location</strong> <span class="tag red">Manual</span></td><td>Price tags a <em>predefined</em> HTF level marked at session start: PDH/PDL, weekly H/L, overnight H/L, session VAH/VAL/POC, daily HVN, VWAP or VWAP ±1σ/±2σ. The level was on the chart <em>before</em> price got there — not drawn after the fact.</td></tr>
-      <tr><td>C2</td><td><strong>Cluster imbalance at extreme</strong></td><td>Footprint cluster at bar high or bar low shows ratio ≥ <strong>4.0 on NQ</strong> / <strong>3.0 on ES</strong>. <em>Long:</em> ask/bid ≥ ratio at bar low. <em>Short:</em> bid/ask ≥ ratio at bar high. Institutional-scale absorption signature.</td></tr>
-      <tr><td>C3</td><td><strong>Heavy delta, no progress</strong></td><td>Bar volume ≥ 1.5× 20-bar avg <strong>AND</strong> |bar delta| ≥ 70% of bar volume <strong>AND</strong> body closes in opposite ≤25% of range <strong>OR</strong> rejection wick ≥ 60% on aggression side. Aggression failed to move price.</td></tr>
-      <tr><td>C4</td><td><strong>CVD divergence</strong> <span class="tag green">classic OR hidden</span></td><td><em>Classic:</em> price prints new HH/LL vs prior 5–10 bars; CVD does not confirm. <em>Hidden:</em> CVD prints new high/low; price does not confirm. Either qualifies — hidden divergence catches stealth accumulation that classic misses.</td></tr>
-      <tr><td>C5</td><td><strong>Trigger bar</strong> <span class="tag amber">dual filter</span></td><td>Next 233-tick bar closes back through <strong>midpoint of absorption bar</strong> in fade direction <strong>AND</strong> trigger bar's delta sign is opposite the absorption bar's. Midpoint reclaim alone can happen on weak retraces — the delta flip filters them.</td></tr>
+      <tr><td>1</td><td><strong>Location</strong></td><td>Price tags a <em>predefined</em> level: prior day H/L, weekly H/L, session VAH/VAL, overnight H/L, or HVN on daily profile</td></tr>
+      <tr><td>2</td><td><strong>Volume spike</strong></td><td>Bar volume ≥ 1.5× the 20-bar average</td></tr>
+      <tr><td>3</td><td><strong>Heavy delta, no progress</strong></td><td>Bar delta ≥ ±70% of bar volume <strong>AND</strong> body closes in the opposite ≤25% of range, <strong>OR</strong> wick ≥ 60% of range</td></tr>
+      <tr><td>4</td><td><strong>CVD divergence</strong></td><td>Price prints a new HH/LL vs prior 5–10 bars; CVD does <strong>not</strong> confirm</td></tr>
+      <tr><td>5</td><td><strong>Trigger bar</strong></td><td>Next 1m bar closes <em>back through</em> the midpoint of the absorption bar</td></tr>
     </tbody>
   </table>
 
   <h4>Entry / stop / targets</h4>
   <ul>
-    <li><strong>Entry:</strong> Market on close of the trigger bar (C5)</li>
+    <li><strong>Entry:</strong> Market on close of the trigger bar (condition 5)</li>
     <li><strong>Stop:</strong> 1 tick beyond the wick of the absorption bar</li>
     <li><strong>TP1:</strong> 1R → close 50%, move stop to breakeven</li>
     <li><strong>TP2:</strong> Session POC, opposite VWAP band, or next HVN (whichever hits first)</li>
     <li><strong>Time stop:</strong> If 5 minutes pass without TP1, exit at market</li>
-    <li><strong>Hard exit:</strong> Delta flips against position on 233-tick chart for 2+ consecutive bars → close 100%</li>
   </ul>
 
-  <h3>Worked example (NQ)</h3>
-<pre>Level: Prior day low @ 21,082.25
-233-tick absorption bar prints:
-  - Range:    21,082.25 → 21,084.50 (9 ticks)
-  - Volume:   3,800 (avg 2,400)              ✓ 1.5x+
-  - Delta:    -2,750 (72% of vol)            ✓ heavy selling
-  - Close:    21,084.00 (top 22% of range)   ✓ no progress
-  - Lower wick: 6 ticks                       ✓ rejection
-  - Cluster at 21,082.25 low:
-      ask vol 1,420 / bid vol 320            ✓ 4.4:1 ask absorption
-  - CVD:      prior swing low @ -12,400,
-              this bar pushed to -12,650,
-              price held above prior low      ✓ hidden divergence
+  <h3>Worked example (ES)</h3>
+<pre>Level: Prior day high @ 5482.25
+1-min absorption bar prints:
+  - Volume:   4,200 (avg 2,100)            ✓ 1.5x+
+  - Delta:    +2,950 (70% of vol)          ✓ heavy buying
+  - Range:    5482.25 → 5483.50 (5 ticks)
+  - Close:    5482.50 (bottom 20%)         ✓ no progress
+  - Upper wick: 4 ticks                     ✓ rejection
+  - CVD:      prior swing high @ +8,400,
+              this bar peaks at +7,900     ✓ divergence
 
-Trigger bar (next 233-tick bar):
-  - Close:    21,083.75 (above abs mid 21,083.38)  ✓ midpoint reclaim
-  - Delta:    +1,250                                ✓ flip vs absorption -2,750
+Trigger bar (next 1m): closes 5481.75 (below mid 5482.88) ✓
 
-ENTRY: Long  @ 21,083.75
-STOP:  21,082.00 (1 tick below absorption low) → 7 tick risk
-       MNQ: $35/contract  ·  NQ: $350/contract
-TP1:   21,085.50 (1R)               → close half, stop to BE
-TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R total</pre>
+ENTRY: Short @ 5481.75
+STOP:  5483.75 (1 tick above wick)  → 8 tick risk = $100/contract
+TP1:   5479.75 (1R)                 → close half
+TP2:   Session POC @ 5476.00        → ~24 tick gain on remainder = ~3R total</pre>
 
   <h3>Risk rules <span class="tag red">non-negotiable</span></h3>
   <ul>
@@ -515,14 +500,12 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
 
   <h3>Common mistakes to avoid</h3>
   <ol>
-    <li><strong>Treating the score as the strategy.</strong> The 0–5 score is feedback. The strategy is the 5 rules. A 5/5 with C1 forced (the level wasn't really there) is still a no-trade.</li>
     <li><strong>Trading absorption mid-range.</strong> Only at predefined HTF levels. Mid-range absorption is noise.</li>
     <li><strong>Front-running the trigger bar.</strong> Wait for the close. The trigger bar IS the edge.</li>
-    <li><strong>Ignoring the 4:1 / 3:1 instrument calibration.</strong> Running 3:1 on NQ produces noise. Running 4:1 on ES misses real setups. Check indicator settings per instrument.</li>
-    <li><strong>Skipping the time stop.</strong> The 5-minute exit is a real edge contributor. Trades that haven't worked in 5 minutes usually aren't going to.</li>
-    <li><strong>One bad bar = thesis change.</strong> If the absorption wick gets violated, your read was wrong. Take the loss clean. Do not move the stop.</li>
+    <li><strong>Ignoring CVD on small ranges.</strong> If session range &lt; 20 ticks (ES), CVD signal is unreliable. Skip.</li>
     <li><strong>Re-entering after a stop-out.</strong> One AF setup per level, ever.</li>
     <li><strong>Trading during news.</strong> Absorption signatures lie during news prints.</li>
+    <li><strong>NQ on tight stops.</strong> NQ wicks are violent. Use 12+ tick stops or stick to ES until consistent.</li>
   </ol>
 
   <h3>Why this works — research basis</h3>
@@ -536,8 +519,8 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
 
   <h3>Where this fits in the broader plan</h3>
   <ul>
-    <li><strong>Phase 1:</strong> Manual replay in ATAS — log 30 instances by hand on 233-tick NQ.</li>
-    <li><strong>Phase 2:</strong> Custom ATAS indicator (<code>AbsorptionFadeConfluence</code>) auto-scores C2–C5; you toggle "level confirmed" for C1; arrow fires at full 5/5. Scale to 100+ instances.</li>
+    <li><strong>Phase 1:</strong> Manual replay in ATAS — log 30 instances by hand.</li>
+    <li><strong>Phase 2:</strong> Custom ATAS indicator (<code>AbsorptionFadeScout</code>) auto-detects setups so you can scale to 100+ instances.</li>
     <li><strong>Phase 3:</strong> Forward-test live on micros (MES / MNQ).</li>
     <li><strong>Phase 4:</strong> Databento + Python for multi-year robustness testing.</li>
   </ul>
@@ -557,33 +540,30 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
 
   <div class="checklist" id="checklistContainer">
     <h4>Before the session</h4>
-    <label data-key="ck-pre-1"><input type="checkbox"><span>Mapped levels: PDH/PDL, weekly H/L, overnight H/L, session VAH/VAL, daily POC, key HVNs, VWAP ±1σ/±2σ</span></label>
+    <label data-key="ck-pre-1"><input type="checkbox"><span>Mapped levels: PDH/PDL, weekly H/L, overnight H/L, session VAH/VAL, daily POC, key HVNs</span></label>
     <label data-key="ck-pre-2"><input type="checkbox"><span>Within session window? (NY Open 9:30–11:00 / Overlap 8:00–10:00 / NY PM 13:30–15:00 ET)</span></label>
     <label data-key="ck-pre-3"><input type="checkbox"><span>No high-impact news in next 5 min? (FOMC, CPI, NFP, PMI)</span></label>
     <label data-key="ck-pre-4"><input type="checkbox"><span>Account daily loss limit not yet hit? (-2R / -1.5%)</span></label>
     <label data-key="ck-pre-5"><input type="checkbox"><span>Account daily profit lock not yet hit? (+3R)</span></label>
-    <label data-key="ck-pre-6"><input type="checkbox"><span>Indicator calibrated for instrument? (NQ: imbalance 4.0 · ES: imbalance 3.0)</span></label>
 
     <h4>Setup conditions (all 5 must print)</h4>
-    <label data-key="ck-c1"><input type="checkbox"><span class="label-num">C1</span><span class="label-text"><strong>Location</strong> — price tagged a <em>predefined</em> HTF level (level was on the chart <em>before</em> price got there)</span></label>
-    <label data-key="ck-c2"><input type="checkbox"><span class="label-num">C2</span><span class="label-text"><strong>Cluster imbalance at extreme</strong> — at bar low (long) or high (short): ratio ≥ <strong>4.0 NQ / 3.0 ES</strong></span></label>
-    <label data-key="ck-c3"><input type="checkbox"><span class="label-num">C3</span><span class="label-text"><strong>Heavy delta, no progress</strong> — vol ≥ 1.5× 20-bar avg AND |delta| ≥ 70% of vol AND (close in opp ≤25% OR rejection wick ≥ 60%)</span></label>
-    <label data-key="ck-c4"><input type="checkbox"><span class="label-num">C4</span><span class="label-text"><strong>CVD divergence</strong> — <em>classic</em> (price new HH/LL, CVD didn't confirm) OR <em>hidden</em> (CVD new high/low, price didn't confirm)</span></label>
-    <label data-key="ck-c5"><input type="checkbox"><span class="label-num">C5</span><span class="label-text"><strong>Trigger bar</strong> — next 233-tick bar closed back through midpoint of absorption bar AND delta sign opposite the absorption bar's</span></label>
+    <label data-key="ck-c1"><input type="checkbox"><span class="label-num">#1</span><span class="label-text"><strong>Location</strong> — price tagged a <em>predefined</em> HTF level (not mid-range)</span></label>
+    <label data-key="ck-c2"><input type="checkbox"><span class="label-num">#2</span><span class="label-text"><strong>Volume spike</strong> — bar volume ≥ 1.5× the 20-bar average</span></label>
+    <label data-key="ck-c3"><input type="checkbox"><span class="label-num">#3</span><span class="label-text"><strong>Heavy delta, no progress</strong> — delta ≥ ±70% of vol AND (close in opposite 25% OR wick ≥ 60% of range)</span></label>
+    <label data-key="ck-c4"><input type="checkbox"><span class="label-num">#4</span><span class="label-text"><strong>CVD divergence</strong> — price made new HH/LL vs prior 5–10 bars; CVD did not confirm</span></label>
+    <label data-key="ck-c5"><input type="checkbox"><span class="label-num">#5</span><span class="label-text"><strong>Trigger bar</strong> — next 1m bar closed back through midpoint of the absorption bar</span></label>
 
     <h4>Execution</h4>
-    <label data-key="ck-ex-1"><input type="checkbox"><span>Indicator score reads 5/5? (4/5 is not a trade)</span></label>
-    <label data-key="ck-ex-2"><input type="checkbox"><span>Risk on this trade ≤ 0.5% of account?</span></label>
-    <label data-key="ck-ex-3"><input type="checkbox"><span>Stop placed 1 tick beyond the absorption wick?</span></label>
-    <label data-key="ck-ex-4"><input type="checkbox"><span>TP1 = 1R marked? (close 50% there, move stop to BE)</span></label>
-    <label data-key="ck-ex-5"><input type="checkbox"><span>TP2 marked = session POC / opposite VWAP band / next HVN?</span></label>
-    <label data-key="ck-ex-6"><input type="checkbox"><span>Time-stop reminder set? (5 min without TP1 → exit market)</span></label>
-    <label data-key="ck-ex-7"><input type="checkbox"><span>Hard-exit rule remembered? (delta flips against position 2+ bars on 233-tick → close 100%)</span></label>
+    <label data-key="ck-ex-1"><input type="checkbox"><span>Risk on this trade ≤ 0.5% of account?</span></label>
+    <label data-key="ck-ex-2"><input type="checkbox"><span>Stop placed 1 tick beyond the absorption wick?</span></label>
+    <label data-key="ck-ex-3"><input type="checkbox"><span>TP1 = 1R marked? (close 50% there, move stop to BE)</span></label>
+    <label data-key="ck-ex-4"><input type="checkbox"><span>TP2 marked = session POC / opposite VWAP band / next HVN?</span></label>
+    <label data-key="ck-ex-5"><input type="checkbox"><span>Time-stop reminder set? (5 min without TP1 → exit)</span></label>
 
     <h4>After the trade</h4>
     <label data-key="ck-post-1"><input type="checkbox"><span>Logged in backtest log (replay) or journal (live)</span></label>
     <label data-key="ck-post-2"><input type="checkbox"><span>Screenshot saved (entry + exit + HTF context)</span></label>
-    <label data-key="ck-post-3"><input type="checkbox"><span>Score recorded (1–5 conditions met) + which condition was weakest if you lost</span></label>
+    <label data-key="ck-post-3"><input type="checkbox"><span>Score recorded (1–5 conditions met)</span></label>
     <label data-key="ck-post-4"><input type="checkbox"><span>One thing to remember written down</span></label>
   </div>
 
@@ -593,12 +573,10 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
       <li>Already lost 2R today</li>
       <li>Already up 3R+ today (lock the win)</li>
       <li>Already taken 5 trades today</li>
-      <li>Just got stopped out — don't re-enter the same level (one AF setup per level)</li>
+      <li>Just got stopped out — don't re-enter the same level</li>
       <li>Feeling tilted, frustrated, or "needing" a trade</li>
       <li>Price is mid-range with no nearby HTF level</li>
-      <li>Indicator score is 4/5 or below — wait for the 5th, do not fudge it</li>
-      <li>DOM spread abnormally wide / book pulled — feed quality unreliable</li>
-      <li>Price action erratic, no clear levels (chop)</li>
+      <li>Session range &lt; 20 ticks on ES (CVD signal unreliable)</li>
     </ul>
   </div>
 </section>
@@ -641,7 +619,7 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
     <h3>Phase 2 — Custom ATAS indicator <span class="phase-status" id="ps2">todo</span></h3>
     <p><strong>Goal:</strong> Scale sample size 5–10× by auto-detecting setups in replay.</p>
     <ul>
-      <li><strong>Tool:</strong> <code>AbsorptionFadeConfluence</code> indicator (C#, in repo) — auto-scores C2–C5, you toggle "level confirmed" for C1, arrow fires at full 5/5</li>
+      <li><strong>Tool:</strong> <code>AbsorptionFadeScout</code> indicator (C#, in repo)</li>
       <li><strong>Build:</strong> Kiro writes the code; you compile and load</li>
       <li><strong>Output:</strong> 100+ instances logged</li>
     </ul>
@@ -757,11 +735,11 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
 
     <h4>Conditions (check what passed)</h4>
     <div class="checklist" style="margin: 8px 0;">
-      <label><input type="checkbox" id="bt-c1"><span>C1 Location at predefined HTF level</span></label>
-      <label><input type="checkbox" id="bt-c2"><span>C2 Cluster imbalance at extreme (≥4.0 NQ / 3.0 ES)</span></label>
-      <label><input type="checkbox" id="bt-c3"><span>C3 Vol ≥ 1.5× avg AND |delta| ≥ 70% AND (close ≤25% opp OR wick ≥60%)</span></label>
-      <label><input type="checkbox" id="bt-c4"><span>C4 CVD divergence (classic OR hidden)</span></label>
-      <label><input type="checkbox" id="bt-c5"><span>C5 Trigger bar: midpoint reclaim AND delta flip</span></label>
+      <label><input type="checkbox" id="bt-c1"><span>#1 Location at predefined HTF level</span></label>
+      <label><input type="checkbox" id="bt-c2"><span>#2 Volume ≥ 1.5× 20-bar avg</span></label>
+      <label><input type="checkbox" id="bt-c3"><span>#3 Delta ≥ ±70% AND (close ≤25% opp OR wick ≥60%)</span></label>
+      <label><input type="checkbox" id="bt-c4"><span>#4 CVD divergence vs prior 5–10 bars</span></label>
+      <label><input type="checkbox" id="bt-c5"><span>#5 Trigger bar closed through midpoint</span></label>
     </div>
 
     <h4>Trade details (if 5/5)</h4>
@@ -868,35 +846,23 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
 
 <!-- ========================================================= INDICATOR -->
 <section id="indicator">
-  <h2>AbsorptionFadeConfluence — ATAS Indicator</h2>
-  <p class="lead">Custom C# indicator that auto-scores 4 of the 5 v2 conditions. You toggle "level confirmed" for C1 — arrow fires at full 5/5.</p>
+  <h2>AbsorptionFadeScout — ATAS Indicator</h2>
+  <p class="lead">Custom C# indicator that auto-detects 4 of the 5 AF conditions. You confirm location.</p>
 
   <div class="callout warn">
-    <strong>Status: Phase 2 skeleton.</strong> Compilable and runnable, but condition math uses reasonable defaults that need tuning once Phase 1 manual replay produces feedback. Search for <code>// TUNE:</code> comments in the source.
+    <strong>Status: Phase 2 skeleton.</strong>
+    Compilable and runnable, but condition math is intentionally simple. Tuning happens once Phase 1 data tells us what works.
   </div>
 
   <h3>What it does</h3>
   <table>
-    <thead><tr><th>Condition</th><th>Auto-detected?</th><th>How</th></tr></thead>
+    <thead><tr><th>Condition</th><th>Auto-detected?</th></tr></thead>
     <tbody>
-      <tr><td>C1 Location at HTF level</td><td><span class="tag amber">Manual toggle</span></td><td>You flip <code>LevelConfirmed</code> in the indicator settings or via hotkey</td></tr>
-      <tr><td>C2 Cluster imbalance at extreme</td><td><span class="tag green">Auto</span></td><td>Scans clusters at bar high/low for ratio ≥ <code>ImbalanceRatio</code></td></tr>
-      <tr><td>C3 Heavy delta + no progress</td><td><span class="tag green">Auto</span></td><td>Volume × delta % × close-position / wick % checks</td></tr>
-      <tr><td>C4 CVD divergence (classic OR hidden)</td><td><span class="tag green">Auto</span></td><td>Compares price extreme + CVD to lookback bars; either form qualifies</td></tr>
-      <tr><td>C5 Trigger bar (midpoint + delta flip)</td><td><span class="tag green">Auto</span></td><td>Bar N closes through bar N-1 midpoint AND delta sign flipped</td></tr>
-    </tbody>
-  </table>
-
-  <p>The indicator plots a <strong>0–5 confluence score histogram</strong> on a separate panel. Each bar's score = <code>C2 + C3 + C4</code> (auto, 0–3) <code>+ C5</code> (auto, 0–1) <code>+ LevelConfirmed</code> (manual, 0–1). When the score reaches 5/5 in a clear direction, an arrow plots above/below the trigger bar and an alert fires.</p>
-
-  <h3>Score scale — reading the histogram</h3>
-  <table>
-    <thead><tr><th>Score</th><th>Meaning</th><th>Action</th></tr></thead>
-    <tbody>
-      <tr><td><strong>0–2</strong></td><td>No edge</td><td>Ignore. The indicator protecting you from false setups is as valuable as it firing on real ones.</td></tr>
-      <tr><td><strong>3</strong></td><td>Conditions building</td><td>Pay attention. Check which condition is missing.</td></tr>
-      <tr><td><strong>4</strong></td><td>High probability forming</td><td>Hands on keyboard. Pre-plan entry, stop, target. Wait for the 5th — never enter early.</td></tr>
-      <tr><td><strong>5</strong></td><td><span class="tag green">FULL SIGNAL</span></td><td>Arrow + alert. All 5 conditions confirmed. Enter on bar close.</td></tr>
+      <tr><td>#1 Location at HTF level</td><td><span class="tag red">Your job</span></td></tr>
+      <tr><td>#2 Volume spike (≥ 1.5× 20-bar avg)</td><td><span class="tag green">Auto</span></td></tr>
+      <tr><td>#3 Heavy delta + no progress</td><td><span class="tag green">Auto</span></td></tr>
+      <tr><td>#4 CVD divergence</td><td><span class="tag green">Auto</span></td></tr>
+      <tr><td>#5 Trigger bar closes through midpoint</td><td><span class="tag green">Auto</span></td></tr>
     </tbody>
   </table>
 
@@ -904,28 +870,24 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
   <ol>
     <li><strong>Install Visual Studio Community 2022</strong> (free) from <code>visualstudio.microsoft.com/downloads/</code>. Tick the <em>.NET desktop development</em> workload.</li>
     <li><strong>Locate ATAS DLLs:</strong> <code>C:\Users\&lt;YOU&gt;\AppData\Roaming\ATAS\Bin</code>. You should see <code>ATAS.Indicators.dll</code>, <code>ATAS.DataFeedsCore.dll</code>, <code>OFT.Attributes.dll</code>, <code>Utils.Common.dll</code>.</li>
-    <li><strong>Open the project:</strong> double-click <code>AbsorptionFadeConfluence.csproj</code> in this repo (<code>indicators/atas-csharp/AbsorptionFadeConfluence/</code>).</li>
+    <li><strong>Open the project:</strong> double-click <code>AbsorptionFadeScout.csproj</code> in this repo.</li>
     <li><strong>Add references:</strong> right-click References → Add Reference → Browse → select all 4 DLLs above.</li>
     <li><strong>Build:</strong> menu Build → Build Solution (or Ctrl+Shift+B). Watch for "1 succeeded, 0 failed".</li>
-    <li><strong>Install in ATAS:</strong> copy the resulting <code>AbsorptionFadeConfluence.dll</code> into <code>C:\Users\&lt;YOU&gt;\Documents\ATAS\Indicators</code> (create folder if needed).</li>
-    <li><strong>Restart ATAS</strong> → open chart → indicator → search "Absorption Fade Confluence" → add.</li>
-    <li><strong>Calibrate per instrument:</strong> NQ → set <code>ImbalanceRatio</code> = 4.0. ES → set 3.0.</li>
+    <li><strong>Install in ATAS:</strong> copy the resulting <code>AbsorptionFadeScout.dll</code> into <code>C:\Users\&lt;YOU&gt;\Documents\ATAS\Indicators</code> (create folder if needed).</li>
+    <li><strong>Restart ATAS</strong> → open chart → indicator → search "Absorption Fade Scout" → add.</li>
   </ol>
 
   <h3>Configurable parameters</h3>
   <table>
-    <thead><tr><th>Parameter</th><th>Default</th><th>Range</th><th>Notes</th></tr></thead>
+    <thead><tr><th>Parameter</th><th>Default</th><th>Range</th></tr></thead>
     <tbody>
-      <tr><td>Imbalance Ratio</td><td>4.0</td><td>2.0 – 10.0</td><td>4.0 NQ · 3.0 ES · raise to 5.0 for cleaner NQ signals</td></tr>
-      <tr><td>Volume Multiplier</td><td>1.5</td><td>1.0 – 5.0</td><td>Bar volume vs 20-bar avg</td></tr>
-      <tr><td>Volume Avg Period</td><td>20</td><td>5 – 100</td><td>Lookback for the rolling avg</td></tr>
-      <tr><td>Delta Threshold %</td><td>70</td><td>40 – 95</td><td>|delta| / volume threshold</td></tr>
-      <tr><td>Body Close %</td><td>25</td><td>5 – 50</td><td>Body must close in opposite end ≤ this %</td></tr>
-      <tr><td>Wick %</td><td>60</td><td>30 – 90</td><td>Alternative to body close: rejection wick ≥ this %</td></tr>
-      <tr><td>CVD Lookback Bars</td><td>8</td><td>3 – 30</td><td>Pivot lookback for divergence check</td></tr>
-      <tr><td>Level Confirmed</td><td>false</td><td>true / false</td><td><strong>YOUR C1 toggle.</strong> Flip on when price reaches a real HTF level.</td></tr>
-      <tr><td>Min Score To Arrow</td><td>5</td><td>3 – 5</td><td>Keep at 5 for live; lower to 4 for reviewing near-misses in replay</td></tr>
-      <tr><td>Alert On Full</td><td>true</td><td>true / false</td><td>Sound + popup on 5/5</td></tr>
+      <tr><td>Volume Multiplier</td><td>1.5</td><td>1.0 – 5.0</td></tr>
+      <tr><td>Volume Avg Period</td><td>20</td><td>5 – 100</td></tr>
+      <tr><td>Delta Threshold %</td><td>70</td><td>40 – 95</td></tr>
+      <tr><td>Body Close %</td><td>25</td><td>5 – 50</td></tr>
+      <tr><td>Wick %</td><td>60</td><td>30 – 90</td></tr>
+      <tr><td>CVD Lookback Bars</td><td>8</td><td>3 – 30</td></tr>
+      <tr><td>Min Score To Plot</td><td>4</td><td>2 – 4</td></tr>
     </tbody>
   </table>
 
@@ -937,7 +899,6 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
       <tr><td>Build OK but indicator missing in ATAS</td><td>DLL in wrong folder</td><td>Copy to <code>Documents\ATAS\Indicators</code></td></tr>
       <tr><td>ATAS crashes on chart load</td><td>Indicator threw exception</td><td>Check <code>Documents\ATAS\Logs\</code>, paste to Kiro</td></tr>
       <tr><td>Indicator never plots</td><td>Conditions too strict</td><td>Send screenshot of expected setup → Kiro adjusts</td></tr>
-      <tr><td>Score always tops at 4 even at clear setups</td><td>Forgot to toggle <code>LevelConfirmed</code></td><td>Flip the toggle when price reaches your level</td></tr>
     </tbody>
   </table>
 
@@ -1010,7 +971,7 @@ TP2:   Session VWAP @ 21,094.00     → ~25 tick gain on remainder ≈ 3.5R tota
 </main>
 
 <footer>
-  Absorption Fade Playbook · v2.0 — Delta Confluence · jaaytee78-cyber/jaysuhnt · Built locally, runs offline.
+  Absorption Fade Playbook · v1.0 · jaaytee78-cyber/jaysuhnt · Built locally, runs offline.
 </footer>
 
 <div class="toast" id="toast"></div>
