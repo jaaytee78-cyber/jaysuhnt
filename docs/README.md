@@ -6,7 +6,8 @@ Self-contained HTML versions of the playbooks. Open in any browser, works offlin
 
 | File | Purpose |
 |---|---|
-| [`absorption-fade.html`](./absorption-fade.html) | Full Absorption Fade playbook — strategy, interactive checklist, roadmap tracker, expectancy calculator, backtest log generator |
+| [`absorption-fade.html`](./absorption-fade.html) | **Active.** Full Absorption Fade **v2** playbook — strategy, interactive checklist, 4-phase roadmap tracker, expectancy calculator, backtest log generator, AbsorptionFadeConfluence indicator notes |
+| [`archive/absorption-fade-v1.html`](./archive/absorption-fade-v1.html) | Original v1 playbook, preserved for reference and side-by-side comparison |
 
 ## Why HTML?
 
@@ -29,8 +30,11 @@ Self-contained HTML versions of the playbooks. Open in any browser, works offlin
 
 The HTML is a derived artefact built from the markdown in:
 
-- `knowledge-base/strategies/absorption-fade-*.md`
+- `knowledge-base/strategies/absorption-fade-v2*.md` (active)
+- `knowledge-base/strategies/absorption-fade-roadmap.md`
+- `knowledge-base/strategies/absorption-fade-scalp.md` (v1, superseded)
 - `backtests/absorption-fade/*.md`
-- `indicators/atas-csharp/AbsorptionFadeScout/README.md`
+- `indicators/atas-csharp/AbsorptionFadeConfluence/README.md` (active)
+- `indicators/atas-csharp/AbsorptionFadeScout/README.md` (v1, superseded)
 
 If a discrepancy exists, the markdown wins. The HTML gets regenerated to match.

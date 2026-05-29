@@ -30,7 +30,7 @@ I'm running two parallel tracks:
 - **Style:** Mechanical scalping with discretion on level selection
 - **Timeframes:** 30s / 1m footprint, 5m context
 - **Platform:** ATAS
-- **Stage:** Phase 1 manual replay — see [Absorption Fade roadmap](knowledge-base/strategies/absorption-fade-roadmap.md)
+- **Stage:** Phase 1 manual replay — see [Absorption Fade v2 roadmap](knowledge-base/strategies/absorption-fade-v2.md) (and the universal [4-phase plan](knowledge-base/strategies/absorption-fade-roadmap.md))
 - **Approach:** Order-flow (footprint, delta, CVD divergence, absorption)
 
 ## Roadmap
@@ -47,12 +47,14 @@ I'm running two parallel tracks:
 - [ ] First backtested strategy
 
 ### Track B (ATAS / Futures order flow)
-- [x] Strategy spec: [Absorption Fade](knowledge-base/strategies/absorption-fade-scalp.md)
-- [x] Pre-trade checklist
-- [x] 4-phase roadmap with decision gates
+- [x] Strategy spec v1: [Absorption Fade](knowledge-base/strategies/absorption-fade-scalp.md) (superseded)
+- [x] Strategy spec v2: [Absorption Fade — Delta Confluence](knowledge-base/strategies/absorption-fade-v2.md) (active)
+- [x] Pre-trade checklist (v1 + v2)
+- [x] 4-phase roadmap with decision gates (applies to v2)
 - [x] Backtest template
-- [x] ATAS indicator skeleton (`AbsorptionFadeScout`)
-- [ ] Phase 1: 30 manual replay instances
+- [x] ATAS indicator v1 skeleton (`AbsorptionFadeScout`) (superseded, kept for comparison)
+- [x] ATAS indicator v2 skeleton (`AbsorptionFadeConfluence`) (active)
+- [ ] Phase 1: 30 manual replay instances on v2
 - [ ] Phase 2: indicator tuned and 100+ instances
 - [ ] Phase 3: live forward-test on micros
 - [ ] Phase 4: Databento robustness backtest
