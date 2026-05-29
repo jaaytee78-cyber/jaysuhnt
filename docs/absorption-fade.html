@@ -775,3 +775,396 @@ TP2:    Session VWAP @ 21,094.00    → ~25 tick gain on remainder ≈ <span cla
     </div>
   </div>
 </div>
+
+
+<!-- ════════════════ TAB 4: INDICATOR ════════════════ -->
+<div class="page-wrap" id="page-indicator">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-eyebrow">ATAS C# Custom Indicator · v0.2</div>
+    <div class="hero-title">AbsorptionFade<em>Confluence</em></div>
+    <div class="hero-sub">Auto-scores 4 of the 5 v2 conditions on every bar in real-time. C1 is your manual <code>LevelConfirmed</code> toggle. Arrow + alert at full 5/5 in a clear direction. Drop it onto a 233-tick footprint chart as a mechanical second opinion.</div>
+    <div class="badges">
+      <span class="badge b-green">No Repainting</span>
+      <span class="badge b-blue">0–5 Confluence Histogram</span>
+      <span class="badge b-amber">Manual C1 Gate</span>
+      <span class="badge b-dim">ATAS 6.x+</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">Confluence Score Scale</span><span class="ptag ptag-blue">Reading the Indicator</span></div>
+    <div class="panel-body">
+      <div class="score-grid">
+        <div class="score-cell s0"><div class="score-n">0</div><div class="score-lbl">No Signal</div></div>
+        <div class="score-cell s1"><div class="score-n">1</div><div class="score-lbl">Noise<br>Ignore</div></div>
+        <div class="score-cell s2"><div class="score-n">2</div><div class="score-lbl">Weak<br>Monitor</div></div>
+        <div class="score-cell s3"><div class="score-n">3</div><div class="score-lbl">Building<br>Alert</div></div>
+        <div class="score-cell s4"><div class="score-n">4</div><div class="score-lbl">Strong<br>Prepare</div></div>
+        <div class="score-cell s5"><div class="score-n">5</div><div class="score-lbl">FULL<br>SIGNAL</div></div>
+      </div>
+      <p style="font-family:var(--mono);font-size:9px;color:var(--text2);line-height:1.6">Score = C2 + C3 + C4 + C5 + LevelConfirmed (each 0 or 1, capped at 5). Only 5/5 fires the arrow + alert. Score 3–4 means conditions are building — pre-plan your entry but wait for the 5th. Never enter on a 3 or 4 alone. If you forgot to flip <code style="color:var(--accent4)">LevelConfirmed</code>, the score caps at 4 even on a perfect setup — that's a feature.</p>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">What Each Condition Scores</span><span class="ptag ptag-green">Logic</span></div>
+        <div class="panel-body" style="padding:10px">
+          <div class="cond-list">
+            <div class="cond-row"><div class="cond-num">C1</div><div><div class="cond-name">Manual Level Confirmation</div><div class="cond-desc">Your call. Toggle <code>LevelConfirmed</code> ON when price is at a real HTF level. Adds +1 to score. Why manual: only you can judge whether the level is meaningful for current context.</div><div class="cond-code">LevelConfirmed = true → +1</div></div><div><div class="cond-tag ct-manual">MANUAL</div></div></div>
+            <div class="cond-row"><div class="cond-num">C2</div><div><div class="cond-name">Cluster Imbalance at Extreme</div><div class="cond-desc">Scans clusters within 4 ticks of bar high/low. Long: ask/bid ≥ ratio at low. Short: bid/ask ≥ ratio at high. Direction-aware.</div><div class="cond-code">ratio ≥ ImbalanceRatio (default 4.0 — set to 3.0 for ES)</div></div><div style="display:flex;flex-direction:column;gap:3px"><div class="cond-tag ct-long">LONG</div><div class="cond-tag ct-short">SHORT</div></div></div>
+            <div class="cond-row"><div class="cond-num">C3</div><div><div class="cond-name">Heavy Delta + No Progress</div><div class="cond-desc">Volume spike (≥ 1.5× 20-bar avg) AND |delta| ≥ 70% of vol AND structure (close ≤ 25% opp OR rejection wick ≥ 60%). Direction inferred from delta sign + close position.</div><div class="cond-code">volSpike && deltaHeavy && (closedOpp || bigWick)</div></div><div style="display:flex;flex-direction:column;gap:3px"><div class="cond-tag ct-long">LONG</div><div class="cond-tag ct-short">SHORT</div></div></div>
+            <div class="cond-row"><div class="cond-num">C4</div><div><div class="cond-name">CVD Divergence (Classic OR Hidden)</div><div class="cond-desc">Walks back the lookback window to find prior pivot extreme + its CVD. Either form qualifies — classic catches reversals, hidden catches stealth accumulation.</div><div class="cond-code">classicLong = newLow && cvd&gt;cvdAtLow ‖ hiddenLong = cvd&lt;cvdAtLow && low&gt;priorLow</div></div><div style="display:flex;flex-direction:column;gap:3px"><div class="cond-tag ct-long">LONG</div><div class="cond-tag ct-short">SHORT</div></div></div>
+            <div class="cond-row"><div class="cond-num">C5</div><div><div class="cond-name">Trigger Bar — Midpoint + Delta Flip</div><div class="cond-desc">Look at bar-1: was it scored ≥ 2 with a direction? If so, current bar must close through midpoint AND have opposite delta sign. Both required.</div><div class="cond-code">prevAbsScore≥2 && close-vs-mid && deltaSign-flipped</div></div><div style="display:flex;flex-direction:column;gap:3px"><div class="cond-tag ct-long">LONG</div><div class="cond-tag ct-short">SHORT</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Installation</span><span class="ptag ptag-amber">Setup</span></div>
+        <div class="panel-body" style="padding:8px">
+          <div class="install-list">
+            <div class="inst-step"><div class="inst-n">1</div><div><div class="inst-title">Install Visual Studio Community 2022 (free)</div><div class="inst-detail">visualstudio.microsoft.com/downloads/<br>Tick: ☑ .NET desktop development</div></div></div>
+            <div class="inst-step"><div class="inst-n">2</div><div><div class="inst-title">Locate ATAS DLLs</div><div class="inst-path">C:\Users\[Name]\AppData\Roaming\ATAS\Bin</div><div class="inst-detail">ATAS.Indicators.dll · ATAS.DataFeedsCore.dll · OFT.Attributes.dll · Utils.Common.dll</div></div></div>
+            <div class="inst-step"><div class="inst-n">3</div><div><div class="inst-title">Open .csproj in Visual Studio</div><div class="inst-detail">Double-click <code style="font-family:var(--mono);color:var(--accent4)">AbsorptionFadeConfluence.csproj</code><br>Right-click References → Add Reference → Browse → all 4 DLLs</div></div></div>
+            <div class="inst-step"><div class="inst-n">4</div><div><div class="inst-title">Build → Build Solution (Ctrl+Shift+B)</div><div class="inst-detail">Watch for "1 succeeded, 0 failed"<br>Output: bin\Debug\net8.0\AbsorptionFadeConfluence.dll</div></div></div>
+            <div class="inst-step"><div class="inst-n">5</div><div><div class="inst-title">Copy DLL to ATAS indicators folder</div><div class="inst-path">C:\Users\[Name]\Documents\ATAS\Indicators</div></div></div>
+            <div class="inst-step"><div class="inst-n">6</div><div><div class="inst-title">Restart ATAS, add to 233-tick chart</div><div class="inst-detail">Right-click chart → Add Indicator →<br>search "Absorption Fade Confluence"</div></div></div>
+            <div class="inst-step"><div class="inst-n">7</div><div><div class="inst-title">Calibrate per instrument</div><div class="inst-detail">NQ → ImbalanceRatio = 4.0<br>ES → ImbalanceRatio = 3.0</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Parameters</span><span class="ptag ptag-dim">Config</span></div>
+        <div class="panel-body" style="padding:0">
+          <table class="param-tbl">
+            <tr><td>ImbalanceRatio</td><td>4.0</td><td>4.0 NQ · 3.0 ES · 5.0 for cleaner</td></tr>
+            <tr><td>VolumeMultiplier</td><td>1.5</td><td>Bar vol vs 20-bar avg</td></tr>
+            <tr><td>VolumeAvgPeriod</td><td>20</td><td>Lookback bars</td></tr>
+            <tr><td>DeltaThresholdPct</td><td>70</td><td>|delta| / vol %</td></tr>
+            <tr><td>BodyClosePct</td><td>25</td><td>Close in opposite end ≤ %</td></tr>
+            <tr><td>WickPct</td><td>60</td><td>Rejection wick ≥ %</td></tr>
+            <tr><td>CvdLookbackBars</td><td>8</td><td>Pivot window for divergence</td></tr>
+            <tr><td>LevelConfirmed</td><td>false</td><td><strong style="color:var(--accent4)">YOUR C1 toggle</strong></td></tr>
+            <tr><td>MinScoreToArrow</td><td>5</td><td>5 live, 4 review near-misses</td></tr>
+            <tr><td>AlertOnFull</td><td>true</td><td>Sound + popup at 5/5</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-bar"><span class="mkdot mk-r"></span><span class="mkdot mk-y"></span><span class="mkdot mk-g"></span><span style="margin-left:6px">NQ · 233-TICK · FOOTPRINT + ABSORPTION FADE CONFLUENCE OVERLAY</span></div>
+    <div class="chart-pre"><span style="color:#3d5a70">PRICE  ┤</span>                                          <span class="g">△ +25t (T2 = VWAP)</span>
+<span style="color:#3d5a70">       ┤</span>                                    <span class="g">┌──────────</span>
+<span style="color:#3d5a70">       ┤</span>                               <span class="g">┌───┘</span>   <span class="g">← T1 +1R — close 50%, BE</span>
+<span class="b">──VWAP─┤────────────────────────────────────────────────────────────</span>
+<span style="color:#3d5a70">       ┤</span>         <span style="color:#3d5a70">─────────────</span><span class="g">┘</span>  <span class="g">← LONG ARROW ▲ fires (5/5)</span>
+<span style="color:#3d5a70">       ┤</span>   <span class="r">─────┘</span>   <span class="r">← absorption: 4.4:1 ask imbalance + hidden CVD div</span>
+<span style="color:#3d5a70">       ┤</span>   <span class="r">STOP — 1 tick below absorption wick</span>
+<span class="a">       ┤   PDL ────────────────────────────────────────────────────  ← C1 level confirmed (manual)</span></div>
+    <div class="subgraph-area">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--text2);letter-spacing:0.12em;margin-bottom:6px">CONFLUENCE SCORE SUBGRAPH (0-5)</div>
+      <div class="bar-strip">
+        <div class="bs bs1">1</div><div class="bs bs0">0</div><div class="bs bs2">2</div>
+        <div class="bs bs1">1</div><div class="bs bs3">3</div><div class="bs bs2">2</div>
+        <div class="bs bs3">3</div><div class="bs bs4">4</div><div class="bs bs4">4</div>
+        <div class="bs bs5" style="font-weight:600">5▲</div>
+        <div class="bs bs2">2</div><div class="bs bs1">1</div><div class="bs bs0">0</div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">How to Use It Alongside the Strategy</span><span class="ptag ptag-green">Workflow</span></div>
+    <div class="panel-body" style="padding:10px">
+      <div class="read-grid">
+        <div class="read-cell"><div class="read-title" style="color:var(--accent2)">Score = 5 → Arrow + Alert</div><div class="read-body">Mechanical entry trigger. All 5 confirmed. Enter on close of trigger bar. Set stop 1 tick beyond absorption wick. TP1=1R, TP2=structural. Toggle <code>LevelConfirmed</code> OFF after the trade until next setup.</div></div>
+        <div class="read-cell"><div class="read-title" style="color:#88dd44">Score = 4</div><div class="read-body">High probability forming. Hands on keyboard. Pre-plan entry, stop, target. Wait for the 5th — most often that's C5 (trigger bar) or C1 (you forgot to toggle <code>LevelConfirmed</code>).</div></div>
+        <div class="read-cell"><div class="read-title" style="color:var(--accent4)">Score = 3</div><div class="read-body">Conditions building. Pay attention. Check which condition is missing — if C2 cluster absorption is absent, the setup is much weaker (C2 is the footprint signature core). Stay patient.</div></div>
+        <div class="read-cell"><div class="read-title" style="color:var(--text2)">Score = 0–2</div><div class="read-body">No edge. Ignore entirely. The indicator protects you from false setups as much as it alerts to real ones — a 0 or 1 is valuable information.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caveat">
+    <div class="caveat-title">⚠ Important Notes &amp; Limitations</div>
+    <div class="caveat-body">
+      <strong>Manual C1 toggle:</strong> The <code>LevelConfirmed</code> property is the human gate. The indicator can score C2–C5 mechanically but cannot judge whether the price location is meaningful — that's your job. Toggle ON when price reaches a level you marked at session start, OFF after the trade closes.<br><br>
+      <strong>Cluster data dependency:</strong> C2 reads <code>candle.Clusters</code> directly. Some demo feeds don't expose clusters; full Rithmic / CQG feeds do. If C2 always scores 0, your feed isn't supplying footprint data.<br><br>
+      <strong>CVD anchoring:</strong> CVD is currently anchored to chart start, not session start. Acceptable for replay; revisit before live use. Marked <code>// TUNE:</code> in source.<br><br>
+      <strong>No repainting:</strong> Once a bar closes, its score is locked. Signal arrows do not repaint on historical bars. The indicator only reads closed bars (`bar - 1` for prior absorption + `bar` for current trigger).<br><br>
+      <strong>Paper trade first:</strong> Phase 1 manual replay → Phase 2 indicator-assisted replay → Phase 3 live micros → Phase 4 Databento. Confluence scoring is a guide, not a guarantee. v2 inherits zero validation from v1.
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════ TAB 5: CODE ════════════════ -->
+<div class="page-wrap" id="page-code">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-eyebrow">C# Source Code · ATAS 6.x+ API</div>
+    <div class="hero-title">AbsorptionFade<em>Confluence.cs</em></div>
+    <div class="hero-sub">Full source code, ready to copy and install. ~382 lines, no external dependencies. Drop the file into your ATAS indicators project, compile in Visual Studio, copy the DLL into ATAS.</div>
+    <div class="badges">
+      <span class="badge b-blue">C# / .NET 8</span>
+      <span class="badge b-green">ATAS 6.x API</span>
+      <span class="badge b-dim">~382 Lines</span>
+      <span class="badge b-dim">No External Dependencies</span>
+    </div>
+  </div>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode()" id="copy-btn">Copy Code</button>
+    <div class="code-block" id="code-block"></div>
+  </div>
+  <div class="sec-head">Install Path</div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">Where Files Go</span><span class="ptag ptag-amber">Windows</span></div>
+    <div class="panel-body">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text);line-height:1.8">
+        <strong style="color:var(--bright)">Source (this repo):</strong><br>
+        <span class="inst-path">indicators/atas-csharp/AbsorptionFadeConfluence/AbsorptionFadeConfluence.cs</span><br><br>
+        <strong style="color:var(--bright)">Compiled DLL destination:</strong><br>
+        <span class="inst-path">C:\Users\[YourName]\Documents\ATAS\Indicators\AbsorptionFadeConfluence.dll</span><br><br>
+        <strong style="color:var(--bright)">After install:</strong> Tools → Custom Indicators → Compile All (or restart ATAS). The indicator appears under <strong style="color:var(--bright)">Order Flow | Custom</strong> as "Absorption Fade Confluence".
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════ TAB 6: BACKTEST ════════════════ -->
+<div class="page-wrap" id="page-backtest">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-eyebrow">Validation Tools · Log · Calculate · Source</div>
+    <div class="hero-title">Backtest <em>&amp; Stats</em></div>
+    <div class="hero-sub">Three sections: log a single instance to clean markdown you can paste into the repo, calculate batch expectancy against the phase decision gates, and review data providers ranked for v2 footprint backtesting.</div>
+  </div>
+
+  <div class="sec-head">A · Log a Backtest Instance — Generate Markdown</div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">Single Instance Logger</span><span class="ptag ptag-blue">Form → Markdown</span></div>
+    <div class="panel-body">
+      <div class="form-grid three">
+        <div class="form-field"><label>Date</label><input type="date" id="bt-date"></div>
+        <div class="form-field"><label>Instrument</label><select id="bt-instrument"><option>ES</option><option>NQ</option><option>MES</option><option>MNQ</option></select></div>
+        <div class="form-field"><label>Phase</label><select id="bt-phase"><option value="1">Phase 1 — Manual Replay</option><option value="2">Phase 2 — Indicator</option><option value="3">Phase 3 — Live Micros</option></select></div>
+      </div>
+      <div class="form-grid three">
+        <div class="form-field"><label>Session Window</label><select id="bt-session"><option>NY Open</option><option>London/NY Overlap</option><option>NY PM</option><option>Other (flag)</option></select></div>
+        <div class="form-field"><label>Time (HH:MM ET)</label><input type="text" id="bt-time" placeholder="09:42"></div>
+        <div class="form-field"><label>Direction</label><select id="bt-direction"><option>Long</option><option>Short</option></select></div>
+      </div>
+      <label style="font-family:var(--mono);font-size:8px;letter-spacing:0.12em;color:var(--text2);text-transform:uppercase;display:block;margin-top:8px;margin-bottom:6px">Conditions Met</label>
+      <div class="form-row-checks">
+        <label><input type="checkbox" id="bt-c1"> C1 Location</label>
+        <label><input type="checkbox" id="bt-c2"> C2 Imbalance</label>
+        <label><input type="checkbox" id="bt-c3"> C3 Heavy Δ</label>
+        <label><input type="checkbox" id="bt-c4"> C4 CVD div</label>
+        <label><input type="checkbox" id="bt-c5"> C5 Trigger</label>
+      </div>
+      <div class="form-grid three">
+        <div class="form-field"><label>Entry</label><input type="text" id="bt-entry" placeholder="21,083.75"></div>
+        <div class="form-field"><label>Stop</label><input type="text" id="bt-stop" placeholder="21,082.00"></div>
+        <div class="form-field"><label>Stop ticks</label><input type="text" id="bt-stopticks" placeholder="7"></div>
+      </div>
+      <div class="form-grid three">
+        <div class="form-field"><label>TP1 (1R)</label><input type="text" id="bt-tp1" placeholder="21,085.50"></div>
+        <div class="form-field"><label>TP2 type</label><select id="bt-tp2type"><option>Session POC</option><option>Opposite VWAP band</option><option>Next HVN</option><option>Other</option></select></div>
+        <div class="form-field"><label>TP2 price</label><input type="text" id="bt-tp2" placeholder="21,094.00"></div>
+      </div>
+      <div class="form-grid three">
+        <div class="form-field"><label>Outcome</label><select id="bt-outcome"><option>TP1 only (BE on rest)</option><option>TP1 + TP2 hit</option><option>Stopped</option><option>Time stop (5min)</option><option>Hard exit (delta flip)</option></select></div>
+        <div class="form-field"><label>Result (R)</label><input type="text" id="bt-r" placeholder="+1.5"></div>
+        <div class="form-field"><label>Hold time</label><input type="text" id="bt-hold" placeholder="4m 12s"></div>
+      </div>
+      <div class="form-field" style="margin-top:8px"><label>Notes / lessons</label><textarea id="bt-notes" placeholder="What worked, what didn't, was C1 correctly identified, one thing to remember..."></textarea></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-blue" onclick="generateBacktest()">⚙ GENERATE MARKDOWN</button>
+        <button class="btn btn-green" onclick="copyBacktest()">📋 COPY</button>
+        <button class="btn btn-dim" onclick="clearBacktest()">↺ CLEAR FORM</button>
+      </div>
+      <div class="gen-output" id="bt-output" style="display:none"></div>
+    </div>
+  </div>
+
+
+  <div class="sec-head">B · Batch Expectancy Calculator</div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">Stats vs Phase Decision Gates</span><span class="ptag ptag-green">Compute</span></div>
+    <div class="panel-body">
+      <div class="form-grid three">
+        <div class="form-field"><label>Total Trades</label><input type="number" id="calc-total" placeholder="30" min="1"></div>
+        <div class="form-field"><label>Wins</label><input type="number" id="calc-wins" placeholder="16" min="0"></div>
+        <div class="form-field"><label>Losses</label><input type="number" id="calc-losses" placeholder="12" min="0"></div>
+      </div>
+      <div class="form-grid three">
+        <div class="form-field"><label>Breakevens</label><input type="number" id="calc-be" placeholder="2" min="0" value="0"></div>
+        <div class="form-field"><label>Avg Winner (R)</label><input type="number" id="calc-avgwin" placeholder="1.6" step="0.1"></div>
+        <div class="form-field"><label>Avg Loser (R)</label><input type="number" id="calc-avgloss" placeholder="-1.0" step="0.1"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-blue" onclick="computeStats()">⚙ COMPUTE</button>
+        <button class="btn btn-dim" onclick="clearCalc()">↺ CLEAR</button>
+      </div>
+      <div class="calc-result" id="calc-result" style="display:none"></div>
+      <p style="font-family:var(--mono);font-size:9px;color:var(--text2);margin-top:10px;line-height:1.6">Expectancy formula: <code style="color:var(--accent)">E = (winRate × avgWin) − (lossRate × |avgLoss|)</code>. Phase 1 gate: WR≥45% · AvgWin≥1.3R · E≥0.2R · n≥30. Phase 2 gate: WR≥50% · AvgWin≥1.4R · E≥0.3R · n≥100.</p>
+    </div>
+  </div>
+
+  <div class="sec-head">C · Data Providers — Ranked for v2 Footprint Backtesting</div>
+  <div class="warn-box">
+    <div class="warn-title">⊗ Why Polygon.io Falls Short</div>
+    <div class="warn-body">Polygon is excellent for equities but has critical gaps for ES/NQ futures: no tick-by-tick bid/ask volume split, no cluster/footprint history, only OHLCV bars. You can backtest a moving average crossover on Polygon. You cannot backtest absorption with it.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">Providers Ranked for This Strategy</span><span class="ptag ptag-green">Best First</span></div>
+    <div class="panel-body" style="padding:10px">
+      <div class="provider-list">
+        <div class="provider-row">
+          <div class="prov-rank" style="color:var(--accent2)">★1</div>
+          <div><div class="prov-name">Databento</div><div class="prov-price">~$20–$80 per dataset</div></div>
+          <div class="prov-desc">Best value for v2. CME MBO (market-by-order) and MBP (market-by-price) tick data, clean Python/REST API, pay-per-GB pricing. Purpose-built for quant backtesting. 3–6 months of NQ/ES MBP-10 data: ~$20–80. <strong style="color:var(--bright)">Start here for Phase 4.</strong></div>
+          <div><div class="prov-badge pb-rec">RECOMMENDED</div></div>
+        </div>
+        <div class="provider-row">
+          <div class="prov-rank">2</div>
+          <div><div class="prov-name">Rithmic</div><div class="prov-price">Via broker subscription</div></div>
+          <div class="prov-desc">The same feed ATAS uses live. Pull historical tick data directly. Ensures complete consistency between your backtest and live trading environment. Best if you're already paying for Rithmic via AMP / Tradovate.</div>
+          <div><div class="prov-badge pb-ok">SOLID</div></div>
+        </div>
+        <div class="provider-row">
+          <div class="prov-rank">3</div>
+          <div><div class="prov-name">Kinetick</div><div class="prov-price">NinjaTrader subscription</div></div>
+          <div class="prov-desc">Reasonable ES/NQ tick data. Works natively inside NinjaTrader's Strategy Analyzer. Good middle-ground if you want to backtest in a dedicated platform rather than writing Python.</div>
+          <div><div class="prov-badge pb-ok">GOOD</div></div>
+        </div>
+        <div class="provider-row">
+          <div class="prov-rank">4</div>
+          <div><div class="prov-name">TickData LLC</div><div class="prov-price">$500+ per dataset</div></div>
+          <div class="prov-desc">Institutional gold standard. Decades of history, highest data quality available. Worth it if you're building for a funded account or prop firm. Overkill for initial validation.</div>
+          <div><div class="prov-badge pb-pro">INSTITUTIONAL</div></div>
+        </div>
+        <div class="provider-row">
+          <div class="prov-rank">5</div>
+          <div><div class="prov-name">CQG</div><div class="prov-price">Professional pricing</div></div>
+          <div class="prov-desc">High quality, used by prop firms. Same tier as Rithmic. Only consider if already using CQG for live execution and want feed consistency.</div>
+          <div><div class="prov-badge pb-pro">PRO ONLY</div></div>
+        </div>
+        <div class="provider-row" style="opacity:0.6">
+          <div class="prov-rank" style="color:var(--accent3)">⛔</div>
+          <div><div class="prov-name">Polygon / Yahoo / Alpha Vantage</div><div class="prov-price">Free–Low cost</div></div>
+          <div class="prov-desc">Missing bid/ask aggressor data. Cannot reconstruct footprint or delta. Only OHLCV available for futures. Cannot validate v2 with these sources.</div>
+          <div><div class="prov-badge pb-no">NOT SUITABLE</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="info-box">
+    <p><strong>Phase progression for validation:</strong> 30 manual replay → 100 indicator-assisted replay → 30 live micros → multi-year Databento. Decision gates between each. The strategy is conceptually sound — but the edge must be proven in your specific execution context. Track everything in this tab + the markdown logs.</p>
+  </div>
+</div>
+
+
+<!-- ════════════════ TAB 7: JOURNAL ════════════════ -->
+<div class="page-wrap" id="page-journal">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-eyebrow">Post-Trade Process · Weekly Review</div>
+    <div class="hero-title">Journal &amp; <em>Performance Review</em></div>
+    <div class="hero-sub">The journal is where the edge is built. Every setup — win or loss — teaches you something. Missed setups count as data too. Use the Backtest tab logger for the structured form; use this tab as the framework for what to think about.</div>
+  </div>
+
+  <div class="three-col">
+    <div class="panel">
+      <div class="panel-hd"><span class="panel-title">Record Every Trade</span><span class="ptag ptag-blue">After Each Setup</span></div>
+      <div class="panel-body" style="padding:10px">
+        <div class="checklist">
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Screenshot of 233-tick chart at entry</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Which of the 5 conditions were met (Y/N each)</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Indicator score at entry bar (0–5)</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Delta at entry bar and at exit</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">CVD divergence quality: clean classic, hidden, or marginal</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Cluster ratio at extreme (the actual number)</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">P&amp;L in points and in dollars</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Did you follow the plan exactly? If not, why?</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd"><span class="panel-title">Weekly Review Questions</span><span class="ptag ptag-amber">Every Friday</span></div>
+      <div class="panel-body" style="padding:10px">
+        <div class="checklist">
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Win rate by setup type (which level produced best?)</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Average winner vs loser — is R:R holding above 1:2?</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Classic divergence vs hidden divergence — which works for you?</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Did you respect all kill conditions (lunch block, daily stop, news)?</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Missed setups — how many, which conditions failed?</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Should imbalance ratio be adjusted (4.0 → 5.0 on NQ for cleaner)?</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Pattern in losing trades (time of day, session, instrument)?</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Patience ratio: setups seen vs setups taken</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd"><span class="panel-title">Key Metrics to Track</span><span class="ptag ptag-green">Performance</span></div>
+      <div class="panel-body" style="padding:10px">
+        <div class="checklist">
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Win rate % (know your baseline)</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Average winner in R</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Average loser in R (should be ~−1R if stops obeyed)</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Expectancy per trade in R</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Max adverse excursion (MAE) per setup type</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Max favourable excursion (MFE) — leaving money on table?</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Time-to-TP1 average (vs the 5-min stop)</span></div>
+          <div class="check-item neutral"><span class="check-icon neutral">→</span><span class="check-text">Consecutive losing days / streak tracking</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-head">Common Mistakes &amp; Corrections</div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">What Goes Wrong &amp; How to Fix It</span><span class="ptag ptag-amber">Learn From These</span></div>
+    <div class="panel-body" style="padding:0">
+      <table class="tbl">
+        <tr><th style="color:var(--accent3)">Mistake</th><th style="color:var(--accent2)">Correction</th></tr>
+        <tr><td class="bold">Entering at score 4/5</td><td>Wait. The 5th condition is the edge. The whole strategy collapses without full confluence.</td></tr>
+        <tr><td class="bold">Forgetting to toggle <code>LevelConfirmed</code></td><td>Score caps at 4. That's by design — you must consciously confirm location. Build it into your pre-entry routine.</td></tr>
+        <tr><td class="bold">Trading 11:30–13:30 ET lunch</td><td>Hard block. Close charts if needed. Low volume + random chop destroys the edge.</td></tr>
+        <tr><td class="bold">Ignoring daily stop limit</td><td>Pre-set a hard stop at the broker level. Mental stops always get moved.</td></tr>
+        <tr><td class="bold">Moving stop against the trade</td><td>Once set, stop does not move until TP1. Wick violated = thesis wrong = take the loss clean.</td></tr>
+        <tr><td class="bold">Skipping the 5-min time stop</td><td>Trades that haven't worked in 5 min usually aren't going to. Real edge contributor — don't bypass it.</td></tr>
+        <tr><td class="bold">Chasing a missed entry bar</td><td>If the trigger bar closed without you, the setup is gone. Log it as a missed setup and move on.</td></tr>
+        <tr><td class="bold">Exiting TP2 early on emotion</td><td>Trail with delta mechanically. If delta has not flipped against you 2+ bars, the trade is still valid.</td></tr>
+        <tr><td class="bold">Revenge trading after losses</td><td>3 losses in a day = stop immediately. Losses from a broken mindset compound fast.</td></tr>
+        <tr><td class="bold">Running NQ at imbalance 3.0</td><td>Too noisy — you'll get false positives. Set 4.0 minimum on NQ. 5.0 if you want fewer/cleaner signals.</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-top:16px">
+    <div class="caveat">
+      <div class="caveat-title">⚠ Risk Disclaimer</div>
+      <div class="caveat-body">This is educational material only. Futures trading involves substantial risk of loss and is not suitable for all investors. The v2 strategy has not been independently backtested with statistical rigour. Past performance — real or simulated — is not indicative of future results. <strong>Always paper trade before risking real capital.</strong> This is not financial advice.</div>
+    </div>
+    <div class="info-box">
+      <p><strong>The goal of journaling</strong> is to convert v2 from a well-constructed hypothesis into a <strong>personally validated edge</strong>. After 100+ tracked setups you will know: which conditions matter most in your hands, which sessions work best, whether classic or hidden divergence suits your reading, and whether the R:R holds in real execution. That data is yours alone — and worth more than any strategy document.</p>
+    </div>
+  </div>
+</div>
+
+<div class="page-footer">
+  <span>Absorption Fade v2 · Delta Confluence · jaaytee78-cyber/jaysuhnt · v2.0</span>
+  <span class="disclaimer">⚠ Not financial advice. Futures trading involves substantial risk of loss. Paper trade before risking capital. Past performance is not indicative of future results.</span>
+</div>
