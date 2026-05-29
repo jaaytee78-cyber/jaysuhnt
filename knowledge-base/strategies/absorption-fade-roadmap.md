@@ -2,6 +2,8 @@
 
 The 4-phase plan from "interesting idea" to "live trading with confidence." **Do not skip phases.** Each phase has a decision gate — if the numbers don't pass, you go back, not forward.
 
+> **Applies to both [v1](./absorption-fade-scalp.md) and [v2](./absorption-fade-v2.md).** The phase logic and decision gates are universal — v2 is the active hypothesis. If you're starting from scratch, validate v2. v1 remains a comparison reference; you may also re-validate it side-by-side if you want to A/B the two specs on the same data.
+
 ---
 
 ## Phase 1 — Manual replay (start here)
@@ -35,12 +37,14 @@ If you don't pass: refine the rules (tighten condition #3 thresholds, restrict t
 
 **Goal:** Scale sample size 5–10× by auto-detecting setups in replay.
 
-- **Tool:** `AbsorptionFadeScout` indicator (C#, in this repo)
-- **Build:** I write the code, you compile + load (see [indicator README](../../indicators/atas-csharp/AbsorptionFadeScout/README.md))
+- **Tool:**
+  - **v2:** [`AbsorptionFadeConfluence`](../../indicators/atas-csharp/AbsorptionFadeConfluence/README.md) — auto-scores C2–C5 (0–4 histogram), you toggle "level confirmed" for C1, arrow fires at full 5/5
+  - **v1:** [`AbsorptionFadeScout`](../../indicators/atas-csharp/AbsorptionFadeScout/README.md) — auto 4/4 + your manual location call (kept for comparison)
+- **Build:** I write the code, you compile + load
 - **Use:**
   1. Run indicator on ATAS Replay across 60+ trading days
-  2. Indicator marks every bar that satisfies conditions #2–#5
-  3. You evaluate each flagged bar manually for condition #1 (location)
+  2. Indicator marks every bar that satisfies the auto conditions
+  3. You evaluate each flagged bar manually for condition C1 (location)
   4. Log 100+ instances in the backtest template
 
 ### Phase 2 decision gate

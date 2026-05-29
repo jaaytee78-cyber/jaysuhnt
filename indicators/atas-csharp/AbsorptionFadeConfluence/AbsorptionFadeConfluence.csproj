@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    AbsorptionFadeConfluence — ATAS custom indicator (Absorption Fade v2)
+    Build: Visual Studio 2022 → Build → Build Solution
+    Output: bin\Debug\net8.0\AbsorptionFadeConfluence.dll
+    Install: copy DLL to %USERPROFILE%\Documents\ATAS\Indicators
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>AbsorptionFadeConfluence</AssemblyName>
+    <RootNamespace>Jaysuhnt.AtasIndicators.AbsorptionFadeConfluence</RootNamespace>
+    <Version>0.2.0</Version>
+    <Authors>jaaytee78-cyber</Authors>
+    <Description>Absorption Fade v2 — auto-scores 4/5 conditions (C2-C5) on a 0-4 histogram; trader toggles LevelConfirmed for C1; arrow + alert at full 5/5.</Description>
+  </PropertyGroup>
+
+  <!--
+    ATAS DLL references.
+    Default ATAS install path. Edit HintPath if your ATAS lives elsewhere.
+    Visual Studio: right-click References → Add Reference → Browse → pick these 4 files
+    will rewrite this section automatically.
+  -->
+  <ItemGroup>
+    <Reference Include="ATAS.Indicators">
+      <HintPath>$(APPDATA)\ATAS\Bin\ATAS.Indicators.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ATAS.DataFeedsCore">
+      <HintPath>$(APPDATA)\ATAS\Bin\ATAS.DataFeedsCore.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="OFT.Attributes">
+      <HintPath>$(APPDATA)\ATAS\Bin\OFT.Attributes.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Utils.Common">
+      <HintPath>$(APPDATA)\ATAS\Bin\Utils.Common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

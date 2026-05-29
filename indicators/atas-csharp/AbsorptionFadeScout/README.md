@@ -1,6 +1,8 @@
-# AbsorptionFadeScout — ATAS Indicator
+# AbsorptionFadeScout — ATAS Indicator (v1)
 
-A custom ATAS indicator that auto-detects setups for the [Absorption Fade strategy](../../../knowledge-base/strategies/absorption-fade-scalp.md). It is a **scout** — it spots candidates, but you still confirm condition #1 (location) yourself. It is not an auto-trader.
+> **⚠ Superseded by [AbsorptionFadeConfluence](../AbsorptionFadeConfluence/README.md)** — the v2 indicator with 0–5 confluence scoring, manual `LevelConfirmed` toggle, instrument-calibrated imbalance threshold, classic-or-hidden CVD divergence, and dual-filter trigger (midpoint reclaim + delta flip). This file is preserved for comparison and side-by-side validation.
+
+A custom ATAS indicator that auto-detects setups for the [Absorption Fade v1 strategy](../../../knowledge-base/strategies/absorption-fade-scalp.md). It is a **scout** — it spots candidates, but you still confirm condition #1 (location) yourself. It is not an auto-trader.
 
 > **Status:** Skeleton (Phase 2 of the [roadmap](../../../knowledge-base/strategies/absorption-fade-roadmap.md)). Compilable and runnable, but the condition math is intentionally kept simple. We tune it together once you've finished Phase 1 manual replay.
 

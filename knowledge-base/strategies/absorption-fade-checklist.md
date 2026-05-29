@@ -1,4 +1,6 @@
-# Absorption Fade — Pre-Trade Checklist
+# Absorption Fade v1 — Pre-Trade Checklist
+
+> **⚠ Superseded by the [v2 checklist](./absorption-fade-v2-checklist.md).** Kept for reference. v2 uses 233-tick bars, instrument-calibrated imbalance, and an additional delta-flip filter on the trigger bar.
 
 Print this. Pin it next to your screen. **If any box is unchecked, no trade.**
 

@@ -1,4 +1,6 @@
-# Absorption Fade (AF) — Scalping Strategy
+# Absorption Fade (AF) v1 — Scalping Strategy
+
+> **⚠ Superseded by [Absorption Fade v2](./absorption-fade-v2.md).** This document is kept for reference and for cross-comparison while validating v2. New manual replay and indicator work should follow v2. v1 remains a valid spec to test against if you want to A/B the two.
 
 A mechanical order-flow scalping strategy for **NQ / ES futures** on the **ATAS** platform.
 
