@@ -348,3 +348,430 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 </style>
 </head>
 <body>
+
+
+<nav class="topnav">
+  <div class="nav-logo">
+    <div class="nav-logo-box"><span class="nav-logo-text">AF2</span></div>
+    <div class="nav-brand nav-logo-text-wrap">ABSORPTION FADE<small>v2 · Delta Confluence</small></div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showTab('strategy')" id="tab-strategy"><span class="tab-icon">⬡</span> Strategy</div>
+    <div class="nav-tab" onclick="showTab('checklist')" id="tab-checklist"><span class="tab-icon">✓</span> Checklist</div>
+    <div class="nav-tab" onclick="showTab('roadmap')" id="tab-roadmap"><span class="tab-icon">⫷</span> Roadmap</div>
+    <div class="nav-tab" onclick="showTab('indicator')" id="tab-indicator"><span class="tab-icon">◈</span> Indicator</div>
+    <div class="nav-tab" onclick="showTab('code')" id="tab-code"><span class="tab-icon">&lt;/&gt;</span> Code</div>
+    <div class="nav-tab" onclick="showTab('backtest')" id="tab-backtest"><span class="tab-icon">⊡</span> Backtest</div>
+    <div class="nav-tab" onclick="showTab('journal')" id="tab-journal"><span class="tab-icon">◫</span> Journal</div>
+  </div>
+  <div class="nav-right">
+    <button class="nav-btn" onclick="exportState()">⬇ Export</button>
+    <button class="nav-btn" onclick="document.getElementById('importFile').click()">⬆ Import</button>
+    <button class="nav-btn" onclick="window.print()">⎙ Print</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importState(event)">
+    <div class="live-dot">v2.0</div>
+  </div>
+</nav>
+
+<!-- ════════════════ TAB 1: STRATEGY ════════════════ -->
+<div class="page-wrap active" id="page-strategy">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-eyebrow">ATAS 6.x+ · CME ES / NQ Futures · 233-Tick Footprint</div>
+    <div class="hero-title">Absorption Fade<br><em>v2 — Delta Confluence</em></div>
+    <div class="hero-sub">A mechanical order-flow scalping system built around footprint imbalance, CVD divergence, and institutional level identification. Merged best-of-both: v1's validated discipline (% risk, time stop, structural targets, 4-phase roadmap) combined with research-track refinements (233-tick bars, instrument-calibrated 4:1/3:1, classic-or-hidden CVD, dual-filter trigger).</div>
+    <div class="badges">
+      <span class="badge b-blue">NQ · MNQ · ES · MES</span>
+      <span class="badge b-green">233-Tick Footprint</span>
+      <span class="badge b-amber">Rithmic / CQG Feed</span>
+      <span class="badge b-dim">5-Condition Gate</span>
+      <span class="badge b-red">Hypothesis · Not Validated</span>
+    </div>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat-card blue"><div class="stat-label">Instruments</div><div class="stat-val blue">NQ · ES</div><div class="stat-sub">Plus micros (MNQ / MES)</div></div>
+    <div class="stat-card green"><div class="stat-label">Risk / Trade</div><div class="stat-val green">0.25–0.5%</div><div class="stat-sub">% of account, not fixed pts</div></div>
+    <div class="stat-card red"><div class="stat-label">Daily Stop</div><div class="stat-val red">−2R / −1.5%</div><div class="stat-sub">Hard limit, walk away</div></div>
+    <div class="stat-card amber"><div class="stat-label">Max Trades</div><div class="stat-val amber">3–5 / day</div><div class="stat-sub">A+ setups only</div></div>
+  </div>
+
+
+  <div class="caveat">
+    <div class="caveat-title">⚠ The mental model</div>
+    <div class="caveat-body">Price runs into a known level. Aggressive market orders pile in expecting a breakout. Someone bigger sits there with limit orders, eating every print. The aggressors get filled but <strong>price doesn't move</strong>. They're now trapped. When they realize and cover, the reversal you're trading is <em>their</em> exit liquidity. You are not predicting — you are reading a transaction.</div>
+  </div>
+
+  <div class="sec-head">01 · Platform Setup</div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">ATAS Chart Configuration</span><span class="ptag ptag-blue">Required</span></div>
+    <div class="panel-body" style="padding:0">
+      <table class="tbl">
+        <tr><th>#</th><th>Setting</th><th>Configuration Detail</th></tr>
+        <tr><td class="mono">1</td><td class="bold">233-Tick Footprint</td><td>Chart → Cluster Chart → Tick Count = 233. Footprint type: Bid×Ask. New bar prints every 233 trades — captures microstructure without time-bar distortion.</td></tr>
+        <tr><td class="mono">2</td><td class="bold">Imbalance Threshold (calibrated)</td><td><span class="bold green">NQ: 4.0</span> · <span class="bold amber">ES: 3.0</span>. NQ is materially noisier than ES; the standard 3:1 fires too often. Set per-instrument.</td></tr>
+        <tr><td class="mono">3</td><td class="bold">CVD Subgraph + Delta Bar Colour</td><td>Cumulative Volume Delta as a subgraph, session-anchored. Enable delta bar colouring (green = net buying, red = net selling). Core divergence signal.</td></tr>
+        <tr><td class="mono">4</td><td class="bold">VWAP + ±1σ / ±2σ</td><td>Session VWAP with standard deviation bands on the same panel. Institutional algorithms benchmark to VWAP — it acts as a genuine magnet for order flow.</td></tr>
+        <tr><td class="mono">5</td><td class="bold">Volume Profile (Session)</td><td>Today's session profile + prior-day fixed range. POC, VAH, VAL marked each morning before the open.</td></tr>
+        <tr><td class="mono">6</td><td class="bold">Smart Tape</td><td>Min size 25–50 contracts. Reconstructs split institutional orders. Visual second check on large prints at the level.</td></tr>
+        <tr><td class="mono">7</td><td class="bold">Context chart (don't trade from this)</td><td>Separate 1-min candles with VWAP, daily volume profile (last 5 days), prior day H/L, weekly H/L, overnight H/L plotted.</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec-head">02 · Core Signal — Long Setup</div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">All 5 Conditions Required — Long</span><span class="ptag ptag-green">Long Setup</span></div>
+    <div class="panel-body" style="padding:10px">
+      <div class="cond-list">
+        <div class="cond-row"><div class="cond-num">C1</div><div><div class="cond-name">Location at HTF level</div><div class="cond-desc">Price tags a <em>predefined</em> level marked at session start: PDH/PDL, weekly H/L, ON H/L, VAH/VAL/POC, daily HVN, VWAP ±1σ/±2σ. The level was on the chart <em>before</em> price got there.</div></div><div><div class="cond-tag ct-manual">MANUAL</div></div></div>
+        <div class="cond-row"><div class="cond-num">C2</div><div><div class="cond-name">Sell-Side Cluster Absorption</div><div class="cond-desc">Footprint cluster at bar low shows <strong class="bold">ask/bid ≥ 4.0 (NQ) / 3.0 (ES)</strong>. Sellers hitting bids but price not falling — passive buyers absorbing institutional-scale flow.</div><div class="cond-code">cluster.AskVolume / cluster.BidVolume ≥ ImbalanceRatio at bar low</div></div><div><div class="cond-tag ct-long">LONG</div></div></div>
+        <div class="cond-row"><div class="cond-num">C3</div><div><div class="cond-name">Heavy Delta, No Progress</div><div class="cond-desc">Bar volume ≥ 1.5× 20-bar avg <strong>AND</strong> |bar delta| ≥ 70% of bar volume <strong>AND</strong> body closes in opposite ≤25% of range <em>OR</em> rejection wick ≥ 60%. Aggression failed to move price.</div><div class="cond-code">vol ≥ 1.5×avg && |delta| ≥ 70% && (closeHigh ≥ 75% || lowerWick ≥ 60%)</div></div><div><div class="cond-tag ct-long">LONG</div></div></div>
+        <div class="cond-row"><div class="cond-num">C4</div><div><div class="cond-name">CVD Divergence (Classic OR Hidden)</div><div class="cond-desc"><em>Classic:</em> price prints new low vs prior 5–10 bars; CVD does NOT confirm. <em>Hidden:</em> CVD prints new low; price holds above prior low. Either qualifies — hidden divergence catches stealth accumulation classic misses.</div><div class="cond-code">classic: low &lt; priorLow && cvd &gt; cvdAtPriorLow ‖ hidden: cvd &lt; cvdAtPriorLow && low &gt; priorLow</div></div><div><div class="cond-tag ct-long">LONG</div></div></div>
+        <div class="cond-row"><div class="cond-num">C5</div><div><div class="cond-name">Trigger Bar — Midpoint Reclaim AND Delta Flip</div><div class="cond-desc">Next 233-tick bar closes back through the <strong class="bold">midpoint of the absorption bar</strong> AND its delta sign is opposite the absorption bar's. Both required. Midpoint reclaim alone can happen on weak retraces; the delta flip filters them.</div><div class="cond-code">close &gt; absMid && barDelta &gt; 0 && absorptionDelta &lt; 0</div></div><div><div class="cond-tag ct-long">LONG</div></div></div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">All 5 Conditions Required — Short</span><span class="ptag ptag-red">Short Setup</span></div>
+    <div class="panel-body" style="padding:10px">
+      <div class="cond-list">
+        <div class="cond-row"><div class="cond-num">C1</div><div><div class="cond-name">Location at HTF level</div><div class="cond-desc">Price tags a predefined level acting as resistance: PDH, weekly H, ON H, VAH/POC, HVN, VWAP +1σ/+2σ. Marked at session start.</div></div><div><div class="cond-tag ct-manual">MANUAL</div></div></div>
+        <div class="cond-row"><div class="cond-num">C2</div><div><div class="cond-name">Buy-Side Cluster Absorption</div><div class="cond-desc">Cluster at bar high shows <strong class="bold">bid/ask ≥ 4.0 (NQ) / 3.0 (ES)</strong>. Buyers lifting offers but price not rising — passive sellers absorbing.</div><div class="cond-code">cluster.BidVolume / cluster.AskVolume ≥ ImbalanceRatio at bar high</div></div><div><div class="cond-tag ct-short">SHORT</div></div></div>
+        <div class="cond-row"><div class="cond-num">C3</div><div><div class="cond-name">Heavy Delta, No Progress</div><div class="cond-desc">Vol ≥ 1.5× avg AND |delta| ≥ 70% AND (close in bottom ≤25% OR upper wick ≥ 60%). Buy aggression failed to push higher.</div><div class="cond-code">vol ≥ 1.5×avg && |delta| ≥ 70% && (closeLow ≤ 25% || upperWick ≥ 60%)</div></div><div><div class="cond-tag ct-short">SHORT</div></div></div>
+        <div class="cond-row"><div class="cond-num">C4</div><div><div class="cond-name">CVD Divergence (Classic OR Hidden)</div><div class="cond-desc">Classic: price new high, CVD doesn't confirm. Hidden: CVD new high, price holds below prior high. Either qualifies.</div><div class="cond-code">classic: high &gt; priorHigh && cvd &lt; cvdAtPriorHigh ‖ hidden: cvd &gt; cvdAtPriorHigh && high &lt; priorHigh</div></div><div><div class="cond-tag ct-short">SHORT</div></div></div>
+        <div class="cond-row"><div class="cond-num">C5</div><div><div class="cond-name">Trigger Bar — Midpoint Reclaim AND Delta Flip</div><div class="cond-desc">Next bar closes BELOW absorption midpoint AND has negative delta (vs absorption bar's positive). Both required.</div><div class="cond-code">close &lt; absMid && barDelta &lt; 0 && absorptionDelta &gt; 0</div></div><div><div class="cond-tag ct-short">SHORT</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-head">03 · Execution Rules</div>
+  <div class="two-col">
+    <div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Trade Flow</span><span class="ptag ptag-green">Step by Step</span></div>
+        <div class="panel-body" style="padding:10px">
+          <div class="flow">
+            <div class="flow-step"><div class="flow-n">1</div><div><div class="flow-title">Map levels (pre-session)</div><div class="flow-desc">PDH/PDL, weekly H/L, ON H/L, VAH/VAL/POC, HVNs, VWAP ±1σ/±2σ. On the chart before the open.</div></div></div>
+            <div class="flow-arr">▼</div>
+            <div class="flow-step"><div class="flow-n">2</div><div><div class="flow-title">Wait for level (233-tick)</div><div class="flow-desc">Price approaches a marked level. Don't anticipate — let it tag the level. Begin reading the footprint.</div></div></div>
+            <div class="flow-arr">▼</div>
+            <div class="flow-step"><div class="flow-n">3</div><div><div class="flow-title">All 5 confirm</div><div class="flow-desc">Score must read 5/5. 4/5 is no trade. The discipline is the edge.</div></div></div>
+            <div class="flow-arr">▼</div>
+            <div class="flow-step"><div class="flow-n" style="border-color:var(--accent2);color:var(--accent2)">4</div><div><div class="flow-title">Entry</div><div class="flow-desc">Market on close of the trigger bar (C5). Or limit at the level if already confirmed. Check Smart DOM for liquidity vacuum.</div></div></div>
+            <div class="flow-arr">▼</div>
+            <div class="flow-step"><div class="flow-n" style="border-color:var(--accent3);color:var(--accent3)">5</div><div><div class="flow-title">Stop</div><div class="flow-desc">1 tick beyond the wick of the absorption bar. If the wick gets violated, your read was wrong — take the loss clean. Do not move stop.</div></div></div>
+            <div class="flow-arr">▼</div>
+            <div class="flow-step"><div class="flow-n" style="border-color:var(--accent2);color:var(--accent2)">6</div><div><div class="flow-title">Targets &amp; exits</div><div class="flow-desc">TP1 = 1R → close 50%, stop to BE. TP2 = session POC / opposite VWAP band / next HVN. Time stop: 5 min no TP1 → exit market. Hard exit: delta flips against position 2+ bars.</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Risk Parameters</span><span class="ptag ptag-dim">Config</span></div>
+        <div class="panel-body" style="padding:0">
+          <table class="tbl">
+            <tr><td class="bold">Risk per trade</td><td class="green">0.25–0.5% acct</td></tr>
+            <tr><td class="bold">Imbalance ratio</td><td class="green">4.0 NQ · 3.0 ES</td></tr>
+            <tr><td class="bold">Smart Tape min</td><td class="amber">25–50 contracts</td></tr>
+            <tr><td class="bold">Stop placement</td><td class="red">1 tick beyond wick</td></tr>
+            <tr><td class="bold">TP1</td><td class="amber">1R, close 50%, BE</td></tr>
+            <tr><td class="bold">TP2</td><td class="amber">POC / VWAP band / HVN</td></tr>
+            <tr><td class="bold">Time stop</td><td class="red">5 min no TP1 → exit</td></tr>
+            <tr><td class="bold">Hard exit</td><td class="red">Delta flip 2+ bars</td></tr>
+            <tr><td class="bold">Max trades/day</td><td>3–5 A+ setups</td></tr>
+            <tr><td class="bold">Daily stop</td><td class="red">−2R / −1.5%</td></tr>
+            <tr><td class="bold">Profit lock</td><td class="green">+3R: half size or stop</td></tr>
+            <tr><td class="bold">Min R:R</td><td class="green">1:2 always</td></tr>
+          </table>
+        </div>
+      </div>
+
+
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Session Windows</span><span class="ptag ptag-amber">Timing</span></div>
+        <div class="panel-body" style="padding:0">
+          <table class="tbl">
+            <tr><th>Session</th><th>Time ET</th><th>Action</th></tr>
+            <tr><td class="bold">London/NY Overlap</td><td class="mono">08:00–10:00</td><td class="green">✅ Trade</td></tr>
+            <tr><td class="bold">NY Open</td><td class="mono">09:30–11:00</td><td class="green">✅ Prime</td></tr>
+            <tr><td class="bold" style="color:var(--accent3)">Lunch</td><td class="mono">11:30–13:30</td><td class="red">⛔ Hard block</td></tr>
+            <tr><td class="bold">NY PM</td><td class="mono">13:30–15:00</td><td class="green">✅ Trade</td></tr>
+            <tr><td class="bold">Close</td><td class="mono">15:00–16:00</td><td class="amber">⚠ Selective</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Kill Conditions</span><span class="ptag ptag-red">Stop Trading If</span></div>
+        <div class="panel-body" style="padding:10px">
+          <div class="kill-list">
+            <div class="kill-item">Daily loss limit hit (−2R / −1.5%)</div>
+            <div class="kill-item">Daily profit lock hit (+3R) — protect it</div>
+            <div class="kill-item">3 consecutive losing trades</div>
+            <div class="kill-item">High-impact news within 5 min (FOMC/CPI/NFP/PMI)</div>
+            <div class="kill-item">DOM spread abnormally wide</div>
+            <div class="kill-item">Indicator score never reaches 5 — chop, no edge</div>
+            <div class="kill-item">Tilted, frustrated, or "needing" a trade</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-head">04 · Worked Example (NQ)</div>
+  <div class="panel">
+    <div class="panel-hd"><span class="panel-title">Long Setup at Prior Day Low</span><span class="ptag ptag-green">Numbered</span></div>
+    <div class="panel-body">
+      <div class="chart-pre" style="background:#020508;padding:14px;border:1px solid var(--border)">Level: <span class="w">Prior day low @ 21,082.25</span>
+
+233-tick absorption bar prints:
+  Range:    21,082.25 → 21,084.50 (9 ticks)
+  Volume:   3,800 (avg 2,400)              <span class="g">✓ 1.5x+</span>
+  Delta:    <span class="r">−2,750</span> (72% of vol)            <span class="g">✓ heavy selling</span>
+  Close:    21,084.00 (top 22% of range)   <span class="g">✓ no progress</span>
+  Lower wick: 6 ticks                       <span class="g">✓ rejection</span>
+  Cluster at 21,082.25 low:
+      ask 1,420 / bid 320                   <span class="g">✓ 4.4:1 ask absorption</span>
+  CVD:      prior swing low @ −12,400,
+            this bar pushed CVD to −12,650,
+            price held above prior low      <span class="g">✓ hidden divergence</span>
+
+Trigger bar (next 233-tick bar):
+  Close:    21,083.75 (above abs mid 21,083.38)  <span class="g">✓ midpoint reclaim</span>
+  Delta:    <span class="g">+1,250</span>                                <span class="g">✓ flip vs −2,750</span>
+
+<span class="b">ENTRY:  Long  @ 21,083.75</span>
+STOP:   21,082.00 (1 tick below absorption low) → 7 tick risk
+        MNQ: $35/contract  ·  NQ: $350/contract
+TP1:    21,085.50 (1R)              → close half, stop to BE
+TP2:    Session VWAP @ 21,094.00    → ~25 tick gain on remainder ≈ <span class="g">3.5R total</span></div>
+    </div>
+  </div>
+
+  <div class="sec-head">05 · Honest Assessment — Is This Validated?</div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-hd"><span class="panel-title">What IS Backed by Research</span><span class="ptag ptag-green">Solid</span></div>
+      <div class="panel-body" style="padding:0">
+        <table class="tbl">
+          <tr><th>Concept</th><th>Evidence</th></tr>
+          <tr><td class="bold">Order flow / footprint</td><td>Used by prop firms &amp; market makers. Kyle 1985, Glosten-Milgrom models document institutional footprints in bid/ask volume.</td></tr>
+          <tr><td class="bold">CVD divergence</td><td>Widely used by professional order flow traders. Delta leading price at turning points is empirically observable in footprint data.</td></tr>
+          <tr><td class="bold">VWAP as reference</td><td>Genuinely how buy-side desks and algorithms benchmark execution. Not retail folklore — institutional reality.</td></tr>
+          <tr><td class="bold">Absorption at levels</td><td>Large passive orders absorbing aggressive flow before reversal is a documented, observable microstructure phenomenon.</td></tr>
+        </table>
+      </div>
+    </div>
+
+
+    <div class="panel">
+      <div class="panel-hd"><span class="panel-title">What Is NOT Validated</span><span class="ptag ptag-red">Verify Yourself</span></div>
+      <div class="panel-body" style="padding:10px">
+        <div class="checklist">
+          <div class="check-item short"><span class="check-icon short">⚠</span><span class="check-text">The v2 5-condition combination has <strong>no published backtest</strong> with statistical significance</span></div>
+          <div class="check-item short"><span class="check-icon short">⚠</span><span class="check-text">v2 inherits <strong>zero validation</strong> from v1 — the 4-phase roadmap applies fresh</span></div>
+          <div class="check-item short"><span class="check-icon short">⚠</span><span class="check-text">Thresholds (4.0/3.0, 1.5×, 70%) are <strong>reasonable starting points</strong>, not optimised</span></div>
+          <div class="check-item short"><span class="check-icon short">⚠</span><span class="check-text">"75%+ win rates" on trading blogs are <strong>marketing figures</strong>, not peer-reviewed</span></div>
+          <div class="check-item short"><span class="check-icon short">⚠</span><span class="check-text">Reading absorption has a <strong>steep learning curve</strong> — paper trade extensively first</span></div>
+        </div>
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(255,181,38,0.06);border:1px solid rgba(255,181,38,0.18)">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--accent4);letter-spacing:0.1em;margin-bottom:4px">BOTTOM LINE</div>
+          <div style="font-size:11px;color:var(--text);line-height:1.5">Treat this as a <strong style="color:var(--bright)">hypothesis to validate</strong>. Run the 4-phase roadmap from scratch. Paper → sim → micro → live. Decision gates per phase. Real capital only after Phase 3 passes.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ TAB 2: CHECKLIST ════════════════ -->
+<div class="page-wrap" id="page-checklist">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-eyebrow">Interactive Tool · Use During Live Trading</div>
+    <div class="hero-title">Trade <em>Setup Checker</em></div>
+    <div class="hero-sub">Tick each condition as it confirms on your 233-tick chart. The score updates live. Only enter when you reach 5/5. State persists across reloads via localStorage.</div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Select Trade Direction</span><span class="ptag ptag-dim">Step 1</span></div>
+        <div class="panel-body">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-green" onclick="setDir('long')" id="btn-long">▲ LONG SETUP</button>
+            <button class="btn btn-red" onclick="setDir('short')" id="btn-short">▼ SHORT SETUP</button>
+            <button class="btn btn-dim" onclick="resetChecklist()">↺ RESET</button>
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text2);margin-top:8px;letter-spacing:0.08em" id="dir-label">No direction selected — choose Long or Short above</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Condition Checklist</span><span class="ptag ptag-blue">Step 2 — Tap to Check</span></div>
+        <div class="panel-body" style="padding:10px">
+          <div class="int-check" id="checklist-items">
+            <div class="int-check-item" onclick="toggleCheck(0)" id="ci-0">
+              <div class="check-box" id="cb-0"><span class="check-box-inner">✓</span></div>
+              <div class="int-label"><strong>C1 — Location:</strong> Price at a predefined HTF level (PDH/PDL, weekly H/L, ON H/L, VAH/VAL/POC, HVN, VWAP ±1σ/±2σ). Level was on the chart <em>before</em> price got there.</div>
+            </div>
+            <div class="int-check-item" onclick="toggleCheck(1)" id="ci-1">
+              <div class="check-box" id="cb-1"><span class="check-box-inner">✓</span></div>
+              <div class="int-label"><strong>C2 — Cluster Imbalance:</strong> <span id="c2-text">ask/bid ≥ 4.0 (NQ) / 3.0 (ES) at bar low</span></div>
+            </div>
+            <div class="int-check-item" onclick="toggleCheck(2)" id="ci-2">
+              <div class="check-box" id="cb-2"><span class="check-box-inner">✓</span></div>
+              <div class="int-label"><strong>C3 — Heavy Delta, No Progress:</strong> <span id="c3-text">vol ≥ 1.5× avg AND |delta| ≥ 70% AND (close ≤ 25% opp OR rejection wick ≥ 60%)</span></div>
+            </div>
+            <div class="int-check-item" onclick="toggleCheck(3)" id="ci-3">
+              <div class="check-box" id="cb-3"><span class="check-box-inner">✓</span></div>
+              <div class="int-label"><strong>C4 — CVD Divergence:</strong> <span id="c4-text">classic (price new low, CVD didn't confirm) OR hidden (CVD new low, price held)</span></div>
+            </div>
+            <div class="int-check-item" onclick="toggleCheck(4)" id="ci-4">
+              <div class="check-box" id="cb-4"><span class="check-box-inner">✓</span></div>
+              <div class="int-label"><strong>C5 — Trigger Bar:</strong> <span id="c5-text">next 233-tick bar closes through absorption mid AND delta sign opposite the absorption bar</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div>
+      <div class="score-meter">
+        <div class="meter-label">DAC Confluence Score</div>
+        <div class="meter-score" id="meter-score" style="color:var(--text2)">0</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text2)">/ 5 conditions</div>
+        <div class="meter-status" id="meter-status" style="color:var(--text2)">Select a direction to begin</div>
+        <div class="meter-bar"><div class="meter-fill" id="meter-fill" style="width:0%;background:var(--text2)"></div></div>
+      </div>
+      <div class="panel" id="signal-panel" style="display:none">
+        <div class="panel-hd"><span class="panel-title" id="signal-title">Signal</span><span class="ptag" id="signal-tag">—</span></div>
+        <div class="panel-body" id="signal-body"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Quick Reference</span><span class="ptag ptag-dim">Risk Rules</span></div>
+        <div class="panel-body" style="padding:0">
+          <table class="tbl">
+            <tr><td class="bold">Risk</td><td>≤ 0.5% account</td></tr>
+            <tr><td class="bold">Stop</td><td>1 tick beyond absorption wick</td></tr>
+            <tr><td class="bold">TP1</td><td>1R → close 50%, stop to BE</td></tr>
+            <tr><td class="bold">TP2</td><td>POC / VWAP band / HVN</td></tr>
+            <tr><td class="bold">Time stop</td><td class="red">5 min no TP1 → exit</td></tr>
+            <tr><td class="bold">Hard exit</td><td class="red">Delta flip 2+ bars</td></tr>
+            <tr><td class="bold">Daily stop</td><td class="red">−2R / −1.5%</td></tr>
+            <tr><td class="bold">Min R:R</td><td class="green">1:2 always</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="warn-box">
+        <div class="warn-title">⊗ No Trade If:</div>
+        <div class="warn-body">Score &lt; 5 · Time 11:30–13:30 ET · High-impact news &lt; 5 min · Daily loss limit reached · 3 losses already today · Mid-range with no level · DOM pulled / abnormal spread</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ TAB 3: ROADMAP ════════════════ -->
+<div class="page-wrap" id="page-roadmap">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-eyebrow">4-Phase Validation · Decision Gates · Persistent State</div>
+    <div class="hero-title">Validation <em>Roadmap</em></div>
+    <div class="hero-sub">From hypothesis to live trading. Each phase has a decision gate — if the numbers don't pass, you go back, not forward. Click the status badge on each card to advance: <code>todo → progress → passed → failed → todo</code>. Persists to localStorage.</div>
+  </div>
+
+  <div class="phase-card todo" id="phase-1">
+    <div class="phase-hd">
+      <div class="phase-name">Phase 1 — Manual Replay</div>
+      <button class="phase-status-btn todo" onclick="cyclePhase(1)" id="ph-status-1">TODO</button>
+    </div>
+    <div class="phase-goal"><strong style="color:var(--bright)">Goal:</strong> Learn to <em>see</em> the v2 setup. No automation. ATAS Replay mode on ES (cleaner) or NQ (your choice). Log 30 instances minimum, walk replay one bar at a time during NY Open / Overlap / NY PM. Every flag — hit, miss, fired-and-failed — gets logged.</div>
+    <div class="panel" style="margin:0">
+      <div class="panel-hd"><span class="panel-title">Phase 1 Decision Gate</span><span class="ptag ptag-amber">Required to Advance</span></div>
+      <div class="panel-body" style="padding:0">
+        <table class="tbl">
+          <tr><th>Metric</th><th>Required</th></tr>
+          <tr><td class="bold">Win rate</td><td class="green">≥ 45%</td></tr>
+          <tr><td class="bold">Average R</td><td class="green">≥ 1.3</td></tr>
+          <tr><td class="bold">Expectancy</td><td class="green">≥ 0.2R per trade</td></tr>
+          <tr><td class="bold">Sample size</td><td class="green">≥ 30 instances</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="phase-card todo" id="phase-2">
+    <div class="phase-hd">
+      <div class="phase-name">Phase 2 — Custom ATAS Indicator</div>
+      <button class="phase-status-btn todo" onclick="cyclePhase(2)" id="ph-status-2">TODO</button>
+    </div>
+    <div class="phase-goal"><strong style="color:var(--bright)">Goal:</strong> Scale sample size 5–10× by auto-detecting setups in replay using <code>AbsorptionFadeConfluence</code>. The indicator scores C2–C5; you toggle <code>LevelConfirmed</code> for C1; arrow + alert fire at full 5/5. Run across 60+ trading days, log 100+ instances.</div>
+    <div class="panel" style="margin:0">
+      <div class="panel-hd"><span class="panel-title">Phase 2 Decision Gate</span><span class="ptag ptag-amber">Required to Advance</span></div>
+      <div class="panel-body" style="padding:0">
+        <table class="tbl">
+          <tr><th>Metric</th><th>Required</th></tr>
+          <tr><td class="bold">Win rate</td><td class="green">≥ 50%</td></tr>
+          <tr><td class="bold">Average R</td><td class="green">≥ 1.4</td></tr>
+          <tr><td class="bold">Expectancy</td><td class="green">≥ 0.3R per trade</td></tr>
+          <tr><td class="bold">Sample size</td><td class="green">≥ 100 instances</td></tr>
+          <tr><td class="bold">Robustness</td><td class="green">Holds in trend AND chop regimes</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-card todo" id="phase-3">
+    <div class="phase-hd">
+      <div class="phase-name">Phase 3 — Live Forward-Test on Micros</div>
+      <button class="phase-status-btn todo" onclick="cyclePhase(3)" id="ph-status-3">TODO</button>
+    </div>
+    <div class="phase-goal"><strong style="color:var(--bright)">Goal:</strong> Find out what slippage, emotions, and fills do to the edge. <strong>Micros only</strong> — MES (1/10 ES) or MNQ (1/10 NQ). 1 contract per trade. 30+ live trades, minimum 4 weeks. Trade only A+ setups (5/5, no exceptions).</div>
+    <div class="panel" style="margin:0">
+      <div class="panel-hd"><span class="panel-title">Phase 3 Decision Gate</span><span class="ptag ptag-amber">Required to Advance</span></div>
+      <div class="panel-body" style="padding:0">
+        <table class="tbl">
+          <tr><th>Metric</th><th>Required</th></tr>
+          <tr><td class="bold">Live expectancy</td><td class="green">≥ 70% of Phase 2 expectancy</td></tr>
+          <tr><td class="bold">Plan adherence</td><td class="green">≥ 90% of trades</td></tr>
+          <tr><td class="bold">Max drawdown</td><td class="green">Within 1.5× backtest max DD</td></tr>
+          <tr><td class="bold">Psychology</td><td class="green">No tilted / impulsive trades</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-card todo" id="phase-4">
+    <div class="phase-hd">
+      <div class="phase-name">Phase 4 — Databento Robustness Testing</div>
+      <button class="phase-status-btn todo" onclick="cyclePhase(4)" id="ph-status-4">TODO</button>
+    </div>
+    <div class="phase-goal"><strong style="color:var(--bright)">Goal:</strong> Stress-test the edge across years of data and multiple regimes before sizing up. Databento (CME Globex MDP 3.0) + Python. 5+ years of ES/NQ data, walk-forward optimisation, slippage modelling, regime-segmented stats. Budget ~$50–200 for the historical pull.</div>
+    <div class="panel" style="margin:0">
+      <div class="panel-hd"><span class="panel-title">Phase 4 Decision Gate</span><span class="ptag ptag-amber">Required to Size Up</span></div>
+      <div class="panel-body" style="padding:0">
+        <table class="tbl">
+          <tr><th>Metric</th><th>Required</th></tr>
+          <tr><td class="bold">Edge persistence</td><td class="green">Positive expectancy in all 4+ regimes</td></tr>
+          <tr><td class="bold">Worst year</td><td class="green">Profitable or break-even</td></tr>
+          <tr><td class="bold">Max drawdown</td><td class="green">&lt; 15R or &lt; 10% account</td></tr>
+          <tr><td class="bold">Walk-forward</td><td class="green">OOS expectancy ≥ 60% of in-sample</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="warn-box">
+    <div class="warn-title">⊗ Anti-patterns That Kill Traders Here</div>
+    <div class="warn-body" style="line-height:1.8">
+      <strong style="color:var(--accent3)">Skipping straight to Phase 4 because "code feels productive"</strong> — it isn't. You'll backtest an edge you don't understand.<br>
+      <strong style="color:var(--accent3)">Skipping Phase 3 because backtest looked great</strong> — slippage and emotions are not in your backtest.<br>
+      <strong style="color:var(--accent3)">Sizing up before Phase 4 passes</strong> — live edge on micros ≠ scalable edge on full contracts.<br>
+      <strong style="color:var(--accent3)">Tweaking rules after every losing trade</strong> — rules change at decision gates only, with sample size to support the change.<br>
+      <strong style="color:var(--accent3)">Trading other instruments before AF v2 is profitable on NQ/ES</strong> — one edge, one instrument family, until it works.
+    </div>
+  </div>
+</div>
