@@ -1,0 +1,1732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>"In The Morning" – Fuzzy Logik ft. Egypt | UK Funky Production Anatomy</title>
+<meta name="description" content="A deep, interactive offline breakdown of Fuzzy Logik ft. Egypt – 'In The Morning' (2009). Drums, bass, chords, arrangement, swing, Serum 2, Moog Mariana, Rhodes and Logic Pro 12 setup." />
+<style>
+:root{
+  --bg:#0b0d12;
+  --bg-2:#11141c;
+  --bg-3:#171b26;
+  --line:#222838;
+  --line-2:#2c3346;
+  --ink:#e7ecf6;
+  --ink-dim:#9aa3b8;
+  --ink-mute:#6b7286;
+  --accent:#f4c95d;     /* warm UK funky gold */
+  --accent-2:#ff7a59;   /* hot stab orange */
+  --accent-3:#5ad1ff;   /* steel-pan cyan */
+  --accent-4:#b18cff;   /* pad violet */
+  --good:#5fe0a5;
+  --bad:#ff5a7a;
+  --radius:14px;
+  --radius-sm:10px;
+  --shadow: 0 10px 30px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25);
+  --mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--accent-3);text-decoration:none;border-bottom:1px dashed rgba(90,209,255,.35)}
+a:hover{color:#9be4ff;border-bottom-color:#9be4ff}
+h1,h2,h3,h4{font-weight:700;letter-spacing:-.01em;margin:0 0 .5em}
+h1{font-size:clamp(28px,4.2vw,46px);line-height:1.1}
+h2{font-size:clamp(22px,2.6vw,30px);margin-top:0}
+h3{font-size:18px;color:var(--accent)}
+h4{font-size:14px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.12em}
+p{margin:0 0 .9em;color:var(--ink)}
+small,.muted{color:var(--ink-mute)}
+code,kbd{font-family:var(--mono);font-size:.92em;background:#0e1018;border:1px solid var(--line);padding:1px 6px;border-radius:6px;color:#ffd58a}
+hr{border:0;border-top:1px solid var(--line);margin:32px 0}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+
+/* ---------- Hero ---------- */
+header.hero{
+  position:relative;
+  padding:64px 24px 56px;
+  background:
+    radial-gradient(1200px 400px at 20% 0%, rgba(244,201,93,.15), transparent 60%),
+    radial-gradient(900px 360px at 80% 10%, rgba(177,140,255,.13), transparent 60%),
+    linear-gradient(180deg,#0c0e16 0%, #0b0d12 100%);
+  border-bottom:1px solid var(--line);
+  overflow:hidden;
+}
+header.hero .container{position:relative;z-index:2}
+header.hero .eyebrow{
+  display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);background:rgba(244,201,93,.08);border:1px solid rgba(244,201,93,.25);
+  padding:6px 10px;border-radius:999px;margin-bottom:16px;
+}
+header.hero h1 span.title{
+  background:linear-gradient(120deg,#fff 0%, #ffd9a0 40%, #f4c95d 60%, #ff7a59 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+header.hero p.lede{max-width:780px;color:#cdd3e3;font-size:18px;margin-top:14px}
+.tag-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.tag{font-family:var(--mono);font-size:12px;color:#cdd3e3;background:#161a26;border:1px solid var(--line-2);padding:6px 10px;border-radius:8px}
+
+/* ---------- Nav ---------- */
+nav.toc{
+  position:sticky;top:0;z-index:50;
+  background:rgba(11,13,18,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+nav.toc .container{display:flex;gap:6px;flex-wrap:wrap;padding:10px 24px}
+nav.toc a{
+  font-family:var(--mono);font-size:12px;letter-spacing:.04em;
+  color:var(--ink-dim);background:transparent;border:1px solid transparent;
+  padding:6px 10px;border-radius:8px;
+}
+nav.toc a:hover{color:var(--ink);background:#161a26;border-color:var(--line)}
+
+/* ---------- Section ---------- */
+section{padding:48px 0;border-bottom:1px solid var(--line)}
+section h2 .num{
+  font-family:var(--mono);font-size:14px;color:var(--accent);
+  background:rgba(244,201,93,.08);border:1px solid rgba(244,201,93,.25);
+  padding:3px 8px;border-radius:6px;margin-right:10px;vertical-align:middle;
+}
+
+/* ---------- Cards / Grid ---------- */
+.grid{display:grid;gap:16px}
+.grid.cols-2{grid-template-columns:repeat(2,1fr)}
+.grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.grid.cols-4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:900px){.grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}}
+.card{
+  background:linear-gradient(180deg,var(--bg-2),var(--bg-3));
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;box-shadow:var(--shadow);
+}
+.card h3{margin-top:0}
+.kv{display:grid;grid-template-columns:160px 1fr;gap:8px 14px;font-family:var(--mono);font-size:13px}
+.kv .k{color:var(--ink-mute)}
+.kv .v{color:var(--ink)}
+
+/* ---------- Sequencer ---------- */
+.seq-wrap{
+  background:linear-gradient(180deg,#0e1119,#0b0d14);
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;box-shadow:var(--shadow);
+}
+.seq-controls{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;
+  padding:10px 12px;margin-bottom:14px;
+  background:#0a0c12;border:1px solid var(--line);border-radius:10px;
+}
+.seq-controls .group{display:flex;align-items:center;gap:8px}
+button.btn{
+  appearance:none;border:1px solid var(--line-2);background:#161a26;color:var(--ink);
+  padding:8px 14px;border-radius:8px;font-family:var(--mono);font-size:12px;letter-spacing:.05em;
+  cursor:pointer;transition:transform .05s ease, background .15s ease, border-color .15s ease;
+}
+button.btn:hover{background:#1c2132;border-color:#39435d}
+button.btn:active{transform:translateY(1px)}
+button.btn.primary{background:linear-gradient(180deg,#ffd87a,#f4a936);color:#1a140a;border-color:#d99528;font-weight:700}
+button.btn.primary:hover{filter:brightness(1.05)}
+button.btn.danger{background:#3a1a22;border-color:#5a2230;color:#ffb1c0}
+input[type=range]{
+  -webkit-appearance:none;width:140px;height:4px;background:#2a3148;border-radius:4px;outline:none;
+}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #1a140a}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #1a140a}
+.seq-controls label{font-family:var(--mono);font-size:12px;color:var(--ink-dim)}
+.seq-controls .val{font-family:var(--mono);font-size:12px;color:var(--accent);min-width:40px;display:inline-block;text-align:right}
+
+.seq-grid{
+  display:grid;
+  grid-template-columns:130px repeat(16,1fr);
+  gap:4px;
+  align-items:center;
+}
+.seq-grid .lane-label{
+  font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-dim);padding:6px 8px;background:#10131c;border:1px solid var(--line);border-radius:6px;
+}
+.cell{
+  position:relative;
+  height:32px;border-radius:6px;cursor:pointer;
+  background:#10131c;border:1px solid var(--line);
+  transition:transform .05s ease, background .12s ease, border-color .12s ease;
+}
+.cell:hover{border-color:#3a4566}
+.cell.beat{background:#131826}
+.cell.downbeat{background:#161c2c;border-color:#2a3148}
+.cell.on{background:linear-gradient(180deg,#ffd87a,#f4a936);border-color:#d99528}
+.cell.on.kick{background:linear-gradient(180deg,#ff8e6a,#e2532f);border-color:#c8401d}
+.cell.on.snare{background:linear-gradient(180deg,#ffb072,#f47b30);border-color:#d2611c}
+.cell.on.hat{background:linear-gradient(180deg,#9be4ff,#3fb5e6);border-color:#2997c6}
+.cell.on.perc{background:linear-gradient(180deg,#c8a8ff,#8862e6);border-color:#6c47cc}
+.cell.on.cow{background:linear-gradient(180deg,#ffe17a,#d99528);border-color:#a87015}
+.cell.playing{outline:2px solid #fff;outline-offset:1px}
+.cell.step-head::after{content:"";position:absolute;inset:auto 0 0 0;height:2px;background:rgba(255,255,255,.1);border-radius:0 0 6px 6px}
+
+.step-numbers{display:grid;grid-template-columns:130px repeat(16,1fr);gap:4px;margin-bottom:6px}
+.step-numbers div{font-family:var(--mono);font-size:10px;color:var(--ink-mute);text-align:center}
+.step-numbers .lbl-spacer{visibility:hidden}
+
+/* ---------- Bass sequencer ---------- */
+.bass-grid{
+  display:grid;
+  grid-template-columns:130px repeat(16,1fr);
+  gap:4px;
+  align-items:stretch;
+}
+.bass-cell{
+  position:relative;
+  height:48px;border-radius:6px;cursor:pointer;
+  background:#10131c;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;color:var(--ink-mute);
+  user-select:none;
+}
+.bass-cell.beat{background:#131826}
+.bass-cell.downbeat{background:#161c2c;border-color:#2a3148}
+.bass-cell.on{background:linear-gradient(180deg,#b18cff,#6c47cc);color:#fff;border-color:#5034b3;font-weight:700}
+.bass-cell.playing{outline:2px solid #fff;outline-offset:1px}
+
+/* ---------- Chord pads ---------- */
+.chord-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:700px){.chord-row{grid-template-columns:repeat(2,1fr)}}
+.chord-pad{
+  background:linear-gradient(180deg,#19203a,#121728);
+  border:1px solid var(--line-2);border-radius:12px;
+  padding:18px 14px;cursor:pointer;text-align:center;
+  transition:transform .08s ease, border-color .15s ease, background .15s ease;
+}
+.chord-pad:hover{border-color:#5a6a96;background:linear-gradient(180deg,#1f2848,#161c33)}
+.chord-pad:active{transform:translateY(1px)}
+.chord-pad.playing{border-color:var(--accent);box-shadow:0 0 0 2px rgba(244,201,93,.25) inset}
+.chord-pad .name{font-size:22px;font-weight:800;color:var(--ink)}
+.chord-pad .roman{font-family:var(--mono);font-size:12px;color:var(--accent);margin-top:4px}
+.chord-pad .notes{font-family:var(--mono);font-size:11px;color:var(--ink-mute);margin-top:6px}
+
+/* ---------- Arrangement ---------- */
+.arr-row{display:grid;grid-template-columns:repeat(16,1fr);gap:4px;margin-top:10px}
+.arr-block{
+  height:46px;border-radius:8px;border:1px solid var(--line-2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;letter-spacing:.05em;
+  color:#0c0f17;font-weight:700;cursor:pointer;
+  transition:transform .08s ease, filter .15s ease;
+}
+.arr-block:hover{filter:brightness(1.08)}
+.arr-block.intro{background:#3a4566;color:#dde3f3}
+.arr-block.verse{background:linear-gradient(180deg,#9be4ff,#3fb5e6)}
+.arr-block.prechorus{background:linear-gradient(180deg,#c8a8ff,#8862e6);color:#fff}
+.arr-block.chorus{background:linear-gradient(180deg,#ffd87a,#f4a936)}
+.arr-block.drop{background:linear-gradient(180deg,#ff8e6a,#e2532f);color:#fff}
+.arr-block.break{background:#1f2440;color:#cdd3e3}
+.arr-block.outro{background:#3a4566;color:#dde3f3}
+
+.arr-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.arr-legend .item{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;color:var(--ink-dim)}
+.arr-legend .swatch{width:12px;height:12px;border-radius:3px}
+
+/* ---------- Tables ---------- */
+.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px}
+.tbl th,.tbl td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.tbl th{background:#10131c;color:var(--accent);font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:11px}
+.tbl td .pill{display:inline-block;font-size:11px;padding:2px 6px;border-radius:4px;background:#1a2138;color:#9be4ff;border:1px solid #2a3a5e}
+
+/* ---------- Callouts ---------- */
+.callout{
+  border-left:3px solid var(--accent);
+  background:linear-gradient(90deg,rgba(244,201,93,.08),transparent 80%);
+  padding:12px 14px;border-radius:6px;color:#dde3f3;
+}
+.callout.warn{border-color:var(--accent-2);background:linear-gradient(90deg,rgba(255,122,89,.08),transparent 80%)}
+.callout.info{border-color:var(--accent-3);background:linear-gradient(90deg,rgba(90,209,255,.08),transparent 80%)}
+
+/* ---------- Master transport ---------- */
+.master-bar{
+  position:sticky;bottom:0;z-index:60;
+  background:rgba(11,13,18,.92);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+}
+.master-bar .container{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 24px}
+.master-bar .led{width:8px;height:8px;border-radius:50%;background:#3a4566;display:inline-block;margin-right:8px;vertical-align:middle}
+.master-bar .led.live{background:var(--good);box-shadow:0 0 8px var(--good)}
+
+/* ---------- Footer ---------- */
+footer{padding:32px 0 64px;color:var(--ink-mute);font-size:13px}
+footer a{color:var(--accent)}
+.kbd-hint{font-family:var(--mono);font-size:11px;color:var(--ink-mute)}
+
+/* ---------- Print ---------- */
+@media print{
+  nav.toc,.master-bar,.seq-controls,button.btn{display:none!important}
+  body{background:#fff;color:#000}
+  .card,.seq-wrap{background:#fff;color:#000;border-color:#ccc}
+}
+</style>
+</head>
+<body>
+
+
+<!-- =================== HERO =================== -->
+<header class="hero">
+  <div class="container">
+    <span class="eyebrow">UK Funky · 2009 · Production Anatomy</span>
+    <h1><span class="title">"In The Morning"<br>(Let Your Love Come In)</span></h1>
+    <p class="lede">Fuzzy Logik featuring Egypt — a pirate-radio era UK Funky anthem reissued through Virgin Records in 2009. This is a deep, interactive, fully offline study guide built around how to recreate the track's vibe in <strong>Logic Pro 12</strong> using <strong>Serum 2</strong>, <strong>Moog Mariana</strong> and a Rhodes.</p>
+    <div class="tag-row">
+      <span class="tag">~130 BPM</span>
+      <span class="tag">A minor / F# minor zone</span>
+      <span class="tag">4/4 swung</span>
+      <span class="tag">Steel-pan stab</span>
+      <span class="tag">Soca / Afro percussion</span>
+      <span class="tag">Sub-bass on the off</span>
+      <span class="tag">Vocal hook driven</span>
+    </div>
+    <p class="muted" style="margin-top:14px;font-size:13px">Tip: tap any drum cell, chord pad, bass cell or arrangement block to hear it. Hit <kbd>Space</kbd> to play/stop the master sequencer.</p>
+  </div>
+</header>
+
+<!-- =================== NAV =================== -->
+<nav class="toc" aria-label="Section navigation">
+  <div class="container">
+    <a href="#review">01 · Review</a>
+    <a href="#specs">02 · Specs</a>
+    <a href="#drums">03 · Drums</a>
+    <a href="#bass">04 · Bass</a>
+    <a href="#chords">05 · Chords</a>
+    <a href="#arrangement">06 · Arrangement</a>
+    <a href="#swing">07 · Swing &amp; Groove</a>
+    <a href="#serum">08 · Serum 2</a>
+    <a href="#mariana">09 · Mariana</a>
+    <a href="#rhodes">10 · Rhodes</a>
+    <a href="#logic">11 · Logic Pro 12</a>
+    <a href="#mix">12 · Mix &amp; FX</a>
+    <a href="#refs">Refs</a>
+  </div>
+</nav>
+
+<!-- =================== REVIEW =================== -->
+<section id="review">
+  <div class="container">
+    <h2><span class="num">01</span>The Track — Review &amp; Cultural Context</h2>
+    <div class="grid cols-2">
+      <div>
+        <p><strong>"In The Morning (Let Your Love Come In)"</strong> dropped in 2009 right at the peak of UK Funky's pirate-radio moment. Fuzzy Logik (also stylised <em>Fuzzy Logic</em>) handled the production; Egypt — a London-raised vocalist with a strong American soul lean — sang the hook. The record bubbled through Rinse FM, Choice FM and the FWD&gt;&gt;/East London club circuit before Virgin Records signed it for a wider release.</p>
+        <p>If UK Garage in the late 90s was champagne and a tight 2-step, UK Funky was rum punch, Soca whistles, Afrobeat shakers and a more <em>open</em>, four-on-the-floor (or syncopated) kick. "In The Morning" sits squarely in the genre's commercial sweet spot: a soulful 80s-leaning vocal floats over hard, stuttered drums and the digital-rubberised steel-pan stab that became one of the defining UK Funky sound signatures.</p>
+        <p>Wikipedia lists it alongside Crazy Cousinz "Do You Mind?", "Bongo Jam" and "Funky Anthem" as one of the genre's defining hits. Lil Silva — by then already a celebrated funky producer — turned in a sparser, more percussive remix the same year that's still rinsed in retro sets.</p>
+      </div>
+      <div>
+        <h3>What makes it tick</h3>
+        <ul>
+          <li><strong>The hook.</strong> "Let your love come in" — short, sing-along, melismatic, drops on the down-beat. Classic radio earworm engineering.</li>
+          <li><strong>The stab.</strong> A bright, plucky steel-pan / FM-bell hybrid riff that answers the vocal phrase. It's the percussive lead and the melodic hook in one.</li>
+          <li><strong>The drums.</strong> A "hard stutter" pattern (per <em>The Fader</em>'s 2009 review) — think syncopated kicks plus tight tribal congas, shaker on the offbeats and a clap on 2/4 with extra ghost hits.</li>
+          <li><strong>The space.</strong> Unusually for 2009 club music, the arrangement <em>breathes</em>. There are big drop-outs where only the kick + vocal sit. That's how it gets crowds singing.</li>
+          <li><strong>The swing.</strong> Not full UKG triplet swing — more like 56–58% on 16ths. Just enough to lope.</li>
+        </ul>
+        <h3>My take</h3>
+        <p>"In The Morning" is one of those records that on paper looks <em>too</em> simple: a four-bar loop, three chords, a 16-bar vocal cycle. In a sweaty room at 4am though, that simplicity is the whole point. It's the percussion programming, the swing, and Egypt's confident, lived-in delivery doing the heavy lifting. Whatever you build below — keep it sparse and let the groove cook.</p>
+      </div>
+    </div>
+    <div class="callout info" style="margin-top:18px">
+      <strong>A note on accuracy.</strong> The exact MIDI/stems of the original were never made public. What follows below is a faithful <em>style-template</em> reconstructed from genre conventions, contemporary reviews of the track (FADER, Resident Advisor, Boiler Room) and well-known UK Funky production techniques (Crazy Cousinz, Roska, Lil Silva, Hard House Banton, Apple). Treat it as a starting framework you can shape until your version <em>feels</em> like the record.
+    </div>
+  </div>
+</section>
+
+<!-- =================== SPECS =================== -->
+<section id="specs">
+  <div class="container">
+    <h2><span class="num">02</span>Track Specs at a Glance</h2>
+    <div class="grid cols-3">
+      <div class="card">
+        <h4>Tempo &amp; Feel</h4>
+        <div class="kv">
+          <div class="k">BPM</div><div class="v">130 (genre std 128–135)</div>
+          <div class="k">Time sig.</div><div class="v">4/4</div>
+          <div class="k">Swing</div><div class="v">~56–58% on 16ths</div>
+          <div class="k">Groove</div><div class="v">Syncopated 4-on-floor + tribal perc</div>
+          <div class="k">Bar count</div><div class="v">~96 bars total (~3:00)</div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Tonal Centre</h4>
+        <div class="kv">
+          <div class="k">Key (study)</div><div class="v">A minor (Aeolian)</div>
+          <div class="k">Camelot</div><div class="v">8A</div>
+          <div class="k">Mode flavour</div><div class="v">Natural minor, briefly Dorian on IV</div>
+          <div class="k">Vocal range</div><div class="v">A3–E5 (alto/mezzo)</div>
+          <div class="k">Stab range</div><div class="v">A4–E5 (octave above vocal)</div>
+        </div>
+        <p class="muted" style="margin:10px 0 0;font-size:12px">Tunebat catalogues the radio edit around the A-minor / 8A zone. If you transcribe by ear and land on F# minor instead, that's fine — pitch the whole study down 3 semitones and everything below transposes cleanly.</p>
+      </div>
+      <div class="card">
+        <h4>Mix Targets</h4>
+        <div class="kv">
+          <div class="k">Master LUFS-I</div><div class="v">−8 to −7 (club)</div>
+          <div class="k">True peak</div><div class="v">−1.0 dBTP</div>
+          <div class="k">Sub roll-off</div><div class="v">HPF @ 30 Hz, 24 dB/oct</div>
+          <div class="k">Vocal centre</div><div class="v">~2.5 kHz presence push</div>
+          <div class="k">Stab presence</div><div class="v">5–7 kHz tilt</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- =================== DRUMS =================== -->
+<section id="drums">
+  <div class="container">
+    <h2><span class="num">03</span>Drum Pattern — Interactive Sequencer</h2>
+    <p>16 steps = 1 bar of 16th notes at 130 BPM. The default pattern below is a faithful UK Funky template inspired by "In The Morning"'s hard-stutter feel. <strong>Click any cell to toggle. Hit Play.</strong> Adjust swing live with the slider — you'll hear the off-16ths slide later.</p>
+
+    <div class="seq-wrap">
+      <div class="seq-controls">
+        <div class="group">
+          <button class="btn primary" id="drumPlay">▶ Play Drums</button>
+          <button class="btn" id="drumStop">■ Stop</button>
+          <button class="btn" id="drumClear">Clear</button>
+          <button class="btn" id="drumPreset">Reset Preset</button>
+        </div>
+        <div class="group">
+          <label>BPM</label>
+          <input type="range" id="drumBpm" min="120" max="140" step="1" value="130">
+          <span class="val" id="drumBpmVal">130</span>
+        </div>
+        <div class="group">
+          <label>Swing</label>
+          <input type="range" id="drumSwing" min="50" max="66" step="1" value="57">
+          <span class="val" id="drumSwingVal">57%</span>
+        </div>
+        <div class="group">
+          <label>Volume</label>
+          <input type="range" id="drumVol" min="0" max="100" step="1" value="80">
+          <span class="val" id="drumVolVal">80</span>
+        </div>
+      </div>
+
+      <div class="step-numbers" id="drumStepNumbers"></div>
+      <div class="seq-grid" id="drumGrid"></div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <h3>Lane-by-lane logic</h3>
+        <table class="tbl">
+          <thead><tr><th>Lane</th><th>Source</th><th>Pattern logic</th></tr></thead>
+          <tbody>
+            <tr><td>Kick</td><td>Logic Drum Machine Designer / 909-style with slight pitch envelope</td><td>1, "and-of-2", 3, "and-of-4" — that <em>stutter</em> is what gives the track its lopsided drive.</td></tr>
+            <tr><td>Clap</td><td>808/909 clap, layered with a tight 1-shot snare for body</td><td>Backbeat on 2 and 4, with one ghost flam pickup before beat 4.</td></tr>
+            <tr><td>Closed Hat</td><td>909/UK Funky tip-shaker hybrid</td><td>Off-16ths driving the swing. This is where most of your groove lives.</td></tr>
+            <tr><td>Open Hat</td><td>909 OH, short tail</td><td>One hit on the "and" of beat 4 to pull into the next bar.</td></tr>
+            <tr><td>Conga Hi</td><td>Tribal house conga sample / Logic World Perc</td><td>Sparse syncopation, lands where the kick doesn't.</td></tr>
+            <tr><td>Conga Lo</td><td>Lower-tuned conga / djembe slap</td><td>Rolls before the downbeat, classic Soca pickup.</td></tr>
+            <tr><td>Shaker</td><td>Egg shaker / cabasa</td><td>Steady 8ths, ducked very slightly under the kick.</td></tr>
+            <tr><td>Cowbell / Stab perc</td><td>Pitched percussion or short stab one-shot</td><td>Single hit on beat 1 of every other bar — a hook, not a groove.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Programming tips</h3>
+        <ul>
+          <li><strong>Velocity layers.</strong> Hats: 70 / 95 / 110 in a rolling pattern. Without this they sound stiff.</li>
+          <li><strong>Tiny timing nudges.</strong> Push the conga hi <em>+5 to +12 ticks</em> behind the grid (Logic = +5–10ms). Pulls the groove lazy without losing the kick's authority.</li>
+          <li><strong>One-shot kick under sustained sub.</strong> The kick is the transient; let the bass synth carry the body. Side-chain everything sub-and-below to it.</li>
+          <li><strong>Conga = the song's identity.</strong> If you change one element, change the conga pattern — that's where the dancehall/Soca DNA lives.</li>
+          <li><strong>Don't double-hit.</strong> UK Funky lives on space. If a 16th step <em>could</em> be empty, leave it empty.</li>
+        </ul>
+        <h3 style="margin-top:14px">Suggested Logic kit</h3>
+        <p class="muted" style="font-size:13px">Drum Machine Designer + a "House" or "Hip-Hop Modern" kit as the chassis, then swap in: a 909 kick from <code>EXS24 → Vintage Drum Machines</code>, a cowbell from <code>World → Latin Percussion</code>, and any conga sample from a Splice "UK Funky" pack. Add <code>Drum Synth</code> on its own bus for one extra clap layer.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- =================== BASS =================== -->
+<section id="bass">
+  <div class="container">
+    <h2><span class="num">04</span>Bassline — Interactive Sub Sequencer</h2>
+    <p>UK Funky basslines are usually <em>simple but offbeat</em>. The bass plays root-driven movement that locks to the off-16ths the kick doesn't occupy, often sliding into pitches with a glide. The default below outlines an A-minor / F-major / G-major / E-minor cycle with the classic "off-the-kick" placement. Click a cell to change the note (cycles through scale tones). <strong>Cell off = silence.</strong></p>
+
+    <div class="seq-wrap">
+      <div class="seq-controls">
+        <div class="group">
+          <button class="btn primary" id="bassPlay">▶ Play Bass</button>
+          <button class="btn" id="bassStop">■ Stop</button>
+          <button class="btn" id="bassClear">Clear</button>
+          <button class="btn" id="bassPreset">Reset Preset</button>
+        </div>
+        <div class="group">
+          <label>Glide (ms)</label>
+          <input type="range" id="bassGlide" min="0" max="80" step="1" value="35">
+          <span class="val" id="bassGlideVal">35</span>
+        </div>
+        <div class="group">
+          <label>Cutoff</label>
+          <input type="range" id="bassCutoff" min="200" max="2400" step="10" value="900">
+          <span class="val" id="bassCutoffVal">900</span>
+        </div>
+        <div class="group">
+          <label>Octave</label>
+          <input type="range" id="bassOct" min="-1" max="1" step="1" value="0">
+          <span class="val" id="bassOctVal">0</span>
+        </div>
+        <div class="group">
+          <label>Volume</label>
+          <input type="range" id="bassVol" min="0" max="100" step="1" value="75">
+          <span class="val" id="bassVolVal">75</span>
+        </div>
+      </div>
+
+      <div class="step-numbers" id="bassStepNumbers"></div>
+      <div class="bass-grid" id="bassGrid"></div>
+      <p class="muted" style="margin-top:10px;font-size:12px">Bar 1: A-minor (root). Bar 2 toggle is identical here for clarity — extend to 32 steps in your DAW for the full A → F → G → Em cycle.</p>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <h3>Anatomy of the bass part</h3>
+        <ul>
+          <li><strong>Note choice.</strong> Almost entirely <em>roots and 5ths</em>, with the occasional 7th passing tone before a chord change.</li>
+          <li><strong>Rhythm.</strong> Hits on the "and" of 1, "and" of 2, the "e" of 3 and the "and" of 4. Whatever you do, <em>do not</em> double the kick — that kills the genre's stutter.</li>
+          <li><strong>Slides.</strong> Short portamento (~25–45ms) on every other note; this is what makes Mariana sing.</li>
+          <li><strong>Sub vs. mid-bass.</strong> Two layers are common: a clean sine sub (Mariana Layer 1) and a saturated mid-bass (Mariana Layer 2 with drive + filter resonance).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Side-chain behaviour</h3>
+        <ul>
+          <li>Side-chain the bass off the <strong>kick only</strong>, not the whole drum bus.</li>
+          <li>Logic Pro 12 ➜ <code>Compressor</code> on the bass channel, mode = <em>Studio FET</em>, side-chain key input = <code>Drums &gt; Kick</code>.</li>
+          <li>Settings: Ratio 4:1 · Threshold to taste (target ~6 dB GR) · Attack 0.5–1 ms · Release 80–120 ms · Knee 12 dB.</li>
+          <li>Use the <code>Compressor</code> output meter to confirm the bass <em>breathes</em> rather than ducks awkwardly. The pump should feel musical.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== CHORDS =================== -->
+<section id="chords">
+  <div class="container">
+    <h2><span class="num">05</span>Chord Progression &amp; Stab Riff</h2>
+    <p>The harmonic skeleton is a 4-bar loop in A minor: <strong>i — VI — VII — v</strong> (Am — F — G — Em). It's the most common UK Funky / deep-house cadence in the universe, and that's <em>exactly</em> why it works: the song's identity sits in the rhythm and the timbre, not the harmony. Click each pad to hear it played as a Rhodes-style stab. Click <em>Play Loop</em> to chain them.</p>
+
+    <div class="seq-wrap">
+      <div class="seq-controls">
+        <div class="group">
+          <button class="btn primary" id="chordLoop">▶ Play Chord Loop</button>
+          <button class="btn" id="chordStop">■ Stop</button>
+        </div>
+        <div class="group">
+          <label>Voicing</label>
+          <select id="chordVoicing" class="btn" style="padding:6px 10px;font-family:var(--mono)">
+            <option value="triad">Triad (root pos)</option>
+            <option value="seventh" selected>Minor 7 / Maj 7 (jazzy)</option>
+            <option value="ninth">Add 9 (lush pad)</option>
+            <option value="stab">Stab (octave bell)</option>
+          </select>
+        </div>
+        <div class="group">
+          <label>Tone</label>
+          <select id="chordTone" class="btn" style="padding:6px 10px;font-family:var(--mono)">
+            <option value="rhodes" selected>Rhodes</option>
+            <option value="pad">Pad</option>
+            <option value="bell">Steel-pan / FM bell</option>
+          </select>
+        </div>
+        <div class="group">
+          <label>Volume</label>
+          <input type="range" id="chordVol" min="0" max="100" step="1" value="65">
+          <span class="val" id="chordVolVal">65</span>
+        </div>
+      </div>
+
+      <div class="chord-row" id="chordRow">
+        <div class="chord-pad" data-chord="Am7">
+          <div class="name">Am7</div>
+          <div class="roman">i7</div>
+          <div class="notes">A · C · E · G</div>
+        </div>
+        <div class="chord-pad" data-chord="Fmaj7">
+          <div class="name">Fmaj7</div>
+          <div class="roman">VImaj7</div>
+          <div class="notes">F · A · C · E</div>
+        </div>
+        <div class="chord-pad" data-chord="Gmaj7">
+          <div class="name">G(maj7)</div>
+          <div class="roman">VII</div>
+          <div class="notes">G · B · D · F#</div>
+        </div>
+        <div class="chord-pad" data-chord="Em7">
+          <div class="name">Em7</div>
+          <div class="roman">v7</div>
+          <div class="notes">E · G · B · D</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <h3>The "answer" stab riff</h3>
+        <p>The bright steel-pan / bell stab plays a 2-bar call-and-response motif over the chords. Approximate notes (over Am):</p>
+        <p><code>A5 — A5 — E5 — G5 · — · F5 — E5</code> (rest, rest, rest)</p>
+        <p>Then transposes along the chord progression — drop a 4th over F, up a tone over G, back to root over Em.</p>
+        <p class="muted" style="font-size:12px">In Logic, route this stab patch to its own track with a tape delay (1/8 dotted, 35% feedback) and a subtle plate reverb. Pan it 15% right against the vocal which should sit dead centre.</p>
+      </div>
+      <div class="card">
+        <h3>Pad layer (optional)</h3>
+        <p>Underneath the stab, a slow-attack analogue-style pad plays sustained 4-note voicings of the same chords. It's mostly felt, not heard — sub-bass to ~600 Hz only, with an automated low-pass that opens slightly into the choruses.</p>
+        <p>In Serum 2 use a 3-osc warm saw stack with one octave-down sine, slow filter envelope (~600 ms attack), and a wide stereo chorus.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ARRANGEMENT =================== -->
+<section id="arrangement">
+  <div class="container">
+    <h2><span class="num">06</span>Arrangement Map</h2>
+    <p>"In The Morning" follows a classic UK club arrangement: long DJ intro → vocal entry → drop with the full kit → break → drop → outro. Each block below = 8 bars. Click a block to hear that section's loop play (drums + bass + stab).</p>
+
+    <div class="arr-row" id="arrRow"></div>
+    <div class="arr-legend">
+      <div class="item"><span class="swatch" style="background:#3a4566"></span>Intro / Outro (drums + perc only)</div>
+      <div class="item"><span class="swatch" style="background:#9be4ff"></span>Verse (drums + bass + sparse stab)</div>
+      <div class="item"><span class="swatch" style="background:#c8a8ff"></span>Pre-chorus (build, filter sweep, riser)</div>
+      <div class="item"><span class="swatch" style="background:#f4a936"></span>Chorus / Hook ("Let your love come in")</div>
+      <div class="item"><span class="swatch" style="background:#e2532f"></span>Drop (full kit, stab riff at full volume)</div>
+      <div class="item"><span class="swatch" style="background:#1f2440;border:1px solid #444"></span>Break (kick + vocal only)</div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <h3>Section-by-section blueprint</h3>
+        <table class="tbl">
+          <thead><tr><th>Bars</th><th>Section</th><th>Elements</th></tr></thead>
+          <tbody>
+            <tr><td>1–8</td><td>Intro</td><td>Kick + shaker + open hat. Sub fade-in last 2 bars.</td></tr>
+            <tr><td>9–16</td><td>Verse 1</td><td>Add congas + bass + sparse stab. Vocal ad-libs.</td></tr>
+            <tr><td>17–24</td><td>Pre-chorus</td><td>Filter sweep on hats, tom roll on bar 24, vocal "let your love come in" pickup.</td></tr>
+            <tr><td>25–32</td><td>Chorus 1</td><td>Full kit. Stab riff at full volume. Pad opens.</td></tr>
+            <tr><td>33–40</td><td>Drop / Dance</td><td>Vocal chops + stab riff lead. No verse vocals.</td></tr>
+            <tr><td>41–48</td><td>Break</td><td>Strip to kick + vocal only. Reverb tail blooms.</td></tr>
+            <tr><td>49–56</td><td>Verse 2</td><td>Same as V1, slightly busier perc.</td></tr>
+            <tr><td>57–64</td><td>Pre-chorus 2</td><td>Build with sub-drop riser + reverse cymbal.</td></tr>
+            <tr><td>65–80</td><td>Chorus 2 + Drop</td><td>Hook repeats, longer instrumental tail for DJs.</td></tr>
+            <tr><td>81–96</td><td>Outro</td><td>Drop layers one by one. Last 8 bars: kick + shaker only.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>DJ-friendly principles</h3>
+        <ul>
+          <li><strong>Loop-able 8s and 16s.</strong> Every section length is a power of 8 bars so DJs can loop or cut on any boundary.</li>
+          <li><strong>Long intro/outro.</strong> 16+ bars of mostly drums + sub at each end. Non-negotiable for club records.</li>
+          <li><strong>Hold back the lead.</strong> Stab riff doesn't enter at full velocity until bar 25. Anticipation > everything.</li>
+          <li><strong>Vocal chops in the drop.</strong> Single-syllable vocal stabs ("love", "in") replace full lines so the dance moment doesn't fight the hook.</li>
+          <li><strong>Reverse cymbal + sub drop.</strong> One bar before each chorus. Two-bar tape stop into the final outro is a classic UK Funky move.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- =================== SWING =================== -->
+<section id="swing">
+  <div class="container">
+    <h2><span class="num">07</span>Swing &amp; Groove Settings</h2>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>The numbers</h3>
+        <table class="tbl">
+          <thead><tr><th>Element</th><th>Quantize</th><th>Swing</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Kick</td><td>1/16</td><td><span class="pill">50% (none)</span></td><td>Stays dead on grid — anchor of the track.</td></tr>
+            <tr><td>Clap</td><td>1/16</td><td><span class="pill">52%</span></td><td>Tiny push so it slots between hat 16ths.</td></tr>
+            <tr><td>Closed hat</td><td>1/16</td><td><span class="pill">57%</span></td><td>Where the swing lives.</td></tr>
+            <tr><td>Open hat</td><td>1/16</td><td><span class="pill">57%</span></td><td>Match closed hat exactly.</td></tr>
+            <tr><td>Conga hi</td><td>1/16</td><td><span class="pill">55%</span> + 8 ticks late</td><td>Lazy, behind-the-beat feel.</td></tr>
+            <tr><td>Conga lo</td><td>1/16</td><td><span class="pill">55%</span></td><td>Locks with congas.</td></tr>
+            <tr><td>Shaker</td><td>1/8</td><td><span class="pill">50%</span></td><td>Straight 8ths, humanise velocity ±10%.</td></tr>
+            <tr><td>Bass</td><td>1/16</td><td><span class="pill">54%</span></td><td>Slightly less swung than hats.</td></tr>
+            <tr><td>Stab</td><td>1/16</td><td><span class="pill">57%</span></td><td>Locks to hat swing.</td></tr>
+            <tr><td>Vocal</td><td>none</td><td><span class="pill">free</span></td><td>Don't quantize. Ever.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Logic Pro 12 — how to apply it</h3>
+        <ol>
+          <li>Select the drum region(s).</li>
+          <li>In the <code>Region</code> inspector ▸ <code>Quantize</code> set to <code>1/16 Swing E</code> (E = ~58%) for the hat-leading group.</li>
+          <li>For sub-percussion, use a custom <em>groove template</em>: import a UK Funky reference loop into a track, right-click ▸ <code>Make Groove Template</code>. Then quantize your perc to that template — instant authentic feel.</li>
+          <li>Use the <code>Q-Strength</code> slider at ~85% to keep some humanising looseness.</li>
+          <li>Apply <code>Q-Velocity</code> at 30–40% — pulls velocities toward the reference's dynamics without flattening them.</li>
+        </ol>
+        <p class="muted" style="font-size:12px">Pro tip: bounce a 1-bar loop of just kick + hats and listen on headphones with eyes closed. If your head nods <em>before</em> the kick lands, the swing is too aggressive. If it nods on the kick, you're on the money.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== SERUM 2 =================== -->
+<section id="serum">
+  <div class="container">
+    <h2><span class="num">08</span>Serum 2 — Patch Recipes</h2>
+    <p>Three Serum 2 patches cover everything Mariana doesn't: the steel-pan stab/lead, the lush pad, and the vocal-doubling synth. Recipe screens below — copy step-by-step.</p>
+
+    <div class="grid cols-3">
+      <div class="card">
+        <h3>① Steel-Pan Stab (Lead/Riff)</h3>
+        <table class="tbl">
+          <tr><td>OSC A</td><td>Wavetable: <code>Bell &gt; Bell 5</code> · Unison 3 · Detune 0.12 · Blend 60</td></tr>
+          <tr><td>OSC B</td><td>Wavetable: <code>Basic &gt; Triangle</code> · −12 semi · Level −10 dB</td></tr>
+          <tr><td>NOISE</td><td>Pink noise · Level −24 dB · Pitch tracking ON · Filter HPF 2 kHz</td></tr>
+          <tr><td>FILTER 1</td><td>MG Low 24 · Cutoff 2.4 kHz · Res 18% · Drive 14%</td></tr>
+          <tr><td>ENV 1 (amp)</td><td>A 0.5 ms · D 280 ms · S 0% · R 90 ms</td></tr>
+          <tr><td>ENV 2 (filter)</td><td>A 0 · D 220 ms · S 0% · R 60 ms · Amount +35%</td></tr>
+          <tr><td>FX</td><td>Distortion (Tube, 22%) → Chorus (Rate 0.4 Hz, Depth 22%) → Reverb (Plate, 1.4 s, mix 14%)</td></tr>
+          <tr><td>Macro 1</td><td>"Pluck Tighten" → ENV1 D, ENV2 D (negative)</td></tr>
+        </table>
+        <p class="muted" style="font-size:12px;margin-top:8px">Play in 5ths and octaves for the <em>answer-riff</em>. Layer with one Logic-stock <code>Vintage FM</code> bell at −18 dB for extra digital sheen.</p>
+      </div>
+
+      <div class="card">
+        <h3>② Lush Pad (Sustained Bed)</h3>
+        <table class="tbl">
+          <tr><td>OSC A</td><td>Wavetable: <code>Analog &gt; Saw 2</code> · Unison 7 · Detune 0.32 · Blend 70</td></tr>
+          <tr><td>OSC B</td><td>Wavetable: <code>Analog &gt; Saw 1</code> · −12 semi · Unison 5 · Detune 0.18</td></tr>
+          <tr><td>SUB</td><td>Sine · −12 · Level −16 dB</td></tr>
+          <tr><td>FILTER 1</td><td>SVF Low 12 · Cutoff 1.6 kHz · Res 12%</td></tr>
+          <tr><td>ENV 1 (amp)</td><td>A 600 ms · D 500 ms · S 80% · R 1.4 s</td></tr>
+          <tr><td>LFO 1</td><td>Tri · 0.18 Hz · → Filter 1 cutoff (±15%)</td></tr>
+          <tr><td>FX</td><td>Hyper (Detune 18%) → Chorus (deep) → Reverb (Hall, 4.0 s, mix 35%)</td></tr>
+        </table>
+        <p class="muted" style="font-size:12px;margin-top:8px">Roll off below 200 Hz and above 8 kHz. Tucked under the stab, this should feel rather than show.</p>
+      </div>
+
+      <div class="card">
+        <h3>③ Vocal Doubler / Choir Synth</h3>
+        <table class="tbl">
+          <tr><td>OSC A</td><td>Wavetable: <code>Vox &gt; AAH</code> · Unison 4 · Detune 0.15</td></tr>
+          <tr><td>OSC B</td><td>Wavetable: <code>Vox &gt; OOH</code> · Unison 3 · −7 semi · Level −6 dB</td></tr>
+          <tr><td>FILTER 1</td><td>SVF Low 24 · Cutoff 2.0 kHz · Res 8% · Mix 80%</td></tr>
+          <tr><td>ENV 1 (amp)</td><td>A 80 ms · D 200 ms · S 75% · R 250 ms</td></tr>
+          <tr><td>FX</td><td>Compressor (4:1, fast) → Chorus (light) → Plate Reverb (1.0 s, mix 18%)</td></tr>
+          <tr><td>Macro</td><td>Macro 1 → Filter Cutoff (for live filter sweeps under the chorus)</td></tr>
+        </table>
+        <p class="muted" style="font-size:12px;margin-top:8px">Play in unison with Egypt's hook line at −12 dB. Side-chain it to the kick to keep it from masking the snare.</p>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:18px">
+      <strong>Serum 2 routing in Logic.</strong> Each Serum 2 instance sits on its own software-instrument track. Group all three into a Serum bus. On the bus: <code>Channel EQ</code> (HPF 80 Hz), <code>Multipressor</code> (gentle 3-band), and a <code>Limiter</code> (ceiling −1 dB) before sending to the master. Mariana sits on a separate bus parallel to it.
+    </div>
+  </div>
+</section>
+
+
+<!-- =================== MARIANA =================== -->
+<section id="mariana">
+  <div class="container">
+    <h2><span class="num">09</span>Moog Mariana — Bassline Programming</h2>
+    <p>Mariana is purpose-built for low-end and is ideal for UK Funky bass. The instrument has two layers (A &amp; B); we'll use them as <strong>sub</strong> and <strong>mid-bass</strong> respectively, blended for a single thick voice that fills the bottom without smearing the kick.</p>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Layer A — Clean Sine Sub</h3>
+        <table class="tbl">
+          <tr><td>OSC 1</td><td>Sine wave · Octave 16′ · Level 100%</td></tr>
+          <tr><td>OSC 2</td><td>Off (or sine at −12 semitones, level 30%)</td></tr>
+          <tr><td>Filter</td><td>Ladder LP · Cutoff 100% · Res 0% (let it through clean)</td></tr>
+          <tr><td>Amp Env</td><td>A 1 ms · D 400 ms · S 100% · R 80 ms</td></tr>
+          <tr><td>Glide</td><td>30–40 ms (legato mode ON)</td></tr>
+          <tr><td>Drive</td><td>0% — keep it pure</td></tr>
+          <tr><td>HPF</td><td>30 Hz on the layer output</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Layer B — Saturated Mid-Bass</h3>
+        <table class="tbl">
+          <tr><td>OSC 1</td><td>Saw · Octave 8′ · Level 100%</td></tr>
+          <tr><td>OSC 2</td><td>Square · −7 semitones · Level 60% (gives the growl)</td></tr>
+          <tr><td>Filter</td><td>Ladder LP · Cutoff 35% · Res 25% · Velocity to cutoff +30%</td></tr>
+          <tr><td>Amp Env</td><td>A 2 ms · D 250 ms · S 70% · R 120 ms</td></tr>
+          <tr><td>Filter Env</td><td>A 0 · D 180 ms · S 0% · R 100 ms · Amount +45%</td></tr>
+          <tr><td>Drive</td><td>20–30% (analog drive — Mariana's signature)</td></tr>
+          <tr><td>FX</td><td>Built-in chorus, light. Built-in delay OFF.</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Macro &amp; performance setup</h3>
+      <ul>
+        <li><strong>Layer balance.</strong> Layer A around −2 dB, Layer B around −6 dB, then mix to taste once in the project. The sub should never <em>louder</em> than the mid-bass on a phone speaker — but it should be obvious on a sub.</li>
+        <li><strong>Mod wheel</strong> ➜ Layer B filter cutoff. Use it live during the chorus to add bite.</li>
+        <li><strong>Aftertouch</strong> ➜ Layer A volume +2 dB. Lean into long notes for emphasis.</li>
+        <li><strong>Velocity</strong> ➜ Layer B filter (already set). Hard hits get more growl.</li>
+        <li><strong>Mono / Legato</strong>. Always mono. Always legato. The slides are the whole point.</li>
+      </ul>
+    </div>
+
+    <div class="callout warn" style="margin-top:18px">
+      <strong>Don't stack delay on the bass.</strong> Mariana has lovely built-in delay but on this style it makes the bass smear. Keep delay strictly on the stab and the vocal. Bass = dry + side-chain.
+    </div>
+  </div>
+</section>
+
+<!-- =================== RHODES =================== -->
+<section id="rhodes">
+  <div class="container">
+    <h2><span class="num">10</span>Rhodes Piano — The Optional Soul Layer</h2>
+    <p>The original record doesn't lead with Rhodes, but adding a quiet Rhodes layer is the single biggest "soulful" upgrade you can make to a UK Funky-style production. Two ways to do it:</p>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Option A — Logic stock (free)</h3>
+        <ul>
+          <li>Track ➜ <code>Vintage Electric Piano</code> ➜ preset <code>Mark I Hard Mono</code>.</li>
+          <li>Set <code>Tine Volume</code> 65% · <code>Bell Volume</code> 30% · <code>Decay Time</code> 50%.</li>
+          <li>Add <code>Pedal</code> emulation: ON, depth 25%.</li>
+          <li>Plug-ins: <code>Chorus</code> (rate 0.6 Hz) → <code>Tape Delay</code> (1/4 dotted, 18% mix, 30% feedback) → <code>Channel EQ</code> (HPF 200 Hz, gentle 5 kHz +1.5 dB).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Option B — Serum 2 fake-Rhodes</h3>
+        <ul>
+          <li>OSC A: <code>Bell &gt; Bell 2</code> · Unison 1.</li>
+          <li>OSC B: <code>Basic &gt; Triangle</code> · same pitch · Level −6 dB.</li>
+          <li>FM A→B at 22% (this is the "tine" character).</li>
+          <li>Filter: SVF Low 24 · Cutoff 3.5 kHz · key-track 80%.</li>
+          <li>Amp env: A 1 ms · D 1.2 s · S 0% · R 250 ms.</li>
+          <li>FX: Chorus (light) → Tape Delay → Reverb (Spring, 1.6 s).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Rhodes voicings</h3>
+      <p>Don't play the chord blocks. Play <strong>upper-structure thirds</strong> over the bass:</p>
+      <ul>
+        <li>Over Am ➜ play C–E–G (top three of Am7) syncopated 16ths.</li>
+        <li>Over F ➜ play A–C–E.</li>
+        <li>Over G ➜ play B–D–F# (only chord with the F#, gives motion).</li>
+        <li>Over Em ➜ play G–B–D.</li>
+      </ul>
+      <p>Pan 25% left, sit at −18 dB in the mix. Mute it during the drop and let it back in for the verses.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =================== LOGIC =================== -->
+<section id="logic">
+  <div class="container">
+    <h2><span class="num">11</span>Logic Pro 12 — Project Setup</h2>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Project &amp; tempo</h3>
+        <ul>
+          <li>New empty project. Sample rate <strong>48 kHz</strong>, bit depth <strong>24-bit</strong>.</li>
+          <li>Tempo: <strong>130 BPM</strong>. Time signature 4/4.</li>
+          <li>Project Settings ▸ Recording ▸ <em>Count-in 1 bar</em>.</li>
+          <li>Project Settings ▸ Audio ▸ Buffer 128 (tracking) / 512 (mixing).</li>
+          <li>Enable <em>Flex Time</em> only on the vocal track when needed; leave drums/bass un-flexed.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Track template</h3>
+        <ol>
+          <li><strong>1 Drum bus</strong> (aux). Children: Kick, Clap, CH, OH, Conga Hi, Conga Lo, Shaker, Cowbell.</li>
+          <li><strong>2 Bass bus</strong> (aux). Child: Mariana stereo out. Side-chain key from kick.</li>
+          <li><strong>3 Synth bus</strong> (aux). Children: Stab (Serum 2), Pad (Serum 2), Vocal-doubler (Serum 2).</li>
+          <li><strong>4 Keys bus</strong>. Children: Rhodes.</li>
+          <li><strong>5 Vocal bus</strong>. Children: Lead vocal, BVs, ad-libs, FX vocals.</li>
+          <li><strong>6 FX bus</strong>. Risers, sweeps, reverse cymbals.</li>
+          <li><strong>Master</strong>. <code>Channel EQ</code> → <code>Linear Phase EQ</code> → <code>Bus Compressor</code> → <code>Adaptive Limiter</code>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <h3>Drum bus chain</h3>
+        <ol>
+          <li><code>Channel EQ</code>: HPF 30 Hz, gentle high-shelf +1.5 dB @ 12 kHz.</li>
+          <li><code>Compressor</code> (Studio FET): 4:1, attack 5 ms, release 60 ms, target 2 dB GR.</li>
+          <li><code>Phat FX</code> (or <code>Bitcrusher</code> at low intensity) for analog-feel grit — drive 10%, mix 12%.</li>
+          <li>Send to <strong>Reverb aux</strong> (Space Designer, "Small Wood Room", −18 dB).</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Vocal chain (in this order)</h3>
+        <ol>
+          <li><code>Channel EQ</code>: HPF 100 Hz, notch at 250 Hz (mud), shelf +2 dB @ 8 kHz (air).</li>
+          <li><code>DeEsser 2</code>: 7.5 kHz, range −6 dB.</li>
+          <li><code>Compressor</code> (Vintage VCA): 3:1, attack 8 ms, release 120 ms, target 4 dB GR.</li>
+          <li><code>Compressor 2</code> (Studio FET): catch peaks, 6 dB GR ceiling.</li>
+          <li><code>Channel EQ</code> (post): subtle presence boost +1 dB @ 2.5 kHz.</li>
+          <li>Sends: <code>Tape Delay</code> (1/4 dot, 25% mix), <code>ChromaVerb</code> "Plate" (1.4 s, 12% mix).</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>Smart Tempo / Smart Controls</h3>
+      <p>Logic 12's <code>Smart Tempo</code> isn't really needed since you're starting from scratch at 130 BPM, but if you import a Crazy Cousinz or Roska reference for groove-template purposes, set <code>Project Tempo</code> to <em>Adapt</em> while you analyse, then revert to <em>Keep</em> before tracking.</p>
+      <p>Map a single <code>Smart Control</code> macro to: Filter Cutoff (Stab) + Reverb Send (Vocal) + Drum Bus Volume. Automate it for the breaks — one fader, three musical results.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- =================== MIX =================== -->
+<section id="mix">
+  <div class="container">
+    <h2><span class="num">12</span>Mix &amp; FX Chain — The Full Picture</h2>
+
+    <div class="card">
+      <h3>Frequency budget</h3>
+      <table class="tbl">
+        <thead><tr><th>Range</th><th>Element(s)</th><th>Treatment</th></tr></thead>
+        <tbody>
+          <tr><td>20–60 Hz</td><td>Sub bass (Mariana A)</td><td>Mono. HPF 30 Hz. No reverb.</td></tr>
+          <tr><td>60–120 Hz</td><td>Kick fundamental</td><td>Cut bass at 80 Hz to make room. Side-chain pump.</td></tr>
+          <tr><td>120–250 Hz</td><td>Kick body, mid-bass</td><td>Light cut at 200 Hz on bass to remove mud.</td></tr>
+          <tr><td>250–500 Hz</td><td>Vocal warmth, Rhodes body, congas</td><td>Most danger zone — surgical EQ on each.</td></tr>
+          <tr><td>500–1k</td><td>Snare/clap body, vocal vowel</td><td>Push vocal +1 dB at 800 Hz, cut clap at 600 Hz.</td></tr>
+          <tr><td>1–3k</td><td>Vocal presence, stab attack</td><td>Pan stab away from vocal. EQ-carve a notch in each.</td></tr>
+          <tr><td>3–6k</td><td>Hat tip, vocal sibilance</td><td>De-ess vocal. Hats can shine.</td></tr>
+          <tr><td>6–12k</td><td>Air, shaker, cymbal sheen</td><td>Shelf boost on master, +1 dB.</td></tr>
+          <tr><td>12k+</td><td>"Sparkle"</td><td>Use a tape saturator, not an EQ boost — Logic <code>Tape Delay</code> with mix 0% works as a tone shaper.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <h3>Master bus chain (in order)</h3>
+        <ol>
+          <li><code>Channel EQ</code> (clean) — HPF 25 Hz, notches as needed.</li>
+          <li><code>Linear Phase EQ</code> — broad tonal sculpt (±1.5 dB max).</li>
+          <li><code>Bus Compressor</code> — Ratio 2:1 · Attack 30 ms · Release Auto · target 1.5 dB GR · mix 80% (parallel).</li>
+          <li><code>Multipressor</code> — three-band, gentle, control sub specifically.</li>
+          <li><code>Stereo Spread</code> — only above 800 Hz, intensity 25%.</li>
+          <li><code>Adaptive Limiter</code> — out ceiling −1 dBTP, lookahead 5 ms.</li>
+          <li><code>Loudness Meter</code> (verify −8 LUFS-I for club, −14 for streaming).</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>FX & ear-candy moments</h3>
+        <ul>
+          <li><strong>Reverse cymbal</strong> 1 bar before each chorus. Logic stock <code>Vintage Cymbal Reverse</code>.</li>
+          <li><strong>Sub-drop</strong> (sine sweep 80→30 Hz over 1 bar) at every drop bar. Sidechained to the kick.</li>
+          <li><strong>Vinyl noise</strong> at −38 dB across the whole track for warmth.</li>
+          <li><strong>Tape stop</strong> 2 bars before the outro. Logic Pro 12's <code>Vintage Tape Stop</code> in <code>Pedalboard</code>.</li>
+          <li><strong>Delay throws</strong> on the last word of each vocal phrase. Bus send automation, not insert.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout info" style="margin-top:18px">
+      <strong>Reference levels.</strong> Mix on a sub-equipped system if you have one. If not, A/B with Crazy Cousinz "Do You Mind?", Donae'o "Party Hard" or Hard House Banton "Sirens" — all roughly the same era and mastering style. Your kick should sit just <em>under</em> theirs by 0.5 dB so your record doesn't fight references on a club system.
+    </div>
+  </div>
+</section>
+
+<!-- =================== REFS =================== -->
+<section id="refs">
+  <div class="container">
+    <h2><span class="num">★</span>References &amp; Further Listening</h2>
+    <ul>
+      <li><a href="https://en.wikipedia.org/wiki/UK_funky" target="_blank" rel="noopener">Wikipedia — UK Funky</a> (genre overview, BPM range, drum convention)</li>
+      <li><a href="https://www.discogs.com/master/169656" target="_blank" rel="noopener">Discogs — Fuzzy Logik feat. Egypt — In The Morning</a> (releases, contemporary user reviews)</li>
+      <li><a href="https://www.thefader.com/2009/06/11/freeload-fuzzy-logik-f-egypt-in-the-morning-mp3" target="_blank" rel="noopener">The FADER (2009)</a> — original review describing "hard stutter drums" and "digital rubberised steel drums"</li>
+      <li><a href="https://boilerroom.tv/the-love-is-still-there-charting-uk-funkys-rise-and-fall/" target="_blank" rel="noopener">Boiler Room — The Love is Still There: Charting UK Funky's Rise and Fall</a></li>
+      <li><a href="https://ra.co/news/12329" target="_blank" rel="noopener">Resident Advisor — Rinse "I Love Funky" tracklist</a> (canonical UK Funky context)</li>
+      <li><strong>Listen alongside:</strong> Crazy Cousinz "Do You Mind?", Donae'o "Party Hard", Lil Silva "Seasons", Roska "Climate Change", Hard House Banton "Sirens", Apple "Mexico"</li>
+    </ul>
+    <p class="muted" style="font-size:12px">Original web research conducted Nov 2024 / May 2026. All production interpretations are educational reconstructions; the original masters and project files were never publicly released.</p>
+  </div>
+</section>
+
+<!-- =================== MASTER BAR =================== -->
+<div class="master-bar" id="masterBar">
+  <div class="container">
+    <span><span class="led" id="masterLed"></span><strong style="font-family:var(--mono);font-size:12px;letter-spacing:.05em">MASTER</strong></span>
+    <button class="btn primary" id="masterPlay">▶ Play All</button>
+    <button class="btn" id="masterStop">■ Stop All</button>
+    <span style="font-family:var(--mono);font-size:12px;color:var(--ink-mute)">Bar <span id="barCount">1</span> / Step <span id="stepCount">1</span></span>
+    <span class="kbd-hint" style="margin-left:auto">Space = play/stop · Esc = stop all</span>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <p>Built as a study companion for the <a href="https://github.com/jaaytee78-cyber/jaysuhnt">jaysuhnt</a> knowledge base. All audio in this page is synthesised live in your browser using the Web Audio API — nothing is loaded from the network, so this file works fully offline. Save it locally with <kbd>Cmd/Ctrl + S</kbd>.</p>
+  </div>
+</footer>
+
+
+<script>
+"use strict";
+
+/* ============================================================
+   AUDIO CONTEXT (lazy — created on first user interaction)
+   ============================================================ */
+let AC = null;
+let masterGain = null;
+function ensureAudio(){
+  if(AC) return AC;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  AC = new Ctx();
+  masterGain = AC.createGain();
+  masterGain.gain.value = 0.85;
+  masterGain.connect(AC.destination);
+  return AC;
+}
+
+/* ============================================================
+   DRUM VOICES (synthesized — no samples)
+   ============================================================ */
+function playKick(time, vel=1){
+  const ctx = ensureAudio();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const click = ctx.createOscillator();
+  const clickGain = ctx.createGain();
+
+  osc.type="sine";
+  osc.frequency.setValueAtTime(140, time);
+  osc.frequency.exponentialRampToValueAtTime(38, time+0.18);
+  gain.gain.setValueAtTime(0.0001, time);
+  gain.gain.exponentialRampToValueAtTime(1*vel, time+0.005);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time+0.5);
+
+  click.type="square";
+  click.frequency.value=2400;
+  clickGain.gain.setValueAtTime(0.0001, time);
+  clickGain.gain.exponentialRampToValueAtTime(0.4*vel, time+0.001);
+  clickGain.gain.exponentialRampToValueAtTime(0.0001, time+0.02);
+
+  osc.connect(gain).connect(masterGain);
+  click.connect(clickGain).connect(masterGain);
+  osc.start(time); osc.stop(time+0.55);
+  click.start(time); click.stop(time+0.04);
+}
+
+function playClap(time, vel=1){
+  const ctx = ensureAudio();
+  const noise = ctx.createBufferSource();
+  const buf = ctx.createBuffer(1, ctx.sampleRate*0.3, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1);
+  noise.buffer = buf;
+
+  const bp = ctx.createBiquadFilter();
+  bp.type="bandpass"; bp.frequency.value=1500; bp.Q.value=0.9;
+
+  const g = ctx.createGain();
+  // 4-tap clap envelope
+  g.gain.setValueAtTime(0.0001, time);
+  [0,0.012,0.024,0.038].forEach((dt,i)=>{
+    g.gain.exponentialRampToValueAtTime((i===3?1:0.7)*vel, time+dt+0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, time+dt+0.04);
+  });
+  g.gain.exponentialRampToValueAtTime(0.4*vel, time+0.04);
+  g.gain.exponentialRampToValueAtTime(0.0001, time+0.22);
+
+  noise.connect(bp).connect(g).connect(masterGain);
+  noise.start(time); noise.stop(time+0.3);
+}
+
+function playHat(time, open=false, vel=1){
+  const ctx = ensureAudio();
+  const noise = ctx.createBufferSource();
+  const buf = ctx.createBuffer(1, ctx.sampleRate*(open?0.3:0.08), ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1);
+  noise.buffer = buf;
+
+  const hp = ctx.createBiquadFilter();
+  hp.type="highpass"; hp.frequency.value=7500;
+  const peak = ctx.createBiquadFilter();
+  peak.type="peaking"; peak.frequency.value=10000; peak.gain.value=4; peak.Q.value=2;
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(0.4*vel, time+0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, time+(open?0.28:0.06));
+
+  noise.connect(hp).connect(peak).connect(g).connect(masterGain);
+  noise.start(time); noise.stop(time+0.32);
+}
+
+function playConga(time, hi=true, vel=1){
+  const ctx = ensureAudio();
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type="sine";
+  const baseFreq = hi ? 380 : 220;
+  osc.frequency.setValueAtTime(baseFreq*1.4, time);
+  osc.frequency.exponentialRampToValueAtTime(baseFreq, time+0.05);
+
+  // body
+  const noiseBuf = ctx.createBuffer(1, ctx.sampleRate*0.15, ctx.sampleRate);
+  const nd = noiseBuf.getChannelData(0);
+  for(let i=0;i<nd.length;i++) nd[i] = (Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.04));
+  const ns = ctx.createBufferSource(); ns.buffer = noiseBuf;
+  const nf = ctx.createBiquadFilter(); nf.type="bandpass"; nf.frequency.value = hi?900:550; nf.Q.value=2.5;
+  const ng = ctx.createGain(); ng.gain.value = 0.5*vel;
+
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(0.7*vel, time+0.003);
+  g.gain.exponentialRampToValueAtTime(0.0001, time+0.25);
+
+  osc.connect(g).connect(masterGain);
+  ns.connect(nf).connect(ng).connect(masterGain);
+  osc.start(time); osc.stop(time+0.3);
+  ns.start(time); ns.stop(time+0.16);
+}
+
+function playShaker(time, vel=1){
+  const ctx = ensureAudio();
+  const buf = ctx.createBuffer(1, ctx.sampleRate*0.12, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * Math.exp(-i/(ctx.sampleRate*0.025));
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=4000;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(0.22*vel, time+0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, time+0.09);
+  src.connect(hp).connect(g).connect(masterGain);
+  src.start(time); src.stop(time+0.13);
+}
+
+function playCowbell(time, vel=1){
+  const ctx = ensureAudio();
+  const o1 = ctx.createOscillator(); const o2 = ctx.createOscillator();
+  const g = ctx.createGain();
+  o1.type="square"; o1.frequency.value=560;
+  o2.type="square"; o2.frequency.value=845;
+  const bp = ctx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=700; bp.Q.value=1.2;
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(0.35*vel, time+0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, time+0.32);
+  o1.connect(bp); o2.connect(bp);
+  bp.connect(g).connect(masterGain);
+  o1.start(time); o1.stop(time+0.35);
+  o2.start(time); o2.stop(time+0.35);
+}
+
+const DRUM_VOICES = {
+  kick:    {fn:playKick, label:"Kick", cls:"kick"},
+  clap:    {fn:playClap, label:"Clap", cls:"snare"},
+  ch:      {fn:(t,v)=>playHat(t,false,v), label:"Closed Hat", cls:"hat"},
+  oh:      {fn:(t,v)=>playHat(t,true,v),  label:"Open Hat",   cls:"hat"},
+  congaHi: {fn:(t,v)=>playConga(t,true,v),  label:"Conga Hi", cls:"perc"},
+  congaLo: {fn:(t,v)=>playConga(t,false,v), label:"Conga Lo", cls:"perc"},
+  shaker:  {fn:playShaker, label:"Shaker", cls:"hat"},
+  cow:     {fn:playCowbell, label:"Cowbell", cls:"cow"},
+};
+
+/* ============================================================
+   DEFAULT DRUM PATTERN — UK Funky "In The Morning" template
+   step indices 0..15 (16 sixteenths per bar)
+   ============================================================ */
+const DRUM_PRESET = {
+  kick:    [1,0,0,0,  0,0,1,0,  1,0,0,0,  0,0,1,0],
+  clap:    [0,0,0,0,  1,0,0,0,  0,0,1,0,  1,0,0,0],
+  ch:      [0,1,0,1,  0,1,0,1,  0,1,0,1,  0,1,0,1],
+  oh:      [0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,1,0],
+  congaHi: [0,0,1,0,  0,0,0,1,  0,0,1,0,  0,1,0,0],
+  congaLo: [0,0,0,0,  0,0,1,0,  0,0,0,0,  0,0,0,1],
+  shaker:  [1,0,1,0,  1,0,1,0,  1,0,1,0,  1,0,1,0],
+  cow:     [1,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0],
+};
+
+let drumState = JSON.parse(JSON.stringify(DRUM_PRESET));
+
+/* ============================================================
+   DRUM GRID UI
+   ============================================================ */
+const drumGrid = document.getElementById("drumGrid");
+const drumStepNumbers = document.getElementById("drumStepNumbers");
+
+function buildDrumGrid(){
+  // step number row
+  drumStepNumbers.innerHTML = "";
+  drumStepNumbers.appendChild(Object.assign(document.createElement("div"),{className:"lbl-spacer",textContent:"_"}));
+  for(let i=0;i<16;i++){
+    const d = document.createElement("div");
+    d.textContent = (i%4===0) ? (i/4+1) : "·";
+    drumStepNumbers.appendChild(d);
+  }
+  // lanes
+  drumGrid.innerHTML = "";
+  Object.keys(DRUM_VOICES).forEach(key=>{
+    const v = DRUM_VOICES[key];
+    const label = document.createElement("div");
+    label.className = "lane-label";
+    label.textContent = v.label;
+    drumGrid.appendChild(label);
+    for(let i=0;i<16;i++){
+      const c = document.createElement("div");
+      c.className = "cell" + (i%4===0?" downbeat": (i%2===0?" beat":""));
+      c.dataset.lane = key;
+      c.dataset.step = i;
+      if(drumState[key][i]) c.classList.add("on", v.cls);
+      c.addEventListener("click", ()=>{
+        drumState[key][i] = drumState[key][i] ? 0 : 1;
+        c.classList.toggle("on");
+        c.classList.toggle(v.cls);
+        if(drumState[key][i]){
+          // preview the hit
+          v.fn(ensureAudio().currentTime+0.01, 1);
+        }
+      });
+      drumGrid.appendChild(c);
+    }
+  });
+}
+buildDrumGrid();
+
+/* ============================================================
+   SEQUENCER ENGINE (look-ahead scheduler)
+   ============================================================ */
+let drumIsPlaying=false, drumNextNoteTime=0, drumCurrentStep=0, drumTimer=null;
+let bassIsPlaying=false, bassNextNoteTime=0, bassCurrentStep=0, bassTimer=null;
+let chordIsPlaying=false, chordTimer=null, chordIdx=0;
+let masterIsPlaying=false;
+
+let bpm = 130;
+let swing = 0.57; // 0.50 = none, 0.66 = max
+let drumVolume = 0.80;
+let bassVolume = 0.75;
+let chordVolume = 0.65;
+
+function stepDuration(){ return 60 / bpm / 4; } // 16th note duration in seconds
+
+function scheduledStepTime(baseTime, stepIndex){
+  // Apply swing on odd 16ths (1,3,5,...)
+  const dur = stepDuration();
+  if(stepIndex % 2 === 1){
+    const offset = (swing - 0.5) * dur * 2;
+    return baseTime + offset;
+  }
+  return baseTime;
+}
+
+function drumTick(){
+  const ctx = ensureAudio();
+  const lookahead = 0.1; // seconds
+  while(drumNextNoteTime < ctx.currentTime + lookahead){
+    const t = scheduledStepTime(drumNextNoteTime, drumCurrentStep);
+    Object.keys(DRUM_VOICES).forEach(k=>{
+      if(drumState[k][drumCurrentStep]){
+        const tempG = ctx.createGain();
+        // we wrap the voice in a per-hit gain via masterGain.gain * drumVolume baked
+        // but simplest: scale voice via vel parameter
+        DRUM_VOICES[k].fn(t, drumVolume);
+      }
+    });
+
+    // visual update — schedule a class flash close to t
+    flashCellAt(t, drumCurrentStep);
+
+    drumCurrentStep = (drumCurrentStep + 1) % 16;
+    drumNextNoteTime += stepDuration();
+  }
+}
+
+function flashCellAt(time, step){
+  const ctx = ensureAudio();
+  const delay = Math.max(0, (time - ctx.currentTime) * 1000);
+  setTimeout(()=>{
+    document.querySelectorAll(`#drumGrid .cell.playing`).forEach(c=>c.classList.remove("playing"));
+    document.querySelectorAll(`#drumGrid .cell[data-step="${step}"]`).forEach(c=>c.classList.add("playing"));
+    document.getElementById("stepCount").textContent = step+1;
+  }, delay);
+}
+
+function startDrums(){
+  if(drumIsPlaying) return;
+  ensureAudio();
+  if(AC.state==="suspended") AC.resume();
+  drumIsPlaying = true;
+  drumCurrentStep = 0;
+  drumNextNoteTime = AC.currentTime + 0.05;
+  drumTimer = setInterval(drumTick, 25);
+  document.getElementById("masterLed").classList.add("live");
+  document.getElementById("drumPlay").textContent = "❚❚ Pause Drums";
+}
+function stopDrums(){
+  drumIsPlaying = false;
+  if(drumTimer){ clearInterval(drumTimer); drumTimer=null; }
+  document.querySelectorAll(`#drumGrid .cell.playing`).forEach(c=>c.classList.remove("playing"));
+  document.getElementById("masterLed").classList.remove("live");
+  document.getElementById("drumPlay").textContent = "▶ Play Drums";
+}
+
+document.getElementById("drumPlay").addEventListener("click", ()=>{
+  if(drumIsPlaying) stopDrums(); else startDrums();
+});
+document.getElementById("drumStop").addEventListener("click", stopDrums);
+document.getElementById("drumClear").addEventListener("click", ()=>{
+  Object.keys(drumState).forEach(k=>{drumState[k].fill(0)});
+  buildDrumGrid();
+});
+document.getElementById("drumPreset").addEventListener("click", ()=>{
+  drumState = JSON.parse(JSON.stringify(DRUM_PRESET));
+  buildDrumGrid();
+});
+document.getElementById("drumBpm").addEventListener("input", e=>{
+  bpm = +e.target.value;
+  document.getElementById("drumBpmVal").textContent = bpm;
+});
+document.getElementById("drumSwing").addEventListener("input", e=>{
+  swing = (+e.target.value)/100;
+  document.getElementById("drumSwingVal").textContent = e.target.value+"%";
+});
+document.getElementById("drumVol").addEventListener("input", e=>{
+  drumVolume = (+e.target.value)/100;
+  document.getElementById("drumVolVal").textContent = e.target.value;
+});
+</script>
+
+
+<script>
+"use strict";
+
+/* ============================================================
+   BASS SYNTH (Mariana-flavoured: sub sine + saturated saw)
+   ============================================================ */
+// Note name → midi
+const NOTE_TO_MIDI = {
+  "A1":33,"B1":35,"C2":36,"D2":38,"E2":40,"F2":41,"G2":43,
+  "A2":45,"B2":47,"C3":48,"D3":50,"E3":52,"F3":53,"G3":55,
+  "A3":57,"B3":59,"C4":60,"D4":62,"E4":64,"F4":65,"G4":67,
+  "A4":69,"C5":72,"E5":76,"G5":79,
+  "F#2":42,"F#3":54,"F#4":66,
+  "REST":-1
+};
+function midiToHz(m){ return 440 * Math.pow(2,(m-69)/12); }
+
+// Default bass pattern in A minor — root-driven UK Funky offbeat
+const BASS_PRESET = [
+  "A2","REST","REST","A2",   "REST","REST","A2","REST",
+  "REST","E2","REST","A2",   "REST","REST","G2","REST"
+];
+const SCALE = ["A2","B2","C3","D3","E3","F3","G3","A3","REST"]; // A minor for cycling
+let bassState = BASS_PRESET.slice();
+
+let bassGlide = 0.035;
+let bassCutoff = 900;
+let bassOctave = 0;
+
+const bassGrid = document.getElementById("bassGrid");
+const bassStepNumbers = document.getElementById("bassStepNumbers");
+
+function buildBassGrid(){
+  bassStepNumbers.innerHTML = "";
+  bassStepNumbers.appendChild(Object.assign(document.createElement("div"),{className:"lbl-spacer",textContent:"_"}));
+  for(let i=0;i<16;i++){
+    const d = document.createElement("div");
+    d.textContent = (i%4===0) ? (i/4+1) : "·";
+    bassStepNumbers.appendChild(d);
+  }
+  bassGrid.innerHTML = "";
+  const lbl = document.createElement("div");
+  lbl.className = "lane-label";
+  lbl.textContent = "Bass (A min)";
+  bassGrid.appendChild(lbl);
+  for(let i=0;i<16;i++){
+    const c = document.createElement("div");
+    c.className = "bass-cell" + (i%4===0?" downbeat": (i%2===0?" beat":""));
+    if(bassState[i] && bassState[i]!=="REST") c.classList.add("on");
+    c.textContent = (bassState[i] && bassState[i]!=="REST") ? bassState[i] : "·";
+    c.dataset.step = i;
+    c.addEventListener("click", ()=>{
+      // cycle through scale
+      const cur = bassState[i] || "REST";
+      const idx = SCALE.indexOf(cur);
+      const next = SCALE[(idx+1) % SCALE.length];
+      bassState[i] = next;
+      c.classList.toggle("on", next!=="REST");
+      c.textContent = (next==="REST") ? "·" : next;
+      if(next!=="REST") playBassNote(ensureAudio().currentTime+0.01, next, 0.15);
+    });
+    bassGrid.appendChild(c);
+  }
+}
+buildBassGrid();
+
+let bassActiveOscs = null;
+function playBassNote(time, noteName, duration){
+  const ctx = ensureAudio();
+  const midi = NOTE_TO_MIDI[noteName];
+  if(midi === undefined || midi < 0) return;
+  const targetHz = midiToHz(midi + (bassOctave*12));
+
+  // Layer A — sub sine
+  const oscA = ctx.createOscillator();
+  oscA.type = "sine";
+  oscA.frequency.setValueAtTime(targetHz/2, time);
+
+  const gA = ctx.createGain();
+  gA.gain.setValueAtTime(0.0001, time);
+  gA.gain.exponentialRampToValueAtTime(bassVolume*0.9, time+0.005);
+  gA.gain.setValueAtTime(bassVolume*0.9, time+duration-0.05);
+  gA.gain.exponentialRampToValueAtTime(0.0001, time+duration);
+  oscA.connect(gA).connect(masterGain);
+  oscA.start(time); oscA.stop(time+duration+0.05);
+
+  // Layer B — saw + filter for mid-bass
+  const oscB = ctx.createOscillator();
+  oscB.type = "sawtooth";
+  oscB.frequency.setValueAtTime(targetHz, time);
+
+  const oscB2 = ctx.createOscillator();
+  oscB2.type = "square";
+  oscB2.frequency.setValueAtTime(targetHz * 0.6674, time); // -7 semis ish
+
+  const lpf = ctx.createBiquadFilter();
+  lpf.type = "lowpass";
+  lpf.frequency.setValueAtTime(bassCutoff*1.6, time);
+  lpf.frequency.exponentialRampToValueAtTime(bassCutoff, time+0.18);
+  lpf.Q.value = 4;
+
+  const drive = ctx.createWaveShaper();
+  drive.curve = (function(){
+    const n = 1024, c = new Float32Array(n);
+    for(let i=0;i<n;i++){ const x = (i*2/n)-1; c[i] = Math.tanh(x*2.5); }
+    return c;
+  })();
+  drive.oversample = "2x";
+
+  const gB = ctx.createGain();
+  gB.gain.setValueAtTime(0.0001, time);
+  gB.gain.exponentialRampToValueAtTime(bassVolume*0.55, time+0.008);
+  gB.gain.setValueAtTime(bassVolume*0.55, time+duration-0.05);
+  gB.gain.exponentialRampToValueAtTime(0.0001, time+duration);
+
+  oscB.connect(lpf);
+  oscB2.connect(lpf);
+  lpf.connect(drive).connect(gB).connect(masterGain);
+  oscB.start(time); oscB.stop(time+duration+0.05);
+  oscB2.start(time); oscB2.stop(time+duration+0.05);
+}
+
+function bassTick(){
+  const ctx = ensureAudio();
+  const lookahead = 0.1;
+  while(bassNextNoteTime < ctx.currentTime + lookahead){
+    const t = scheduledStepTime(bassNextNoteTime, bassCurrentStep);
+    const note = bassState[bassCurrentStep];
+    if(note && note !== "REST"){
+      const dur = stepDuration() * 1.4; // slightly overlap for legato feel
+      playBassNote(t, note, dur);
+    }
+    flashBassCellAt(t, bassCurrentStep);
+    bassCurrentStep = (bassCurrentStep + 1) % 16;
+    bassNextNoteTime += stepDuration();
+  }
+}
+function flashBassCellAt(time, step){
+  const ctx = ensureAudio();
+  const delay = Math.max(0, (time - ctx.currentTime) * 1000);
+  setTimeout(()=>{
+    document.querySelectorAll(`#bassGrid .bass-cell.playing`).forEach(c=>c.classList.remove("playing"));
+    document.querySelectorAll(`#bassGrid .bass-cell[data-step="${step}"]`).forEach(c=>c.classList.add("playing"));
+  }, delay);
+}
+
+function startBass(){
+  if(bassIsPlaying) return;
+  ensureAudio();
+  if(AC.state==="suspended") AC.resume();
+  bassIsPlaying = true;
+  bassCurrentStep = 0;
+  bassNextNoteTime = AC.currentTime + 0.05;
+  bassTimer = setInterval(bassTick, 25);
+  document.getElementById("bassPlay").textContent = "❚❚ Pause Bass";
+}
+function stopBass(){
+  bassIsPlaying = false;
+  if(bassTimer){ clearInterval(bassTimer); bassTimer=null; }
+  document.querySelectorAll(`#bassGrid .bass-cell.playing`).forEach(c=>c.classList.remove("playing"));
+  document.getElementById("bassPlay").textContent = "▶ Play Bass";
+}
+
+document.getElementById("bassPlay").addEventListener("click", ()=>{ if(bassIsPlaying) stopBass(); else startBass(); });
+document.getElementById("bassStop").addEventListener("click", stopBass);
+document.getElementById("bassClear").addEventListener("click", ()=>{ for(let i=0;i<16;i++) bassState[i]="REST"; buildBassGrid(); });
+document.getElementById("bassPreset").addEventListener("click", ()=>{ bassState = BASS_PRESET.slice(); buildBassGrid(); });
+document.getElementById("bassGlide").addEventListener("input", e=>{
+  bassGlide = (+e.target.value)/1000;
+  document.getElementById("bassGlideVal").textContent = e.target.value;
+});
+document.getElementById("bassCutoff").addEventListener("input", e=>{
+  bassCutoff = +e.target.value;
+  document.getElementById("bassCutoffVal").textContent = e.target.value;
+});
+document.getElementById("bassOct").addEventListener("input", e=>{
+  bassOctave = +e.target.value;
+  document.getElementById("bassOctVal").textContent = (bassOctave>0?"+":"")+bassOctave;
+});
+document.getElementById("bassVol").addEventListener("input", e=>{
+  bassVolume = (+e.target.value)/100;
+  document.getElementById("bassVolVal").textContent = e.target.value;
+});
+
+/* ============================================================
+   CHORDS — Rhodes/pad/bell synth
+   ============================================================ */
+const CHORD_NOTES = {
+  "Am7":   ["A3","C4","E4","G4"],
+  "Fmaj7": ["F3","A3","C4","E4"],
+  "Gmaj7": ["G3","B3","D4","F#4"],
+  "Em7":   ["E3","G3","B3","D4"]
+};
+const CHORD_ORDER = ["Am7","Fmaj7","Gmaj7","Em7"];
+
+function playChord(name, time, voicing="seventh", tone="rhodes", duration=null){
+  const ctx = ensureAudio();
+  const dur = duration || (60/bpm * 2); // 2 beats default
+  let notes = CHORD_NOTES[name].slice();
+  if(voicing === "triad") notes = notes.slice(0,3);
+  else if(voicing === "ninth"){
+    // add 9 above root
+    const root = notes[0];
+    const m = NOTE_TO_MIDI[root] + 14;
+    notes.push(midiToNoteName(m));
+  } else if(voicing === "stab"){
+    // octave doubled top
+    const top = notes[notes.length-1];
+    const m = NOTE_TO_MIDI[top] + 12;
+    notes.push(midiToNoteName(m));
+  }
+  notes.forEach(n=> playChordVoice(time, n, dur, tone));
+}
+
+function midiToNoteName(m){
+  // approximate; we only use values within our table — fall back to Hz directly via reverse map
+  const entries = Object.entries(NOTE_TO_MIDI);
+  const found = entries.find(([_,v])=>v===m);
+  if(found) return found[0];
+  // synthesise a custom name (we'll handle this via Hz)
+  return "_HZ_" + midiToHz(m);
+}
+
+function playChordVoice(time, noteName, duration, tone){
+  const ctx = ensureAudio();
+  let hz;
+  if(noteName.startsWith("_HZ_")) hz = parseFloat(noteName.slice(4));
+  else hz = midiToHz(NOTE_TO_MIDI[noteName]);
+
+  if(tone === "rhodes"){
+    // FM pair: triangle carrier + sine modulator
+    const carrier = ctx.createOscillator(); carrier.type="triangle"; carrier.frequency.value = hz;
+    const mod = ctx.createOscillator(); mod.type="sine"; mod.frequency.value = hz*2;
+    const modGain = ctx.createGain(); modGain.gain.setValueAtTime(120, time);
+    modGain.gain.exponentialRampToValueAtTime(2, time+1.0);
+    mod.connect(modGain).connect(carrier.frequency);
+    const lpf = ctx.createBiquadFilter(); lpf.type="lowpass"; lpf.frequency.value=4500;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(chordVolume*0.18, time+0.005);
+    g.gain.setValueAtTime(chordVolume*0.18, time+duration-0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, time+duration);
+    carrier.connect(lpf).connect(g).connect(masterGain);
+    carrier.start(time); carrier.stop(time+duration+0.05);
+    mod.start(time); mod.stop(time+duration+0.05);
+  } else if(tone === "pad"){
+    const o1 = ctx.createOscillator(); o1.type="sawtooth"; o1.frequency.value=hz;
+    const o2 = ctx.createOscillator(); o2.type="sawtooth"; o2.frequency.value=hz*1.005; // detune
+    const o3 = ctx.createOscillator(); o3.type="sine"; o3.frequency.value=hz/2;
+    const lpf = ctx.createBiquadFilter(); lpf.type="lowpass"; lpf.frequency.value=1600;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.linearRampToValueAtTime(chordVolume*0.15, time+0.3); // slow attack
+    g.gain.setValueAtTime(chordVolume*0.15, time+duration-0.6);
+    g.gain.linearRampToValueAtTime(0.0001, time+duration);
+    o1.connect(lpf); o2.connect(lpf); o3.connect(lpf);
+    lpf.connect(g).connect(masterGain);
+    o1.start(time); o1.stop(time+duration+0.1);
+    o2.start(time); o2.stop(time+duration+0.1);
+    o3.start(time); o3.stop(time+duration+0.1);
+  } else if(tone === "bell"){
+    // Steel-pan: FM bell — short, plucky
+    const carrier = ctx.createOscillator(); carrier.type="sine"; carrier.frequency.value=hz;
+    const mod = ctx.createOscillator(); mod.type="sine"; mod.frequency.value=hz*3.5;
+    const modGain = ctx.createGain();
+    modGain.gain.setValueAtTime(800, time);
+    modGain.gain.exponentialRampToValueAtTime(1, time+0.4);
+    mod.connect(modGain).connect(carrier.frequency);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(chordVolume*0.22, time+0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, time+0.7);
+    carrier.connect(g).connect(masterGain);
+    carrier.start(time); carrier.stop(time+0.8);
+    mod.start(time); mod.stop(time+0.8);
+  }
+}
+
+document.querySelectorAll(".chord-pad").forEach(p=>{
+  p.addEventListener("click", ()=>{
+    const name = p.dataset.chord;
+    const v = document.getElementById("chordVoicing").value;
+    const t = document.getElementById("chordTone").value;
+    document.querySelectorAll(".chord-pad.playing").forEach(x=>x.classList.remove("playing"));
+    p.classList.add("playing");
+    playChord(name, ensureAudio().currentTime+0.01, v, t, 1.5);
+    setTimeout(()=>p.classList.remove("playing"), 800);
+  });
+});
+
+document.getElementById("chordVol").addEventListener("input", e=>{
+  chordVolume = (+e.target.value)/100;
+  document.getElementById("chordVolVal").textContent = e.target.value;
+});
+
+let chordLoopRunning = false;
+function startChordLoop(){
+  if(chordLoopRunning) return;
+  chordLoopRunning = true;
+  ensureAudio();
+  if(AC.state==="suspended") AC.resume();
+  chordIdx = 0;
+  document.getElementById("chordLoop").textContent = "❚❚ Stop Chord Loop";
+  const tick = ()=>{
+    if(!chordLoopRunning) return;
+    const name = CHORD_ORDER[chordIdx % 4];
+    const v = document.getElementById("chordVoicing").value;
+    const tone = document.getElementById("chordTone").value;
+    document.querySelectorAll(".chord-pad.playing").forEach(x=>x.classList.remove("playing"));
+    document.querySelector(`.chord-pad[data-chord="${name}"]`).classList.add("playing");
+    playChord(name, AC.currentTime+0.01, v, tone, (60/bpm * 4) * 0.95);
+    chordIdx++;
+    chordTimer = setTimeout(tick, (60/bpm * 4) * 1000);
+  };
+  tick();
+}
+function stopChordLoop(){
+  chordLoopRunning = false;
+  if(chordTimer) clearTimeout(chordTimer);
+  document.querySelectorAll(".chord-pad.playing").forEach(x=>x.classList.remove("playing"));
+  document.getElementById("chordLoop").textContent = "▶ Play Chord Loop";
+}
+document.getElementById("chordLoop").addEventListener("click", ()=>{
+  if(chordLoopRunning) stopChordLoop(); else startChordLoop();
+});
+document.getElementById("chordStop").addEventListener("click", stopChordLoop);
+
+/* ============================================================
+   ARRANGEMENT — clickable timeline
+   ============================================================ */
+const ARRANGEMENT = [
+  {bars:8, type:"intro", name:"Intro"},
+  {bars:8, type:"verse", name:"V1"},
+  {bars:8, type:"prechorus", name:"Pre"},
+  {bars:8, type:"chorus", name:"Hook"},
+  {bars:8, type:"drop", name:"Drop"},
+  {bars:8, type:"break", name:"Break"},
+  {bars:8, type:"verse", name:"V2"},
+  {bars:8, type:"prechorus", name:"Pre2"},
+  {bars:8, type:"chorus", name:"Hook2"},
+  {bars:8, type:"drop", name:"Drop2"},
+  {bars:8, type:"break", name:"Break2"},
+  {bars:8, type:"chorus", name:"Hook3"},
+  {bars:8, type:"drop", name:"Drop3"},
+  {bars:8, type:"outro", name:"Outro"},
+  {bars:8, type:"outro", name:"Out2"},
+  {bars:8, type:"outro", name:"Tail"}
+];
+
+const arrRow = document.getElementById("arrRow");
+ARRANGEMENT.forEach((seg,i)=>{
+  const b = document.createElement("div");
+  b.className = "arr-block " + seg.type;
+  b.textContent = seg.name + " · " + seg.bars + "b";
+  b.title = `${seg.name} — ${seg.bars} bars (${seg.type})`;
+  b.addEventListener("click", ()=>{
+    // play a representative loop for this section
+    playArrPreview(seg);
+  });
+  arrRow.appendChild(b);
+});
+
+function playArrPreview(seg){
+  // simple: kick + clap + chord stab matching section character
+  ensureAudio();
+  if(AC.state==="suspended") AC.resume();
+  const t0 = AC.currentTime + 0.05;
+  const sd = stepDuration();
+  for(let s=0;s<32;s++){ // 2 bars of perc
+    const t = t0 + s*sd + (s%2===1 ? (swing-0.5)*sd*2 : 0);
+    if(seg.type !== "break"){
+      // basic kick on 1 / and-of-2 / 3 / and-of-4
+      if([0,6,8,14, 16,22,24,30].includes(s)) playKick(t, drumVolume);
+      if([4,12, 20,28].includes(s)) playClap(t, drumVolume*0.9);
+    } else {
+      // sparse: just downbeats
+      if([0,8,16,24].includes(s)) playKick(t, drumVolume);
+    }
+    if(["chorus","drop","verse","prechorus"].includes(seg.type)){
+      if([2,6,10,14, 18,22,26,30].includes(s)) playHat(t,false, drumVolume*0.6);
+    }
+    if(seg.type === "drop" || seg.type === "chorus"){
+      if(s === 0 || s === 16) playCowbell(t, drumVolume*0.8);
+    }
+  }
+  // overlay one chord cycle that fits the section
+  const v = "seventh", tone = (seg.type==="drop") ? "bell" : "rhodes";
+  CHORD_ORDER.forEach((c,i)=>{
+    playChord(c, t0 + i*(60/bpm), v, tone, 60/bpm * 0.95);
+  });
+}
+
+/* ============================================================
+   MASTER TRANSPORT
+   ============================================================ */
+function startAll(){
+  startDrums(); startBass(); startChordLoop();
+  document.getElementById("masterPlay").textContent = "❚❚ Pause All";
+  masterIsPlaying = true;
+}
+function stopAll(){
+  stopDrums(); stopBass(); stopChordLoop();
+  document.getElementById("masterPlay").textContent = "▶ Play All";
+  masterIsPlaying = false;
+}
+document.getElementById("masterPlay").addEventListener("click", ()=>{ if(masterIsPlaying) stopAll(); else startAll(); });
+document.getElementById("masterStop").addEventListener("click", stopAll);
+
+window.addEventListener("keydown", e=>{
+  if(e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
+  if(e.code === "Space"){
+    e.preventDefault();
+    if(masterIsPlaying) stopAll(); else startAll();
+  } else if(e.code === "Escape"){
+    stopAll();
+  }
+});
+
+/* ============================================================
+   Auto-resume audio on first user gesture
+   ============================================================ */
+const resumeAC = ()=>{
+  if(AC && AC.state === "suspended") AC.resume();
+};
+window.addEventListener("click", resumeAC, {once:false});
+window.addEventListener("keydown", resumeAC, {once:false});
+</script>
+
+</body>
+</html>
