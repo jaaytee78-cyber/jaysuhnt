@@ -16,9 +16,10 @@ To save it permanently across charts, click **Add to chart**, then on the chart 
 
 ## Indicators in this folder
 
-| File | Purpose |
-|---|---|
-| `killzones.pine` | Highlights London / NY killzones with optional session high/low lines |
+| File | Type | Purpose |
+|---|---|---|
+| `killzones.pine` | Indicator | Highlights London / NY killzones with optional session high/low lines |
+| `orb-5.pine`     | Strategy  | 5-min Opening Range Breakout for NASDAQ — backtests the ruleset in `knowledge-base/strategies/01-orb-5min-nasdaq.md` |
 
 ## Indicators planned
 
