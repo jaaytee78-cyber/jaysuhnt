@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Glue Blueprint — Soulful &amp; Vocal House</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0b14;
+    --bg2:#141020;
+    --card:#1a1525;
+    --card2:#211a30;
+    --line:rgba(255,255,255,.08);
+    --txt:#ece8f6;
+    --muted:#9b93b3;
+    --accent:#ffb347;      /* warm amber - "soul" */
+    --accent2:#c084fc;     /* lush purple */
+    --accent3:#4fd1c5;     /* teal */
+    --good:#5ad88f;
+    --shadow:0 18px 50px -20px rgba(0,0,0,.7);
+    --radius:18px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:30px}
+  body{
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:radial-gradient(1200px 800px at 80% -10%,#241634 0,transparent 55%),
+               radial-gradient(900px 700px at -10% 10%,#10212e 0,transparent 50%),
+               var(--bg);
+    color:var(--txt);line-height:1.65;-webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;line-height:1.2;letter-spacing:-.01em}
+  a{color:var(--accent3);text-decoration:none}
+
+  /* layout */
+  .layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+  /* sidebar */
+  aside{
+    position:sticky;top:0;height:100vh;overflow-y:auto;padding:26px 18px;
+    border-right:1px solid var(--line);background:rgba(13,11,20,.6);backdrop-filter:blur(8px);
+  }
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .brand .dot{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 6px 20px -6px var(--accent);flex:none}
+  .brand b{font-family:'Space Grotesk';font-size:1.02rem}
+  .brand small{display:block;color:var(--muted);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
+  nav{margin-top:22px;display:flex;flex-direction:column;gap:2px}
+  nav a{color:var(--muted);padding:9px 12px;border-radius:10px;font-size:.9rem;font-weight:500;
+    display:flex;align-items:center;gap:10px;transition:.18s;border:1px solid transparent}
+  nav a .n{font-size:.72rem;opacity:.6;width:16px;text-align:center}
+  nav a:hover{color:var(--txt);background:var(--card)}
+  nav a.active{color:var(--txt);background:linear-gradient(90deg,rgba(255,179,71,.16),transparent);
+    border-color:rgba(255,179,71,.3)}
+  nav a.active .n{color:var(--accent);opacity:1}
+
+  main{padding:0 0 120px}
+  .wrap{max-width:920px;margin:0 auto;padding:0 28px}
+
+  /* hero */
+  header.hero{padding:74px 0 46px;position:relative;overflow:hidden}
+  .kick{display:inline-flex;align-items:center;gap:8px;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);border:1px solid rgba(255,179,71,.3);padding:6px 14px;border-radius:100px;background:rgba(255,179,71,.06)}
+  header.hero h1{font-size:clamp(2.1rem,5vw,3.4rem);margin:22px 0 14px;font-weight:800}
+  header.hero h1 span{background:linear-gradient(120deg,var(--accent),var(--accent2) 60%,var(--accent3));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  header.hero p.lead{font-size:1.12rem;color:var(--muted);max-width:680px}
+  .toolchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+  .toolchips span{font-size:.78rem;color:var(--txt);background:var(--card);border:1px solid var(--line);
+    padding:6px 12px;border-radius:100px}
+
+  /* daw toggle */
+  .dawbar{display:flex;align-items:center;gap:12px;margin:30px 0 0;flex-wrap:wrap}
+  .dawbar .lbl{font-size:.8rem;color:var(--muted)}
+  .seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:100px;padding:4px}
+  .seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.85rem;font-weight:600;
+    padding:7px 18px;border-radius:100px;cursor:pointer;transition:.18s}
+  .seg button.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a1020;box-shadow:0 6px 18px -8px var(--accent)}
+
+  /* sections */
+  section{padding:52px 0 8px;scroll-margin-top:20px}
+  .eyebrow{color:var(--accent);font-weight:600;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}
+  section h2{font-size:clamp(1.6rem,3.2vw,2.15rem);margin-bottom:10px}
+  section .intro{color:var(--muted);max-width:720px;margin-bottom:26px}
+
+  /* cards / grids */
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);
+    border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);position:relative}
+  .card h3{font-size:1.08rem;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+  .card p{color:var(--muted);font-size:.92rem}
+  .pill{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:100px}
+  .pill.amber{background:rgba(255,179,71,.14);color:var(--accent);border:1px solid rgba(255,179,71,.3)}
+  .pill.purple{background:rgba(192,132,252,.14);color:var(--accent2);border:1px solid rgba(192,132,252,.3)}
+  .pill.teal{background:rgba(79,209,197,.14);color:var(--accent3);border:1px solid rgba(79,209,197,.3)}
+
+  .pillarnum{font-family:'Space Grotesk';font-size:1.5rem;font-weight:700;color:var(--accent);opacity:.4}
+
+  /* dials */
+  .dials{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+  .param{text-align:center;width:92px}
+  .dial{width:84px;height:84px;border-radius:50%;margin:0 auto 8px;position:relative;
+    background:conic-gradient(from 220deg, var(--accent) calc(var(--p,50)*2.7deg), rgba(255,255,255,.07) 0);
+    display:flex;align-items:center;justify-content:center}
+  .dial.p2{background:conic-gradient(from 220deg, var(--accent2) calc(var(--p,50)*2.7deg), rgba(255,255,255,.07) 0)}
+  .dial.p3{background:conic-gradient(from 220deg, var(--accent3) calc(var(--p,50)*2.7deg), rgba(255,255,255,.07) 0)}
+  .dial::before{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--card2)}
+  .dial .v{position:relative;z-index:1;font-size:.7rem;font-weight:700;padding:0 6px;text-align:center;line-height:1.15}
+  .param .lab{font-size:.72rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+
+  /* spec rows */
+  .spec{margin-top:16px;border-top:1px solid var(--line)}
+  .spec .row{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+  .spec .row span:first-child{color:var(--muted)}
+  .spec .row span:last-child{font-weight:600;text-align:right}
+
+  .copybtn{position:absolute;top:18px;right:18px;border:1px solid var(--line);background:var(--bg2);color:var(--muted);
+    font:inherit;font-size:.74rem;font-weight:600;padding:6px 12px;border-radius:9px;cursor:pointer;transition:.18s;display:flex;gap:6px;align-items:center}
+  .copybtn:hover{color:var(--txt);border-color:var(--accent);background:var(--card)}
+  .copybtn.done{color:var(--good);border-color:var(--good)}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:6px;overflow:hidden;border-radius:12px;border:1px solid var(--line)}
+  thead{background:var(--card)}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line)}
+  th{font-family:'Space Grotesk';font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  tbody tr:hover{background:rgba(255,255,255,.025)}
+  td b{color:var(--accent)}
+
+  /* callout */
+  .note{display:flex;gap:14px;background:linear-gradient(100deg,rgba(255,179,71,.08),rgba(192,132,252,.05));
+    border:1px solid rgba(255,179,71,.22);border-left:3px solid var(--accent);border-radius:14px;padding:16px 18px;margin:18px 0;font-size:.92rem}
+  .note .ic{font-size:1.1rem;flex:none}
+  .note.tip{border-color:rgba(79,209,197,.22);border-left-color:var(--accent3);background:linear-gradient(100deg,rgba(79,209,197,.08),transparent)}
+  .note.warn{border-color:rgba(255,99,99,.25);border-left-color:#ff6363;background:linear-gradient(100deg,rgba(255,99,99,.08),transparent)}
+
+  /* stage diagram */
+  .stage{position:relative;height:300px;border-radius:18px;margin-top:10px;overflow:hidden;
+    background:radial-gradient(120% 100% at 50% 120%, rgba(192,132,252,.18), rgba(13,11,20,.2) 60%);
+    border:1px solid var(--line)}
+  .stage .floor{position:absolute;inset:auto 0 0 0;height:60%;
+    background:repeating-linear-gradient(90deg,transparent,transparent 38px,rgba(255,255,255,.04) 38px,rgba(255,255,255,.04) 39px);
+    transform:perspective(420px) rotateX(55deg);transform-origin:bottom}
+  .src{position:absolute;transform:translate(-50%,-50%);text-align:center;font-size:.7rem;font-weight:600}
+  .src .b{width:var(--s,44px);height:var(--s,44px);border-radius:50%;margin:0 auto 5px;
+    display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#15101f;font-weight:700;
+    background:radial-gradient(circle at 35% 30%,#fff,var(--c,var(--accent)));box-shadow:0 0 22px -4px var(--c,var(--accent))}
+  .stage .legend{position:absolute;left:14px;bottom:12px;font-size:.7rem;color:var(--muted)}
+  .stage .legend i{font-style:normal;color:var(--txt)}
+
+  /* routing diagram */
+  .route{display:grid;gap:10px;margin-top:8px}
+  .route .lvl{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .node{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:.82rem;font-weight:600;text-align:center;min-width:96px}
+  .node small{display:block;color:var(--muted);font-weight:500;font-size:.7rem;margin-top:2px}
+  .node.grp{border-color:rgba(255,179,71,.4);background:linear-gradient(180deg,rgba(255,179,71,.08),var(--card))}
+  .node.ret{border-color:rgba(79,209,197,.4);background:linear-gradient(180deg,rgba(79,209,197,.08),var(--card))}
+  .node.bus{border-color:rgba(192,132,252,.5);background:linear-gradient(180deg,rgba(192,132,252,.12),var(--card));min-width:220px}
+  .arrowdown{text-align:center;color:var(--muted);font-size:1.1rem;line-height:1}
+
+  /* accordion */
+  .acc{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:10px;background:var(--card)}
+  .acc>button{width:100%;text-align:left;background:transparent;border:0;color:var(--txt);font:inherit;font-weight:600;
+    padding:15px 18px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.96rem}
+  .acc>button .chev{transition:.25s;color:var(--accent)}
+  .acc.open>button .chev{transform:rotate(90deg)}
+  .acc .body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .acc .body .inner{padding:0 18px 18px}
+  .chain{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .chain li{display:flex;gap:12px;align-items:flex-start;font-size:.9rem;padding-left:2px}
+  .chain .step{flex:none;width:24px;height:24px;border-radius:7px;background:var(--bg2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;color:var(--accent)}
+  .chain code{background:var(--bg2);padding:1px 7px;border-radius:6px;font-size:.82rem;color:var(--accent3)}
+
+  /* checklist */
+  .check{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:11px;
+    margin-bottom:8px;background:var(--card);cursor:pointer;transition:.15s;font-size:.92rem}
+  .check:hover{border-color:var(--accent)}
+  .check input{appearance:none;width:20px;height:20px;border:2px solid var(--muted);border-radius:6px;flex:none;cursor:pointer;position:relative;transition:.15s}
+  .check input:checked{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent}
+  .check input:checked::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#15101f;font-size:.8rem;font-weight:800}
+  .check input:checked + span{color:var(--muted);text-decoration:line-through}
+  .progress{height:10px;border-radius:100px;background:var(--card);border:1px solid var(--line);overflow:hidden;margin:6px 0 20px}
+  .progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .35s}
+  .resetbtn{background:transparent;border:1px solid var(--line);color:var(--muted);font:inherit;font-size:.8rem;
+    padding:6px 14px;border-radius:9px;cursor:pointer}
+  .resetbtn:hover{color:var(--txt);border-color:var(--accent)}
+
+  /* daw conditional */
+  body.daw-ableton .daw-logic, body.daw-logic .daw-ableton{display:none}
+
+  footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 0;color:var(--muted);font-size:.82rem}
+
+  /* frequency cheat sheet */
+  .freqbar{display:flex;border-radius:12px;overflow:hidden;border:1px solid var(--line);margin:6px 0 18px;min-height:78px}
+  .freqbar .band{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:8px 5px;
+    text-align:center;font-size:.66rem;font-weight:800;color:#15101f;line-height:1.1}
+  .freqbar .band small{display:block;font-weight:600;font-size:.6rem;opacity:.8;margin-top:3px}
+
+  /* mobile */
+  .menubtn{display:none}
+  @media(max-width:880px){
+    .layout{grid-template-columns:1fr}
+    aside{position:fixed;left:0;top:0;width:262px;z-index:50;transform:translateX(-100%);transition:.28s}
+    aside.open{transform:translateX(0)}
+    .menubtn{display:flex;position:fixed;top:14px;right:14px;z-index:60;width:46px;height:46px;border-radius:12px;
+      border:1px solid var(--line);background:var(--card);color:var(--txt);font-size:1.3rem;align-items:center;justify-content:center;cursor:pointer}
+    .g2,.g3{grid-template-columns:1fr}
+    .wrap{padding:0 18px}
+    .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;display:none}
+    .scrim.show{display:block}
+  }
+</style>
+</head>
+<body class="daw-logic">
+
+<button class="menubtn" id="menubtn" aria-label="Menu">☰</button>
+<div class="scrim" id="scrim"></div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside id="aside">
+    <div class="brand">
+      <div class="dot"></div>
+      <div><b>The Glue Blueprint</b><small>Soulful · Vocal House</small></div>
+    </div>
+    <nav id="nav">
+      <a href="#start" class="active"><span class="n">00</span> Start Here</a>
+      <a href="#pillars"><span class="n">01</span> The 6 Pillars of Glue</a>
+      <a href="#panning"><span class="n">02</span> Panning &amp; The Stage</a>
+      <a href="#reverb"><span class="n">03</span> Reverb Settings</a>
+      <a href="#depth"><span class="n">04</span> Depth &amp; Lush Pads</a>
+      <a href="#groove"><span class="n">05</span> Groove &amp; Soul</a>
+      <a href="#chroma"><span class="n">06</span> ChromaGlow Presets</a>
+      <a href="#template"><span class="n">07</span> Template &amp; Routing</a>
+      <a href="#synths"><span class="n">08</span> Synth Starting Points</a>
+      <a href="#logic"><span class="n">09</span> Logic Stock Toolkit</a>
+      <a href="#freq"><span class="n">10</span> Frequency Cheat Sheet</a>
+      <a href="#reference"><span class="n">11</span> Reference Like a Pro</a>
+      <a href="#diagnostic"><span class="n">12</span> Fix "Pasted-Together"</a>
+      <a href="#save"><span class="n">13</span> Save Your Template</a>
+      <a href="#checklist"><span class="n">14</span> Session Checklist</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="wrap">
+      <!-- HERO -->
+      <header class="hero" id="start">
+        <span class="kick">🎚️ Your cohesive-sound playbook</span>
+        <h1>Make everything sound like it <span>belongs together</span>.</h1>
+        <p class="lead">A complete, dial-it-in reference for getting that glued, professional, "this is one record" sound in soulful &amp; vocal house — built around your exact tools.</p>
+        <div class="toolchips">
+          <span>🍎 Logic Pro</span><span>🅰️ Ableton 12</span><span>Valhalla Room</span>
+          <span>VintageVerb</span><span>Lexicon PCM</span><span>Soundtoys Little Plate</span>
+          <span>ChromaGlow</span><span>Diva</span><span>Zenology</span><span>Mariana</span><span>Serum 2</span>
+        </div>
+        <div class="dawbar">
+          <span class="lbl">Show DAW-specific steps for:</span>
+          <div class="seg" id="dawseg">
+            <button data-daw="logic" class="on">Logic Pro</button>
+            <button data-daw="ableton">Ableton 12</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- 01 PILLARS -->
+      <section id="pillars">
+        <div class="eyebrow">The Big Idea</div>
+        <h2>Glue = shared characteristics</h2>
+        <p class="intro">Two sounds feel like they <em>belong</em> when they share traits. They feel <em>pasted together</em> when they share nothing. Pro records deliberately engineer these six shared traits. The more of them your elements share, the more they fuse into one thing.</p>
+        <div class="grid g3">
+          <div class="card"><h3><span class="pillarnum">1</span> Shared Space</h3><p>One or two <b>send reverbs</b> everyone shares — not a different insert verb per track. Same room = same band.</p></div>
+          <div class="card"><h3><span class="pillarnum">2</span> Shared Movement</h3><p>Sidechain + <b>bus / glue compression</b> so elements breathe and pulse together as one organism.</p></div>
+          <div class="card"><h3><span class="pillarnum">3</span> Shared Character</h3><p>The same <b>saturation flavour</b> (tape/tube) across buses gives a common sonic fingerprint.</p></div>
+          <div class="card"><h3><span class="pillarnum">4</span> Shared Tonal Balance</h3><p>Each sound gets its own <b>frequency lane</b> via subtractive EQ. Uncrowded = clean = pro.</p></div>
+          <div class="card"><h3><span class="pillarnum">5</span> Shared Groove</h3><p>One <b>swing / groove feel</b> across drums and music. Soul lives in unified timing, not the grid.</p></div>
+          <div class="card"><h3><span class="pillarnum">6</span> Shared Tuning</h3><p>Everything in key — <b>including the kick</b> tuned to the bass. A wobbly low end reads as "amateur".</p></div>
+        </div>
+        <div class="note"><span class="ic">💡</span><div><b>The reframe that changes everything:</b> glue is not a plugin you add at the end. It's built at every stage. By the time you "mix to glue it," ~70% should already be baked in from sound selection, arrangement, and this template.</div></div>
+      </section>
+
+      <!-- 02 PANNING -->
+      <section id="panning">
+        <div class="eyebrow">Placement</div>
+        <h2>Panning &amp; the stage model</h2>
+        <p class="intro">Stop thinking "left and right." Picture a band on a stage in front of you. The foundation stands dead-center and up front; everything else fills the space around that spine.</p>
+
+        <div class="stage" aria-label="Stage placement diagram">
+          <div class="floor"></div>
+          <div class="src" style="left:50%;top:74%"><div class="b" style="--c:var(--accent);--s:50px">KICK</div></div>
+          <div class="src" style="left:50%;top:50%"><div class="b" style="--c:var(--accent);--s:44px">BASS</div></div>
+          <div class="src" style="left:50%;top:30%"><div class="b" style="--c:var(--accent2);--s:46px">VOX</div></div>
+          <div class="src" style="left:30%;top:42%"><div class="b" style="--c:var(--accent3);--s:36px">Perc L</div></div>
+          <div class="src" style="left:70%;top:42%"><div class="b" style="--c:var(--accent3);--s:36px">Perc R</div></div>
+          <div class="src" style="left:24%;top:62%"><div class="b" style="--c:#8aa0ff;--s:34px">Rhodes</div></div>
+          <div class="src" style="left:76%;top:62%"><div class="b" style="--c:#8aa0ff;--s:34px">Pad</div></div>
+          <div class="legend">Centered spine: <i>kick · bass · vocal · snare</i> — never panned.</div>
+        </div>
+
+        <div class="grid g2" style="margin-top:18px">
+          <div class="card">
+            <h3>🎯 The golden rule</h3>
+            <p>The <b>foundation stays mono &amp; centered</b>: kick, sub/bass, lead vocal, snare/clap. Low frequencies are non-directional — panning them wrecks your low end and club translation.</p>
+          </div>
+          <div class="card">
+            <h3>⚖️ Balance the seesaw</h3>
+            <p>For every element pushed left, place similar weight to the right. Shaker 30% L → tambourine 30% R. An unbalanced field feels like the mix is "tilting."</p>
+          </div>
+        </div>
+
+        <table>
+          <thead><tr><th>Element</th><th>Placement</th></tr></thead>
+          <tbody>
+            <tr><td>Kick · Sub/Bass · Lead vocal · Snare</td><td><b>Dead center, mono</b></td></tr>
+            <tr><td>Hi-hats</td><td>Slightly off-center or gentle stereo</td></tr>
+            <tr><td>Percussion (shaker, conga, rim, tamb)</td><td>Pan in <b>pairs</b> — ~30–45% L / R</td></tr>
+            <tr><td>Rhodes / chords / pads</td><td><b>Widened</b> stereo ~30–50% (not panned)</td></tr>
+            <tr><td>Stabs / secondary synths</td><td>Pan to fill a gap opposite something else</td></tr>
+            <tr><td>Backing vocals / ad-libs</td><td>Spread wide L/R</td></tr>
+            <tr><td>FX / risers / sweeps</td><td>Wide</td></tr>
+          </tbody>
+        </table>
+        <div class="note tip"><span class="ic">🎧</span><div><b>Check in mono, often.</b> Clubs and many speakers sum to mono. If a widened element vanishes or goes weird in mono, you overcooked it. Tasteful width that survives mono beats huge width that collapses. Also: pan by frequency — highs localize easily and pan safely; lows stay center.</div></div>
+        <div class="note"><span class="ic">🌀</span><div><b>Subtle movement:</b> a <b>slow auto-pan</b> on a perc loop or stab — a tiny drift over 8 bars — adds life and stereo interest without you consciously noticing it. Keep it gentle so it still holds up in mono.</div></div>
+      </section>
+
+      <!-- 03 REVERB -->
+      <section id="reverb">
+        <div class="eyebrow">Shared Space</div>
+        <h2>Reverb settings — 2 spaces + 1 vocal plate</h2>
+        <p class="intro">All of these live on <b>return/aux channels at 100% wet</b>. You control the amount with the per-track send knob. Fewer shared spaces = more cohesion.</p>
+
+        <div class="grid g2">
+          <!-- ROOM -->
+          <div class="card">
+            <button class="copybtn" data-copy="ROOM — Valhalla Room | Mode: Medium Room | Mix 100% | Predelay 12-20ms | Decay 0.8-1.2s | Size ~0.45 | Diffusion ~80% | High Cut 7-8kHz | Bass Mult 0.8 @300Hz | Return EQ: HPF 300Hz">⧉ Copy</button>
+            <h3>🚪 ROOM <span class="pill amber">Glue</span></h3>
+            <p>The short shared room. You should hear its <em>absence</em> when bypassed, not its presence. Send drums, perc, stabs &amp; a touch of vocal here.</p>
+            <div class="dials">
+              <div class="param"><div class="dial" style="--p:18"><span class="v">12–20<br>ms</span></div><div class="lab">Predelay</div></div>
+              <div class="param"><div class="dial" style="--p:25"><span class="v">0.8–1.2<br>s</span></div><div class="lab">Decay</div></div>
+              <div class="param"><div class="dial" style="--p:45"><span class="v">~0.45</span></div><div class="lab">Size</div></div>
+              <div class="param"><div class="dial" style="--p:80"><span class="v">~80%</span></div><div class="lab">Diffusion</div></div>
+            </div>
+            <div class="spec">
+              <div class="row"><span>Mode</span><span>Medium Room (or Dense Room)</span></div>
+              <div class="row"><span>High Cut</span><span>7–8 kHz</span></div>
+              <div class="row"><span>Bass Mult</span><span>~0.8 @ 300 Hz x-over</span></div>
+              <div class="row"><span>Return EQ</span><span>HPF ~300 Hz</span></div>
+            </div>
+          </div>
+
+          <!-- HALL -->
+          <div class="card">
+            <button class="copybtn" data-copy="HALL — VintageVerb (or Lexicon Random Hall) | Mode: Concert Hall | Color: 1970s/1980s | Predelay 30-60ms (or 1/32) | Decay 2.5-4s | Size large | High damping 5-7kHz | roll lows below 300-400Hz | Mod depth UP | Return EQ: HPF 400Hz">⧉ Copy</button>
+            <h3>🏛️ HALL <span class="pill purple">Depth · Lush</span></h3>
+            <p>Lush tails on pads/Rhodes and depth on vocals. Use VintageVerb or — if CPU allows — the gorgeous Lexicon Random Hall.</p>
+            <div class="dials">
+              <div class="param"><div class="dial p2" style="--p:45"><span class="v">30–60<br>ms</span></div><div class="lab">Predelay</div></div>
+              <div class="param"><div class="dial p2" style="--p:75"><span class="v">2.5–4<br>s</span></div><div class="lab">Decay</div></div>
+              <div class="param"><div class="dial p2" style="--p:85"><span class="v">Large</span></div><div class="lab">Size</div></div>
+              <div class="param"><div class="dial p2" style="--p:60"><span class="v">↑ lush</span></div><div class="lab">Mod Depth</div></div>
+            </div>
+            <div class="spec">
+              <div class="row"><span>Mode</span><span>Concert Hall (Cathedral = bigger)</span></div>
+              <div class="row"><span>Color</span><span>1970s / 1980s (warmer)</span></div>
+              <div class="row"><span>High damping</span><span>5–7 kHz</span></div>
+              <div class="row"><span>Low tail</span><span>roll off below ~300–400 Hz</span></div>
+              <div class="row"><span>Return EQ</span><span>HPF ~400 Hz</span></div>
+            </div>
+          </div>
+
+          <!-- PLATE -->
+          <div class="card">
+            <button class="copybtn" data-copy="VOCAL PLATE — Soundtoys Little Plate | Decay 1.5-2.5s | Pre-Delay ~1/16 (tempo synced) | Low Cut 250-350Hz | High Cut 7-9kHz | Mod low-moderate | Mix 100%">⧉ Copy</button>
+            <h3>🎤 VOCAL PLATE <span class="pill teal">Vocal only</span></h3>
+            <p>Character &amp; sheen on the lead vocal only. Soundtoys Little Plate.</p>
+            <div class="dials">
+              <div class="param"><div class="dial p3" style="--p:55"><span class="v">1.5–2.5<br>s</span></div><div class="lab">Decay</div></div>
+              <div class="param"><div class="dial p3" style="--p:40"><span class="v">1/16</span></div><div class="lab">Pre-Delay</div></div>
+              <div class="param"><div class="dial p3" style="--p:30"><span class="v">250–350<br>Hz</span></div><div class="lab">Low Cut</div></div>
+              <div class="param"><div class="dial p3" style="--p:80"><span class="v">7–9<br>kHz</span></div><div class="lab">High Cut</div></div>
+            </div>
+            <div class="spec">
+              <div class="row"><span>Mod</span><span>low–moderate</span></div>
+              <div class="row"><span>Mix</span><span>100% (on return)</span></div>
+            </div>
+          </div>
+
+          <!-- DELAY -->
+          <div class="card">
+            <button class="copybtn" data-copy="DELAY return | 1/8-dotted | Feedback 20-30% | HPF 400Hz LPF 5kHz | duck/sidechain to vocal | Logic: Tape Delay / Ableton: Delay">⧉ Copy</button>
+            <h3>🔁 DELAY <span class="pill amber">Depth, no wash</span></h3>
+            <p>Adds depth without flooding the mix with reverb. <span class="daw-logic">Logic: <code style="background:var(--bg2);padding:1px 6px;border-radius:5px">Tape Delay</code>.</span><span class="daw-ableton">Ableton: <code style="background:var(--bg2);padding:1px 6px;border-radius:5px">Delay</code> device.</span></p>
+            <div class="spec" style="border-top:0">
+              <div class="row"><span>Time</span><span>1/8-dotted</span></div>
+              <div class="row"><span>Feedback</span><span>20–30%</span></div>
+              <div class="row"><span>Filter</span><span>HPF 400 Hz · LPF ~5 kHz</span></div>
+              <div class="row"><span>Ducking</span><span>sidechain to vocal</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="note"><span class="ic">⏱️</span><div><b>Tempo-synced predelay:</b> instead of guessing, sync predelay to the track so the tail arrives musically. At ~123 BPM, 1/32 ≈ <b>60 ms</b> and 1/64 ≈ <b>30 ms</b> — ideal values that keep the dry source clear while the reverb blooms behind it.</div></div>
+        <div class="note tip"><span class="ic">✨</span><div><b>The "wet AND clean" trick:</b> sidechain the Hall &amp; Plate returns to the <b>kick</b>, and the Delay return to the <b>vocal</b>. The effect ducks when the source hits, then blooms in the gaps. This is how pros sound drenched and clear at the same time.</div></div>
+
+        <h3 style="margin:34px 0 14px;font-size:1.2rem">🟣 Lexicon PCM deep-dive</h3>
+
+        <div class="card">
+          <button class="copybtn" data-copy="Lexicon Random Hall (Hall send) | Algorithm: Random Hall | Mix 100% | Pre Delay 30-60ms (~1/32) | Mid Rt 2.4-3.2s (pads ~4s, vocals 2.2-2.6s) | Size large 28-38m | Diffusion 65-80% | Shape 0.3-0.5 | Spread 0.4-0.6 | Spin ~1Hz | Wander 10-20 | Bass Rt 0.8-1.0 @250-350Hz | Rt HC 5-7kHz | Rolloff 6-8kHz | Return EQ HPF 300-400Hz">⧉ Copy</button>
+          <h3>🏛️ Lexicon Random Hall <span class="pill purple">Lush Hall send</span></h3>
+          <p>The classic Lexicon lush hall — its randomised tail is what makes soulful pads &amp; vocals sound expensive. Use it as your Hall return in place of (or alongside) VintageVerb.</p>
+          <div class="dials">
+            <div class="param"><div class="dial p2" style="--p:45"><span class="v">30–60<br>ms</span></div><div class="lab">Pre Delay</div></div>
+            <div class="param"><div class="dial p2" style="--p:72"><span class="v">2.4–3.2<br>s</span></div><div class="lab">Mid Rt</div></div>
+            <div class="param"><div class="dial p2" style="--p:72"><span class="v">65–80%</span></div><div class="lab">Diffusion</div></div>
+            <div class="param"><div class="dial p2" style="--p:55"><span class="v">10–20</span></div><div class="lab">Wander</div></div>
+          </div>
+          <div class="spec">
+            <div class="row"><span>Algorithm</span><span>Random Hall (Concert Hall = cleaner)</span></div>
+            <div class="row"><span>Size</span><span>large (~28–38 m)</span></div>
+            <div class="row"><span>Shape / Spread</span><span>~0.3–0.5 / ~0.4–0.6</span></div>
+            <div class="row"><span>Spin</span><span>~1 Hz (lush movement)</span></div>
+            <div class="row"><span>Bass Rt</span><span>~0.8–1.0 @ 250–350 Hz x-over</span></div>
+            <div class="row"><span>Rt HC (damping)</span><span>5–7 kHz</span></div>
+            <div class="row"><span>Rolloff (input)</span><span>6–8 kHz</span></div>
+            <div class="row"><span>Return EQ</span><span>HPF ~300–400 Hz</span></div>
+          </div>
+          <p style="margin-top:14px"><b>Spin + Wander</b> are the Lexicon magic — keep them moderate: alive and shimmering, not detuned. Vocals: shorter Mid Rt (2.2–2.6 s) + brighter Rt HC (~7–8 kHz).</p>
+        </div>
+
+        <h3 style="margin:30px 0 12px;font-size:1.15rem">Room shoot-out: Valhalla vs Lexicon PCM</h3>
+        <table>
+          <thead><tr><th>Aspect</th><th>Valhalla Room</th><th>Lexicon PCM Room</th></tr></thead>
+          <tbody>
+            <tr><td>Character</td><td>Clean, neutral, modern</td><td>Warmer, denser, hardware sheen</td></tr>
+            <tr><td>Early reflections</td><td>Natural, very good</td><td><b>Legendary</b> — 3D, believable</td></tr>
+            <tr><td>Tail</td><td>Smooth, pristine</td><td>Creamy, slightly coloured</td></tr>
+            <tr><td>CPU</td><td>Very light</td><td>Heavier</td></tr>
+            <tr><td>Best as</td><td><b>Invisible glue room</b></td><td>Room with <b>character / vibe</b></td></tr>
+          </tbody>
+        </table>
+
+        <div class="card" style="margin-top:16px">
+          <button class="copybtn" data-copy="Lexicon PCM Room (A/B vs Valhalla Room) | Algorithm: Room or Chamber | Mix 100% | Pre Delay 8-15ms | Mid Rt 0.8-1.2s | Size small-medium | Diffusion 70-85% | Rt HC 6-8kHz | Rolloff 7-8kHz | Bass Rt 0.8 @250-300Hz | Spin/Wander low | Return EQ HPF 300Hz">⧉ Copy</button>
+          <h3>🚪 Lexicon PCM Room <span class="pill amber">A/B vs Valhalla</span></h3>
+          <p>If you want the room itself to add warmth/vintage vibe, try the Lexicon Room (or Chamber) against Valhalla Room on the same send and pick by ear.</p>
+          <div class="dials">
+            <div class="param"><div class="dial" style="--p:12"><span class="v">8–15<br>ms</span></div><div class="lab">Pre Delay</div></div>
+            <div class="param"><div class="dial" style="--p:25"><span class="v">0.8–1.2<br>s</span></div><div class="lab">Mid Rt</div></div>
+            <div class="param"><div class="dial" style="--p:78"><span class="v">70–85%</span></div><div class="lab">Diffusion</div></div>
+            <div class="param"><div class="dial" style="--p:70"><span class="v">6–8<br>kHz</span></div><div class="lab">Rt HC</div></div>
+          </div>
+          <div class="spec">
+            <div class="row"><span>Algorithm</span><span>Room (or Chamber = smoother)</span></div>
+            <div class="row"><span>Size</span><span>small–medium</span></div>
+            <div class="row"><span>Rolloff (input)</span><span>7–8 kHz</span></div>
+            <div class="row"><span>Bass Rt</span><span>~0.8 @ 250–300 Hz</span></div>
+            <div class="row"><span>Spin / Wander</span><span>low (rooms need little)</span></div>
+            <div class="row"><span>Return EQ</span><span>HPF ~300 Hz</span></div>
+          </div>
+        </div>
+
+        <div class="note"><span class="ic">🎯</span><div><b>My pick for your kit:</b> keep <b>Valhalla Room</b> as the shared <em>glue</em> room (clean, light, invisible) and use <b>Lexicon Random Hall</b> as the <em>lush</em> Hall. Reach for the Lexicon Room only when you want the space to add character. Either way — <b>one room per project</b>; a single shared room is what creates the glue.</div></div>
+      </section>
+
+      <!-- 04 DEPTH -->
+      <section id="depth">
+        <div class="eyebrow">Front-to-Back</div>
+        <h2>Depth &amp; the tucked-away pad</h2>
+        <p class="intro">"Tucked away in the background" is a depth illusion you build on purpose. Distance is created by four things at once — push all four and a Rhodes/pad floats lush <em>behind</em> everything instead of crowding the front.</p>
+        <div class="grid g2">
+          <div class="card"><h3>1 · Volume</h3><p>Quieter = further back. Pull it down more than feels right.</p></div>
+          <div class="card"><h3>2 · Reverb amount</h3><p>Wetter (more Hall send) = further back.</p></div>
+          <div class="card"><h3>3 · High-frequency rolloff</h3><p>Distant sounds lose their top — LPF ~6–8 kHz pushes it back.</p></div>
+          <div class="card"><h3>4 · Transient softness</h3><p>Soften the attack; sharp transients read as "up front".</p></div>
+        </div>
+
+        <h3 style="margin:26px 0 12px;font-size:1.15rem">The lush "tucked-away" Rhodes / pad chain</h3>
+        <div class="acc">
+          <button>🎹 Full chain — dial top to bottom <span class="chev">›</span></button>
+          <div class="body"><div class="inner"><ul class="chain">
+            <li><span class="step">1</span><div><b>EQ (subtractive):</b> HPF ~120–150 Hz · dip 250–400 Hz (mud) · <b>dip 2–4 kHz</b> (vocal pocket — this pulls it off your face) · gentle shelf cut above ~8–10 kHz.</div></li>
+            <li><span class="step">2</span><div><b>Chorus / ensemble</b> (subtle) — the lushness and width.</div></li>
+            <li><span class="step">3</span><div><b>Saturation</b> (CG – Music Warm), then filter any harshness it adds.</div></li>
+            <li><span class="step">4</span><div><b>Light compression</b> so no single chord pokes out.</div></li>
+            <li><span class="step">5</span><div><b>Soften the amp attack</b> so it swells in rather than punches.</div></li>
+            <li><span class="step">6</span><div><b>Reverb sends:</b> a little Room, <b>more Hall</b> (with mod) — this is the bloom behind everything.</div></li>
+            <li><span class="step">7</span><div><b>Sidechain to the kick</b> so it breathes with the track.</div></li>
+            <li><span class="step">8</span><div><b>Movement:</b> a slow filter-cutoff LFO/automation over 8–16 bars keeps it alive without demanding attention.</div></li>
+          </ul></div></div>
+        </div>
+
+        <div class="note"><span class="ic">🌫️</span><div><b>Layer for real lushness:</b> a single patch rarely sounds lush. Try two detuned Rhodes layers, or a Rhodes + a soft dark pad underneath (filtered, low in level). Glue them to one bus and treat them as a single instrument.</div></div>
+        <div class="note tip"><span class="ic">🎚️</span><div><b>The fader trick:</b> pull the pad/Rhodes down until it nearly disappears, then nudge up a hair until you can <em>feel</em> it. That "I'd miss it if it were gone, but I'm not consciously hearing it" level is the spot.</div></div>
+      </section>
+
+      <!-- 05 GROOVE -->
+      <section id="groove">
+        <div class="eyebrow">Feel</div>
+        <h2>Groove &amp; soul</h2>
+        <p class="intro">Cohesion isn't only sonic — it's rhythmic and emotional. Two things most amateur productions miss: a unified groove, and the deliberate warmth + imperfection that reads as "soul."</p>
+        <div class="grid g2">
+          <div class="card"><h3>🎵 Unify the swing</h3><p>Apply one consistent swing (~8–18%) or a single MPC/groove template across drums <b>and</b> music so they share the same rhythmic lean. Don't 100%-quantize to dead grid — that's what makes house feel stiff and programmed.</p></div>
+          <div class="card"><h3>🔥 Warmth over brightness</h3><p>The genre is warm — Rhodes, EP, warm pads, round bass. Lean on tape/tube saturation, not bright digital synths and harsh top end.</p></div>
+          <div class="card"><h3>🎤 Vocal sits IN the bed</h3><p>Not floating on top. Shared reverb puts it in the same room, the 2–4 kHz pocket makes space, and a touch of the same saturation makes it belong.</p></div>
+          <div class="card"><h3>💫 Embrace imperfection</h3><p>Slightly loose timing, played-in bass, velocity variation, a little vinyl/room noise under the whole track. These "imperfections" are literally what "soul" means sonically.</p></div>
+        </div>
+        <div class="note"><span class="ic">🧱</span><div><b>Build the foundation first:</b> get the kick &amp; bass glued — in tune, sidechained, EQ-separated, mono in the lows — <em>before</em> anything else. A solid foundation makes everything stacked on top sit cleanly.</div></div>
+      </section>
+
+      <!-- 06 CHROMAGLOW -->
+      <section id="chroma">
+        <div class="eyebrow">Shared Character</div>
+        <h2>ChromaGlow presets per bus</h2>
+        <p class="intro">Using <b>Tape</b> across most buses gives everything a shared harmonic fingerprint — that's literally Pillar #3 in action. Dial each card once, then save it (steps below) so it's one click forever.</p>
+
+        <div class="note warn"><span class="ic">⚠️</span><div><b>Three rules first:</b> ① <b>Auto Gain ON</b> always (judge tone, not loudness). ② <b>A/B at matched level</b> constantly. ③ It's <b>cumulative</b> — 5 layers stack across your buses + mix bus, so go lighter than feels right on each.</div></div>
+
+        <div class="grid g2">
+          <div class="card">
+            <button class="copybtn" data-copy="CG - Drum Glue | Style: Tape (FET for grit) | Drive 15-25% | Harmonics ~45% | Tone neutral/slightly dark | Mix 70-85% | Auto Gain ON">⧉ Copy</button>
+            <h3>🥁 CG – Drum Glue <span class="pill amber">Tape</span></h3>
+            <div class="dials">
+              <div class="param"><div class="dial" style="--p:20"><span class="v">15–25%</span></div><div class="lab">Drive</div></div>
+              <div class="param"><div class="dial" style="--p:45"><span class="v">~45%</span></div><div class="lab">Harmonics</div></div>
+              <div class="param"><div class="dial" style="--p:48"><span class="v">neutral</span></div><div class="lab">Tone</div></div>
+              <div class="param"><div class="dial" style="--p:78"><span class="v">70–85%</span></div><div class="lab">Mix</div></div>
+            </div>
+            <p style="margin-top:14px">FET style if you want more attitude on the hits. On a solo kick: Tube, Drive ~15%, Mix ~50% parallel for small-speaker weight.</p>
+          </div>
+
+          <div class="card">
+            <button class="copybtn" data-copy="CG - Bass Harmonics | Style: Tube (or Tape) | Drive 20-35% | Harmonics 55-65% | Tone tilt UP | Mix 40-60% PARALLEL (keep sub clean) | Auto Gain ON">⧉ Copy</button>
+            <h3>🎸 CG – Bass Harmonics <span class="pill purple">Tube</span></h3>
+            <div class="dials">
+              <div class="param"><div class="dial p2" style="--p:30"><span class="v">20–35%</span></div><div class="lab">Drive</div></div>
+              <div class="param"><div class="dial p2" style="--p:60"><span class="v">55–65%</span></div><div class="lab">Harmonics</div></div>
+              <div class="param"><div class="dial p2" style="--p:62"><span class="v">tilt ↑</span></div><div class="lab">Tone</div></div>
+              <div class="param"><div class="dial p2" style="--p:50"><span class="v">40–60%</span></div><div class="lab">Mix (par.)</div></div>
+            </div>
+            <p style="margin-top:14px">Drive the harmonics so the bass reads on phones/laptops; keep the sub clean via <b>parallel</b> Mix.</p>
+          </div>
+
+          <div class="card">
+            <button class="copybtn" data-copy="CG - Music Warm | Style: Tape | Drive 10-20% | Harmonics 30-40% | Tone tilt DARK | Mix 80-100% | Auto Gain ON (Rhodes/pads/keys)">⧉ Copy</button>
+            <h3>🎹 CG – Music Warm <span class="pill amber">Tape</span></h3>
+            <div class="dials">
+              <div class="param"><div class="dial" style="--p:15"><span class="v">10–20%</span></div><div class="lab">Drive</div></div>
+              <div class="param"><div class="dial" style="--p:35"><span class="v">30–40%</span></div><div class="lab">Harmonics</div></div>
+              <div class="param"><div class="dial" style="--p:32"><span class="v">tilt ↓</span></div><div class="lab">Tone (dark)</div></div>
+              <div class="param"><div class="dial" style="--p:90"><span class="v">80–100%</span></div><div class="lab">Mix</div></div>
+            </div>
+            <p style="margin-top:14px">Darker tone = warmer &amp; further "back" — supports the tucked-away Rhodes/pad sound.</p>
+          </div>
+
+          <div class="card">
+            <button class="copybtn" data-copy="CG - Vocal Rich | Style: Tube | Drive 10-20% | Harmonics ~40% | Tone neutral/slightly bright | Mix 50-75% PARALLEL | Auto Gain ON | De-ess BEFORE this">⧉ Copy</button>
+            <h3>🎤 CG – Vocal Rich <span class="pill purple">Tube</span></h3>
+            <div class="dials">
+              <div class="param"><div class="dial p2" style="--p:18"><span class="v">10–20%</span></div><div class="lab">Drive</div></div>
+              <div class="param"><div class="dial p2" style="--p:40"><span class="v">~40%</span></div><div class="lab">Harmonics</div></div>
+              <div class="param"><div class="dial p2" style="--p:55"><span class="v">neutral+</span></div><div class="lab">Tone</div></div>
+              <div class="param"><div class="dial p2" style="--p:62"><span class="v">50–75%</span></div><div class="lab">Mix (par.)</div></div>
+            </div>
+            <p style="margin-top:14px"><b>De-ess before</b> ChromaGlow or it exaggerates sibilance.</p>
+          </div>
+
+          <div class="card" style="grid-column:1/-1">
+            <button class="copybtn" data-copy="CG - Mix Bus Glue | Style: Tape | Drive 5-12% | Harmonics 25-30% | Tone neutral | Mix 100% (or 30-50% parallel) | Auto Gain ON | bypass-test religiously">⧉ Copy</button>
+            <h3>🎚️ CG – Mix Bus Glue <span class="pill amber">Tape · barely there</span></h3>
+            <div class="dials">
+              <div class="param"><div class="dial" style="--p:10"><span class="v">5–12%</span></div><div class="lab">Drive</div></div>
+              <div class="param"><div class="dial" style="--p:28"><span class="v">25–30%</span></div><div class="lab">Harmonics</div></div>
+              <div class="param"><div class="dial" style="--p:48"><span class="v">neutral</span></div><div class="lab">Tone</div></div>
+              <div class="param"><div class="dial" style="--p:100"><span class="v">100% / par</span></div><div class="lab">Mix</div></div>
+            </div>
+            <p style="margin-top:14px">On the 2-bus, <b>subtle &amp; cohesive beats audible</b>. Bypass-test until you're sure it's helping, not hurting.</p>
+          </div>
+        </div>
+
+        <h3 style="margin:30px 0 12px;font-size:1.15rem">Style cheat-sheet</h3>
+        <table>
+          <thead><tr><th>Style</th><th>Character</th><th>Best for</th></tr></thead>
+          <tbody>
+            <tr><td><b>Tape</b></td><td>Smooth, warm, slight high rolloff + gentle comp</td><td>Glue everywhere — your go-to</td></tr>
+            <tr><td><b>Tube</b></td><td>Rich, warm, even harmonics</td><td>Bass, lead vocal, kick</td></tr>
+            <tr><td><b>Triode</b></td><td>More aggressive tube, more harmonics</td><td>Stabs/synths needing grit</td></tr>
+            <tr><td><b>FET</b></td><td>Punchy, transistor bite</td><td>Drum attitude, parallel smash</td></tr>
+            <tr><td><b>Squeeze</b></td><td>Most aggressive / compressed</td><td>Creative ear-candy, not glue</td></tr>
+          </tbody>
+        </table>
+        <div class="note"><span class="ic">🎯</span><div>For your genre you'll live in <b>Tape</b>, with <b>Tube</b> on bass &amp; vocals. That combo — warm even-harmonic foundation + smooth tape glue — <em>is</em> the soulful/vocal house sonic signature.</div></div>
+      </section>
+
+      <!-- 05 TEMPLATE -->
+      <section id="template">
+        <div class="eyebrow">Shared Movement + Structure</div>
+        <h2>Template architecture &amp; routing</h2>
+        <p class="intro">Everything routes into groups → groups feed the mix bus → four returns hold the shared FX. With this wired up, most of your glue exists the moment you open a session.</p>
+
+        <div class="route">
+          <div class="lvl">
+            <div class="node grp">DRUMS<small>kick·clap·hats·perc·top</small></div>
+            <div class="node grp">BASS<small>sub / bass</small></div>
+            <div class="node grp">MUSIC<small>rhodes·pads·chords·plucks</small></div>
+            <div class="node grp">VOCALS<small>lead · BVs</small></div>
+            <div class="node grp">FX/TOPS<small>risers·impacts·vinyl</small></div>
+          </div>
+          <div class="arrowdown">▼ &nbsp; sends &nbsp; ▼</div>
+          <div class="lvl">
+            <div class="node ret">RETURN A<small>Room — Valhalla Room</small></div>
+            <div class="node ret">RETURN B<small>Hall — VintageVerb/Lexicon</small></div>
+            <div class="node ret">RETURN C<small>Plate — Little Plate</small></div>
+            <div class="node ret">RETURN D<small>Delay</small></div>
+          </div>
+          <div class="arrowdown">▼</div>
+          <div class="lvl">
+            <div class="node bus">MIX BUS / Stereo Out<small>glue comp → ChromaGlow tape → tonal EQ → loudness meter → limiter (bypassed while mixing)</small></div>
+          </div>
+        </div>
+
+        <h3 style="margin:28px 0 12px;font-size:1.15rem">Bus processing chains <span class="pill teal" style="font-size:.62rem"><span class="daw-logic">Logic stock</span><span class="daw-ableton">Ableton stock</span></span></h3>
+
+        <div class="acc">
+          <button>🥁 DRUMS group <span class="chev">›</span></button>
+          <div class="body"><div class="inner"><ul class="chain">
+            <li><span class="step">1</span><div>Glue comp — 2:1, attack ~30 ms, fast/auto release, 1–2 dB GR. <span class="daw-logic"><code>Compressor → Studio VCA</code></span><span class="daw-ableton"><code>Glue Compressor</code></span></div></li>
+            <li><span class="step">2</span><div>Saturation: <b>CG – Drum Glue</b>. <span class="daw-ableton">(or <code>Drum Buss</code> / <code>Roar</code>)</span></div></li>
+            <li><span class="step">3</span><div>Channel EQ — gentle HPF ~30–40 Hz on the whole bus.</div></li>
+          </ul></div></div>
+        </div>
+
+        <div class="acc">
+          <button>🎸 BASS group <span class="chev">›</span></button>
+          <div class="body"><div class="inner"><ul class="chain">
+            <li><span class="step">1</span><div>Mono the lows below ~120 Hz. <span class="daw-logic"><code>Direction Mixer</code> / keep bass mono</span><span class="daw-ableton"><code>Utility</code> → Bass Mono on</span></div></li>
+            <li><span class="step">2</span><div>Light comp (2:1) to smooth.</div></li>
+            <li><span class="step">3</span><div>Saturation: <b>CG – Bass Harmonics</b> (parallel) for small-speaker translation.</div></li>
+          </ul></div></div>
+        </div>
+
+        <div class="acc">
+          <button>🎹 MUSIC group <span class="chev">›</span></button>
+          <div class="body"><div class="inner"><ul class="chain">
+            <li><span class="step">1</span><div>Glue comp — 2:1, 1–2 dB GR.</div></li>
+            <li><span class="step">2</span><div>Saturation: <b>CG – Music Warm</b>.</div></li>
+            <li><span class="step">3</span><div>Channel EQ with the <b>2–4 kHz dip</b> carved in (the vocal pocket).</div></li>
+          </ul></div></div>
+        </div>
+
+        <div class="acc">
+          <button>🎤 VOCALS group <span class="chev">›</span></button>
+          <div class="body"><div class="inner"><ul class="chain">
+            <li><span class="step">1</span><div>Comp 3–4:1, 3–6 dB GR. <span class="daw-logic"><code>Vintage Opto / FET</code></span><span class="daw-ableton"><code>Compressor</code> / <code>Glue</code></span></div></li>
+            <li><span class="step">2</span><div>De-esser <b>(before saturation!)</b>. <span class="daw-logic"><code>DeEsser 2</code></span><span class="daw-ableton"><code>De-Esser</code></span></div></li>
+            <li><span class="step">3</span><div>Channel EQ — HPF ~100 Hz, presence lift 3–5 kHz, air shelf ~12 kHz.</div></li>
+            <li><span class="step">4</span><div>Saturation: <b>CG – Vocal Rich</b>.</div></li>
+            <li><span class="step">5</span><div>Sends → Plate (C), Hall (B), Delay (D).</div></li>
+          </ul></div></div>
+        </div>
+
+        <div class="acc">
+          <button>🎚️ MIX BUS / Stereo Out <span class="chev">›</span></button>
+          <div class="body"><div class="inner"><ul class="chain">
+            <li><span class="step">1</span><div>Glue comp — 2:1, slow attack, auto release, <b>1–2 dB only</b>. <span class="daw-ableton"><code>Glue Compressor</code></span></div></li>
+            <li><span class="step">2</span><div>Saturation: <b>CG – Mix Bus Glue</b> (very subtle).</div></li>
+            <li><span class="step">3</span><div>Channel EQ for broad tonal shaping.</div></li>
+            <li><span class="step">4</span><div>Loudness meter. <span class="daw-logic"><code>Loudness Meter</code></span></div></li>
+            <li><span class="step">5</span><div>Limiter at the very end — <b>bypassed</b> until finalizing.</div></li>
+          </ul></div></div>
+        </div>
+
+        <div class="note tip"><span class="ic">📌</span><div>Drop a <b>reference track on its own channel routed straight to output</b> (bypassing the mix bus) so you can A/B level-matched without your processing touching it.</div></div>
+      </section>
+
+      <!-- 06 SYNTHS -->
+      <section id="synths">
+        <div class="eyebrow">Sound Sources</div>
+        <h2>Synth starting points</h2>
+        <p class="intro">Right tool for each role, with a genre-correct starting move.</p>
+        <div class="grid g2">
+          <div class="card"><h3>🌊 Diva — warm pads</h3><p>Two slightly detuned voices, slow attack, then <b>filter the top off (LPF 6–8 kHz)</b> and send to the Hall. Dark + lush = the signature.</p></div>
+          <div class="card"><h3>🎹 Zenology — Rhodes / EP / stabs</h3><p>Pick an EP, add a little chorus + gentle tremolo, warm with ChromaGlow, carve the 2–4 kHz dip, send to Room (touch) + Hall (more).</p></div>
+          <div class="card"><h3>🐋 Mariana — sub / bass</h3><p>Keep it mono, tune to the root, sidechain to the kick, don't over-brighten. Let CG add the upper harmonics.</p></div>
+          <div class="card"><h3>⚡ Serum 2 — plucks / ear-candy</h3><p>The rhythmic stabs &amp; layers you pan wide to fill the sides around your centered foundation.</p></div>
+        </div>
+        <div class="note"><span class="ic">🎚️</span><div><b>The "tucked away" fader trick:</b> pull pads/Rhodes down until they nearly disappear, then nudge up a hair until you can <em>feel</em> them. That "I'd miss it if it were gone" level is the spot — pros mix these far quieter than instinct says.</div></div>
+      </section>
+
+      <!-- 09 LOGIC TOOLKIT -->
+      <section id="logic">
+        <div class="eyebrow">Stock Plugins</div>
+        <h2>Logic Pro stock toolkit <span style="font-weight:400;font-size:1rem;color:var(--muted)">(+ Ableton equivalents)</span></h2>
+        <p class="intro">You don't need any third-party plugins for this — here's the exact stock plugin for every job. Logic first (what you asked for), with Ableton 12 alongside since you bounce between them.</p>
+        <table>
+          <thead><tr><th>Job</th><th>Logic Pro stock</th><th>Ableton 12 stock</th></tr></thead>
+          <tbody>
+            <tr><td><b>Glue / bus comp</b></td><td>Compressor → <b>Studio VCA</b> / Vintage VCA</td><td>Glue Compressor</td></tr>
+            <tr><td><b>Punch comp (drums)</b></td><td>Compressor → <b>Studio/Vintage FET</b></td><td>Compressor (FET) · Drum Buss</td></tr>
+            <tr><td><b>Smooth comp (vocal/bass)</b></td><td>Compressor → <b>Vintage Opto</b></td><td>Compressor (Opto)</td></tr>
+            <tr><td><b>Surgical EQ</b></td><td><b>Channel EQ</b></td><td>EQ Eight</td></tr>
+            <tr><td><b>Colour / musical EQ</b></td><td><b>Vintage EQ Collection</b> (Console/Tube)</td><td>EQ Eight (drive on)</td></tr>
+            <tr><td><b>Match tone to a reference</b></td><td><b>Match EQ</b> 🔑</td><td>(reference track + EQ by ear)</td></tr>
+            <tr><td><b>Saturation / warmth</b></td><td><b>ChromaGlow</b> (or Phat FX, Overdrive)</td><td>Roar · Saturator · Drum Buss</td></tr>
+            <tr><td><b>De-essing</b></td><td><b>DeEsser 2</b></td><td>De-Esser</td></tr>
+            <tr><td><b>Room reverb</b></td><td><b>ChromaVerb</b> (Room/Chamber) · Space Designer</td><td>Reverb (small)</td></tr>
+            <tr><td><b>Hall reverb</b></td><td><b>ChromaVerb</b> (Hall/Synth Hall) · Space Designer</td><td>Reverb (large)</td></tr>
+            <tr><td><b>Plate reverb</b></td><td><b>ChromaVerb</b> (Plate) · Space Designer (plate IR)</td><td>Reverb (plate-style)</td></tr>
+            <tr><td><b>Delay</b></td><td><b>Tape Delay</b> / Stereo Delay</td><td>Delay</td></tr>
+            <tr><td><b>Chorus / ensemble (lush pads)</b></td><td><b>Ensemble</b> / Chorus</td><td>Chorus-Ensemble</td></tr>
+            <tr><td><b>Sidechain pump</b></td><td>Compressor (side-chain keyed to kick)</td><td>Compressor (sidechain)</td></tr>
+            <tr><td><b>Mono lows / width</b></td><td><b>Direction Mixer</b></td><td>Utility (Bass Mono / Width)</td></tr>
+            <tr><td><b>Loudness metering</b></td><td><b>Loudness Meter</b> · MultiMeter</td><td>built-in meters</td></tr>
+            <tr><td><b>Final limiter</b></td><td><b>Adaptive Limiter</b> / Limiter</td><td>Limiter</td></tr>
+            <tr><td><b>Tune the kick</b></td><td><b>Tuner</b></td><td>Tuner</td></tr>
+          </tbody>
+        </table>
+        <div class="note"><span class="ic">🔑</span><div><b>Two Logic secret weapons for cohesion:</b> <b>Match EQ</b> — capture the tonal balance of a reference track and gently nudge your mix bus toward it; and <b>ChromaVerb</b> — Logic's lush algorithmic reverb, a genuinely great stand-in for the Room / Hall / Plate sends when you're not reaching for Valhalla or Lexicon.</div></div>
+      </section>
+
+      <!-- 10 FREQ -->
+      <section id="freq">
+        <div class="eyebrow">Tonal Map</div>
+        <h2>Frequency cheat sheet</h2>
+        <p class="intro">Where everything lives, and the moves that keep your mix uncrowded. Most "muddy / amateur" mixes are just frequency collisions in the low-mids — this is your map out.</p>
+
+        <div class="freqbar" role="img" aria-label="Frequency spectrum from sub bass to air">
+          <div class="band" style="background:#6d5dfc">SUB<small>20–60</small></div>
+          <div class="band" style="background:#8b7bff">LOWS<small>60–120</small></div>
+          <div class="band" style="background:#b08bff">LOW-MID<small>120–300</small></div>
+          <div class="band" style="background:#d98bd0">MUD<small>300–500</small></div>
+          <div class="band" style="background:#ff9e7d">MIDS<small>500–2k</small></div>
+          <div class="band" style="background:#ffb347">PRESENCE<small>2–4k</small></div>
+          <div class="band" style="background:#ffd36b">DEFINE<small>4–8k</small></div>
+          <div class="band" style="background:#8fe3d0">BRILL<small>8–12k</small></div>
+          <div class="band" style="background:#4fd1c5">AIR<small>12–20k</small></div>
+        </div>
+
+        <table>
+          <thead><tr><th>Band</th><th>What lives there</th><th>Soulful-house move</th></tr></thead>
+          <tbody>
+            <tr><td><b>20–60 Hz</b> · Sub</td><td>Felt, not heard — sub + kick fundamental</td><td>HPF <em>everything else</em> above this</td></tr>
+            <tr><td><b>60–120 Hz</b> · Lows</td><td>Weight &amp; power — kick body, bass</td><td>Keep <b>mono</b>; tune kick to bass</td></tr>
+            <tr><td><b>120–300 Hz</b> · Low-mid</td><td>Warmth — but mud begins</td><td>HPF pads/keys ~120–150</td></tr>
+            <tr><td><b>300–500 Hz</b> · Mud/box</td><td>Boxiness, congestion</td><td>Gentle <b>dip</b> on pads/Rhodes/bus</td></tr>
+            <tr><td><b>500 Hz–2 kHz</b> · Mids</td><td>Body &amp; tone of keys + vocal</td><td>Carve so parts don't overlap</td></tr>
+            <tr><td><b>2–4 kHz</b> · Presence</td><td>Vocal intelligibility &amp; attack</td><td><b>The vocal pocket</b> — dip here on music</td></tr>
+            <tr><td><b>4–8 kHz</b> · Definition</td><td>Clarity, bite, <b>sibilance</b></td><td>De-ess 5–8k; don't over-boost</td></tr>
+            <tr><td><b>8–12 kHz</b> · Brilliance</td><td>Sheen on hats/cymbals</td><td>Light lift for sparkle</td></tr>
+            <tr><td><b>12–20 kHz</b> · Air</td><td>Openness, "expensive" top</td><td>Gentle high shelf ~12k on vocal/mix</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:26px 0 12px;font-size:1.15rem">Quick per-instrument EQ starting points</h3>
+        <table>
+          <thead><tr><th>Instrument</th><th>HPF</th><th>Cut</th><th>Boost</th></tr></thead>
+          <tbody>
+            <tr><td><b>Kick</b></td><td>~30 Hz</td><td>300–500 (box)</td><td>50–80 (weight) · 2–5k (click)</td></tr>
+            <tr><td><b>Bass</b></td><td>~30 Hz / off</td><td>250–400 (mud); notch kick clash</td><td>700 Hz–1.5k (translation)</td></tr>
+            <tr><td><b>Rhodes / keys</b></td><td>120–150</td><td>250–400 (mud) · <b>2–4k (vocal pocket)</b></td><td>light air only</td></tr>
+            <tr><td><b>Pads</b></td><td>150–250</td><td>250–400 · LPF 6–8k (tuck back)</td><td>—</td></tr>
+            <tr><td><b>Lead vocal</b></td><td>~100</td><td>250–400 (box) · de-ess 5–8k</td><td>2–5k (presence) · shelf ~12k (air)</td></tr>
+            <tr><td><b>Hats / perc</b></td><td>300–500</td><td>3–6k if harsh</td><td>10–12k (sparkle)</td></tr>
+            <tr><td><b>Clap / snare</b></td><td>~150</td><td>400–600 (box)</td><td>200 (body) · 3–5k (crack)</td></tr>
+          </tbody>
+        </table>
+        <div class="note tip"><span class="ic">🎚️</span><div><b>Cut before you boost.</b> Most cohesion problems are solved by <em>removing</em> clashing low-mids (250–500 Hz) across several tracks — not by boosting. And always carve the 2–4 kHz pocket so the vocal sits <em>in</em> the track, not on top of it.</div></div>
+      </section>
+
+      <!-- 11 REFERENCE -->
+      <section id="reference">
+        <div class="eyebrow">The #1 Habit</div>
+        <h2>Reference like a pro</h2>
+        <p class="intro">This closes the "amateur vs professional" gap faster than any plugin. Most people mix in a vacuum with no target — your ears are already good enough, you just need to hold your work next to the standard in real time.</p>
+        <div class="grid g2">
+          <div class="card"><h3>📀 Load 2–3 tracks you love</h3><p>Commercial soulful/vocal house references on their own channel in your session.</p></div>
+          <div class="card"><h3>🔊 Level-match them</h3><p>Louder always sounds "better" — match loudness before comparing or you'll fool yourself every time.</p></div>
+          <div class="card"><h3>🔁 A/B constantly</h3><p>All the way through, not just at the end. Is my low end this controlled? Drums this far back? Vocal this wet? Whole mix this mid-heavy?</p></div>
+          <div class="card"><h3>🔈 Low volume + mono</h3><p>Mix mostly quiet, and check in mono often — it instantly exposes masking and phase problems.</p></div>
+        </div>
+        <div class="note tip"><span class="ic">📌</span><div>Route the reference channel <b>straight to the output</b>, bypassing your mix bus, so your processing never touches it while you A/B.</div></div>
+      </section>
+
+      <!-- 10 DIAGNOSTIC -->
+      <section id="diagnostic">
+        <div class="eyebrow">Troubleshooting</div>
+        <h2>Fix it when it sounds "pasted together"</h2>
+        <p class="intro">Run this 5-step diagnostic the moment a track feels stuck-together rather than glued.</p>
+        <div class="acc">
+          <button>🔧 The 5-step glue diagnostic <span class="chev">›</span></button>
+          <div class="body"><div class="inner"><ul class="chain">
+            <li><span class="step">1</span><div><b>Solo your reverbs</b> — is each instrument in a different room? Consolidate to the shared Room + Hall sends.</div></li>
+            <li><span class="step">2</span><div><b>Bypass all bus/mix-bus comps</b> — is nothing breathing together? Add gentle glue comp + sidechain.</div></li>
+            <li><span class="step">3</span><div><b>Check the low end in mono</b> — muddy or phasey? Tune, carve, and mono the lows.</div></li>
+            <li><span class="step">4</span><div><b>A/B vs a reference, level-matched</b> — too bright? too mid-heavy? vocal too dry/loud? Adjust toward the reference.</div></li>
+            <li><span class="step">5</span><div><b>Listen to the groove</b> — does everything share a swing, or is some stiff and some loose? Unify the feel.</div></li>
+          </ul></div></div>
+        </div>
+        <div class="note"><span class="ic">🎯</span><div><b>Your two biggest wins</b> are almost always <b>shared send reverbs</b> and <b>bus/mix-bus glue compression + sidechain</b>. Those two alone turn "separate" into "whole."</div></div>
+      </section>
+
+      <!-- 11 SAVE -->
+      <section id="save">
+        <div class="eyebrow">Make it reusable</div>
+        <h2>Save your template &amp; presets</h2>
+        <p class="intro">Build the routing above once, save the ChromaGlow cards as named presets, then save the whole session as a template so you never start from scratch again.</p>
+
+        <div class="daw-logic">
+          <div class="card" style="margin-bottom:16px">
+            <h3>🍎 Logic Pro</h3>
+            <ul class="chain" style="margin-top:12px">
+              <li><span class="step">1</span><div>Build the routing: empty named/colored tracks, grouped into <b>Track Stacks → Summing Stacks</b>; reverbs/delay on <b>Aux</b> channels via sends; mix-bus chain on the Stereo Out.</div></li>
+              <li><span class="step">2</span><div>In each ChromaGlow instance, dial a card, then use the plugin header's <b>Settings menu → Save As…</b> → name it (<code>CG – Drum Glue</code>, <code>CG – Bass Harmonics</code>, etc.). They'll appear in every ChromaGlow's preset menu.</div></li>
+              <li><span class="step">3</span><div><b>File → Save as Template…</b> → name it "Soulful House Start".</div></li>
+              <li><span class="step">4</span><div>Next time: <b>File → New from Template → My Templates</b>. Done.</div></li>
+            </ul>
+            <div class="note tip" style="margin-bottom:0"><span class="ic">💡</span><div>Save <b>Screensets</b> too so your mixer/arrange layouts come back with the template.</div></div>
+          </div>
+        </div>
+
+        <div class="daw-ableton">
+          <div class="card" style="margin-bottom:16px">
+            <h3>🅰️ Ableton Live 12</h3>
+            <ul class="chain" style="margin-top:12px">
+              <li><span class="step">1</span><div>Build the set: group tracks (<code>Cmd-G</code>), four <b>Return tracks (A–D)</b> with the verbs/delay, mix-bus chain on the <b>Master</b>.</div></li>
+              <li><span class="step">2</span><div>Save each device/bus chain as an <b>Audio Effect Rack preset</b> into your User Library so you can drop them anywhere.</div></li>
+              <li><span class="step">3</span><div>Save the Set into <b>User Library → Templates</b> so it lives in the browser.</div></li>
+              <li><span class="step">4</span><div>Set it as your <b>Default Set</b> so it loads on every new project.</div></li>
+            </ul>
+            <div class="note tip" style="margin-bottom:0"><span class="ic">💡</span><div>For ChromaGlow recipes in Ableton, recreate the tone with <code>Roar</code> / <code>Saturator</code> and save those as presets, since ChromaGlow is Logic-only.</div></div>
+          </div>
+        </div>
+
+        <div class="note warn"><span class="ic">🛠️</span><div><b>A note from me:</b> Logic templates &amp; ChromaGlow presets are binary files created <em>inside</em> the DAW, so I can't generate them as files from here. This guide <b>is</b> your "baked-in" reference — dial each card once using the exact values, hit Save As, and they're permanent.</div></div>
+      </section>
+
+      <!-- 08 CHECKLIST -->
+      <section id="checklist">
+        <div class="eyebrow">Per-session habit</div>
+        <h2>Session-start checklist</h2>
+        <p class="intro">Run through this every time. It's ticked off in your browser and remembered for next visit.</p>
+        <div class="progress"><i id="bar"></i></div>
+        <div id="checks">
+          <label class="check"><input type="checkbox" id="c1"><span>Load 2–3 reference tracks &amp; <b>level-match</b> them to mine</span></label>
+          <label class="check"><input type="checkbox" id="c2"><span>Tune the kick to the key &amp; lock the kick/bass relationship first</span></label>
+          <label class="check"><input type="checkbox" id="c3"><span>Bass is <b>mono</b> below ~120 Hz</span></label>
+          <label class="check"><input type="checkbox" id="c4"><span>Sidechain bass/pads/chords (and Hall/Plate returns) to the kick</span></label>
+          <label class="check"><input type="checkbox" id="c5"><span>Everything goes to the <b>shared</b> Room + Hall sends — no rogue insert verbs</span></label>
+          <label class="check"><input type="checkbox" id="c6"><span>Carve the 2–4 kHz vocal pocket in the Music bus</span></label>
+          <label class="check"><input type="checkbox" id="c7"><span>One unified <b>swing/groove</b> across drums &amp; music</span></label>
+          <label class="check"><input type="checkbox" id="c8"><span>ChromaGlow <b>Auto Gain ON</b>; A/B every bus at matched level</span></label>
+          <label class="check"><input type="checkbox" id="c9"><span>Pads/Rhodes pulled back with the "tucked-away" fader trick</span></label>
+          <label class="check"><input type="checkbox" id="c10"><span>Glue comp on every bus + 1–2 dB on the mix bus</span></label>
+          <label class="check"><input type="checkbox" id="c11"><span>Check the whole mix in <b>mono</b></span></label>
+          <label class="check"><input type="checkbox" id="c12"><span>Limiter on the 2-bus stays <b>bypassed</b> until finalizing</span></label>
+        </div>
+        <button class="resetbtn" id="reset">↺ Reset checklist</button>
+      </section>
+
+      <footer>
+        <p>Built for your setup — Logic Pro / Ableton 12 · Valhalla · Lexicon · Soundtoys · ChromaGlow · Diva · Zenology · Mariana · Serum 2.<br>
+        Tip: this is a single self-contained file. Drag it to a bookmark or keep it open on a second screen while you produce. 🎶</p>
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script>
+  // DAW toggle
+  const dawseg = document.getElementById('dawseg');
+  dawseg.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    dawseg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.body.className = 'daw-' + b.dataset.daw;
+    // content inside open accordions just changed — recompute their heights
+    document.querySelectorAll('.acc.open .body').forEach(body=>{
+      body.style.maxHeight = body.scrollHeight + 'px';
+    });
+  });
+
+  // Accordions
+  document.querySelectorAll('.acc>button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const acc = btn.parentElement;
+      const body = acc.querySelector('.body');
+      const open = acc.classList.toggle('open');
+      body.style.maxHeight = open ? body.scrollHeight + 'px' : 0;
+    });
+  });
+
+  // Copy buttons (works over http(s) and as a local file via execCommand fallback)
+  function copyText(text){
+    if(navigator.clipboard && window.isSecureContext){
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve,reject)=>{
+      const ta=document.createElement('textarea');
+      ta.value=text; ta.style.position='fixed'; ta.style.top='-9999px'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      let ok=false;
+      try{ ok=document.execCommand('copy'); }catch(err){ ok=false; }
+      document.body.removeChild(ta);
+      ok ? resolve() : reject();
+    });
+  }
+  document.querySelectorAll('.copybtn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const t = btn.textContent;
+      try{
+        await copyText(btn.dataset.copy);
+        btn.textContent='✓ Copied'; btn.classList.add('done');
+      }catch(e){ btn.textContent='Press Ctrl/⌘+C'; }
+      setTimeout(()=>{btn.textContent=t;btn.classList.remove('done')},1400);
+    });
+  });
+
+  // Scrollspy
+  const links = [...document.querySelectorAll('#nav a')];
+  const map = {};
+  links.forEach(l=> map[l.getAttribute('href').slice(1)] = l);
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){
+        links.forEach(l=>l.classList.remove('active'));
+        map[en.target.id]?.classList.add('active');
+      }
+    });
+  },{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section, header.hero').forEach(s=>obs.observe(s));
+
+  // Mobile nav
+  const aside=document.getElementById('aside'), scrim=document.getElementById('scrim'), mb=document.getElementById('menubtn');
+  const toggleNav=open=>{aside.classList.toggle('open',open);scrim.classList.toggle('show',open);};
+  mb.addEventListener('click',()=>toggleNav(!aside.classList.contains('open')));
+  scrim.addEventListener('click',()=>toggleNav(false));
+  document.querySelectorAll('#nav a').forEach(a=>a.addEventListener('click',()=>toggleNav(false)));
+
+  // Checklist persistence
+  const boxes=[...document.querySelectorAll('#checks input')];
+  const bar=document.getElementById('bar');
+  function update(){
+    const done=boxes.filter(b=>b.checked).length;
+    bar.style.width=(done/boxes.length*100)+'%';
+  }
+  boxes.forEach(b=>{
+    const k='glue-'+b.id;
+    if(localStorage.getItem(k)==='1') b.checked=true;
+    b.addEventListener('change',()=>{localStorage.setItem(k,b.checked?'1':'0');update();});
+  });
+  document.getElementById('reset').addEventListener('click',()=>{
+    boxes.forEach(b=>{b.checked=false;localStorage.removeItem('glue-'+b.id);});update();
+  });
+  update();
+
+  // Accessibility: hide purely decorative elements from screen readers
+  document.querySelectorAll('.ic, .arrowdown, .floor, .chev, .brand .dot, .pillarnum')
+    .forEach(el=>el.setAttribute('aria-hidden','true'));
+  const stageEl=document.querySelector('.stage'); if(stageEl) stageEl.setAttribute('role','img');
+</script>
+</body>
+</html>
