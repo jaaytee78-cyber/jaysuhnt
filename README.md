@@ -32,6 +32,7 @@ I'm running two parallel tracks:
 - **Platform:** ATAS
 - **Stage:** Phase 1 manual replay — see [Absorption Fade v2 roadmap](knowledge-base/strategies/absorption-fade-v2.md) (and the universal [4-phase plan](knowledge-base/strategies/absorption-fade-roadmap.md))
 - **Approach:** Order-flow (footprint, delta, CVD divergence, absorption)
+- **Platform primer:** [ATAS beginner's guide](knowledge-base/atas/00-beginners-guide.md) — tools, concepts, and where generic advice needs the v2 correction
 
 ## Roadmap
 
