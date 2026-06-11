@@ -1,0 +1,22 @@
+# Local data cache - never commit market data
+data/*.parquet
+data/*.csv
+data/.fetch.log
+
+# Generated CSVs (keep markdown reports under git)
+reports/setups.csv
+
+# Env / secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.uv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Notebooks
+.ipynb_checkpoints/
